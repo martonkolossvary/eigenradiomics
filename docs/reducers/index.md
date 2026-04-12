@@ -1,0 +1,40 @@
+# Reducers (Algorithms)
+
+**eigenradiomics** is designed around a modular scaffolding that aggregates diverse dimensionality reduction techniques under a unified scikit-learn compatible interface. The core objective is to compress a wide feature matrix \(X \in \mathbb{R}^{n \times m}\) into a dense subspace \(Y \in \mathbb{R}^{n \times k}\) where \(k \ll m\), while preserving meaningful latent structure and enabling transfer of the learned reduction to new, unseen data.
+
+This is particularly critical when working with high-dimensional radiomic feature tables, such as those produced by [Pictologics](https://github.com/martonkolossvary/pictologics), where hundreds or thousands of correlated features must be distilled into a tractable set of components for downstream predictive modelling.
+
+## Unified Reducer Contract
+
+While different algorithms operate under distinct statistical assumptions, all reducers in this package adhere to a shared set of guarantees:
+
+1. **Dense Matrices**: All methods operate on dense NumPy backends. Sparse data arrays are rejected by default.
+2. **Prior Scaling**: Dimensionality reduction models are vulnerable to unit-variance skew. Continuous features should be \(z\)-scored (standard scaled) *prior* to passing to a reducer.
+3. **Reproducible Loadings**: Every reducer fits and caches its internal parameters (e.g., eigenvector bases, singular value loadings, module membership) during `.fit()`. This ensures that `.transform()` on new data produces deterministic, mathematically equivalent mappings without re-computing the reduction, strictly preventing data leakage.
+4. **Inverse Transform**: Where mathematically supported, reducers implement `.inverse_transform()` to project from the reduced subspace back to the original feature space. This enables reconstruction error analysis and intrinsic goodness-of-fit evaluation during hyperparameter tuning.
+5. **Full Parameter Exposure**: Every hyperparameter of a given reducer is exposed through the standard `get_params()` / `set_params()` interface. This allows seamless integration with scikit-learn hyperparameter tuning frameworks such as `GridSearchCV` and `RandomizedSearchCV`.
+
+## Hyperparameter Optimization
+
+Because reducers are unsupervised transformers, optimizing their parameters requires either:
+
+- **Downstream supervised evaluation**: Coupling the reducer in a `Pipeline` with a supervised model and evaluating the end-to-end prediction quality (e.g., accuracy, AUC).
+- **Intrinsic unsupervised scoring**: Using custom scorers (e.g., reconstruction error via `inverse_transform`, silhouette coefficients) to evaluate the quality of the reduction independently of labels.
+- **Multi-metric tracking**: Simultaneously monitoring both supervised and unsupervised metrics using scikit-learn's multi-scoring `GridSearchCV` interface.
+
+For detailed examples and code, see the [Pipelines & Grid Search](../user_guide/pipelines_and_grid_search.md) guide.
+
+## Output Nomenclature
+
+For straightforward traceability in downstream coefficient tables or hyperparameter search results, reduced features receive synthetic names scoped by the algorithm:
+
+- WGCNA modules → `wgcna_0`, `wgcna_1`, `wgcna_2`, ...
+- Future reducers → `pca_0`, `nmf_0`, etc.
+
+These names are returned by `get_feature_names_out()` and are propagated through scikit-learn pipelines automatically.
+
+## Currently Implemented Reducers
+
+| Reducer | Technique | Reference |
+|---------|-----------|-----------|
+| [`WGCNAReducer`](wgcna.md) | Weighted Gene Co-expression Network Analysis | [Langfelder & Horvath, 2008](https://pubmed.ncbi.nlm.nih.gov/19114008/); [PyWGCNA](https://pubmed.ncbi.nlm.nih.gov/37399090/) |

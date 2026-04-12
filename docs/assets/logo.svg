@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="eigenradiomics logo">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff4ecd" />
+      <stop offset="50%" stop-color="#c77dff" />
+      <stop offset="100%" stop-color="#7b2cbf" />
+    </linearGradient>
+  </defs>
+  <rect x="18" y="18" width="220" height="220" fill="#0f0516" stroke="url(#grad)" stroke-width="12" />
+  <path fill="url(#grad)" d="M60 58h28v140H60zm48 0h98v24h-98zm0 46h74v24h-74zm0 70h98v24h-98z" />
+  <path d="M148 104l38 26-38 26" fill="none" stroke="#f8ecff" stroke-width="10" stroke-linecap="square" stroke-linejoin="miter" />
+</svg>

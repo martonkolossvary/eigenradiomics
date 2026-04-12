@@ -1,0 +1,130 @@
+[tool.poetry]
+name = "eigenradiomics"
+version = "0.1.0"
+description = "Modular sklearn-compatible dimensionality reduction for high-dimensional feature matrices"
+authors = ["Márton Kolossváry <marton.kolossvary@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://martonkolossvary.github.io/eigenradiomics/"
+repository = "https://github.com/martonkolossvary/eigenradiomics"
+documentation = "https://martonkolossvary.github.io/eigenradiomics/"
+keywords = ["radiomics", "dimensionality-reduction", "scikit-learn", "wgcna"]
+classifiers = [
+	"Development Status :: 3 - Alpha",
+	"Intended Audience :: Science/Research",
+	"License :: OSI Approved :: Apache Software License",
+	"Programming Language :: Python :: 3",
+	"Programming Language :: Python :: 3.10",
+	"Programming Language :: Python :: 3.11",
+	"Programming Language :: Python :: 3.12",
+	"Topic :: Scientific/Engineering :: Information Analysis",
+	"Typing :: Typed",
+]
+packages = [{include = "eigenradiomics"}]
+exclude = ["tests", "docs", "dev", "site", "coverage.xml"]
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+numpy = ">=1.24"
+pandas = ">=2.0"
+scipy = ">=1.10"
+scikit-learn = ">=1.3"
+joblib = ">=1.3"
+matplotlib = ">=3.5"
+PyWGCNA = {version = ">=2.0", optional = true}
+
+[tool.poetry.extras]
+wgcna = ["PyWGCNA"]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=7.0"
+pytest-cov = ">=4.0"
+ruff = ">=0.4"
+pre-commit = ">=3.0"
+mypy = ">=1.10"
+mkdocs = ">=1.6"
+mkdocs-material = ">=9.5"
+mkdocstrings = {extras = ["python"], version = ">=0.26"}
+towncrier = "^25.8.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+filterwarnings = [
+	'ignore:.*ChainedAssignmentError.*:FutureWarning:PyWGCNA\.wgcna',
+	'ignore:.*observed=False.*:FutureWarning:PyWGCNA\.wgcna',
+]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+exclude = ["tests", "docs", "dev"]
+warn_unreachable = true
+warn_return_any = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+[tool.coverage.run]
+source = ["eigenradiomics"]
+omit = ["tests/*", "docs/*", "dev/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.towncrier]
+package = "eigenradiomics"
+package_dir = "."
+directory = "changelog.d"
+filename = "docs/changelog.md"
+title_format = "## {version} ({project_date})"
+issue_format = "[#{issue}](https://github.com/martonkolossvary/eigenradiomics/issues/{issue})"
+underlines = ["", "", ""]
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecated"
+name = "Deprecated"
+showcontent = true

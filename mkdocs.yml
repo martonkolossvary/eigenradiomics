@@ -1,0 +1,96 @@
+site_name: eigenradiomics
+site_url: https://martonkolossvary.github.io/eigenradiomics/
+site_description: Modular dimensionality reduction for wide feature matrices.
+site_author: Márton Kolossváry
+repo_url: https://github.com/martonkolossvary/eigenradiomics
+repo_name: martonkolossvary/eigenradiomics
+copyright: Copyright &copy; 2026 Márton Kolossváry. Licensed under Apache 2.0.
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  palette:
+    - scheme: slate
+      primary: deep purple
+      accent: pink
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: deep purple
+      accent: pink
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+  font:
+    text: Share Tech Mono
+    code: Roboto Mono
+  logo: assets/logo.svg
+  favicon: assets/favicon.svg
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: numpy
+            show_source: true
+            show_root_heading: true
+            show_root_toc_entry: true
+            separate_signature: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.arithmatex:
+      generic: true
+
+nav:
+  - Home: index.md
+  - User Guide:
+      - Installation: user_guide/installation.md
+      - Quick Start: user_guide/quick_start.md
+      - Data Loading & Validation: user_guide/input_data_model.md
+      - Pipelines & Preprocessing: user_guide/pipelines_and_grid_search.md
+      - Cookbook & Recipes: user_guide/recipes.md
+      - Scalability Guide: user_guide/scalability.md
+      - Troubleshooting: user_guide/troubleshooting.md
+
+  - Reducers (Algorithms):
+      - Overview: reducers/index.md
+      - WGCNA: reducers/wgcna.md
+  - API Reference:
+      - Package: api/package.md
+      - Reducers: api/reducers.md
+      - Interoperability Utilities: api/utils.md
+  - Quality Report: quality.md
+  - Changelog: changelog.md
+  - License: license.md

@@ -1,0 +1,1 @@
+`RadiomicsPrepTransformer` now validates feature names and order at `transform` time (rejecting reordered or mismatched columns instead of silently misapplying per-column parameters), exposes `get_feature_names_out`, and passes `sklearn.utils.estimator_checks.check_estimator`.

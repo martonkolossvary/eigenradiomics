@@ -40,7 +40,7 @@ description = "Annotated data."
 optional = true
 python-versions = ">=3.11"
 groups = ["main"]
-markers = "python_version >= \"3.11\" and extra == \"wgcna\""
+markers = "python_version >= \"3.11\" and (extra == \"combat\" or extra == \"wgcna\")"
 files = [
     {file = "anndata-0.12.10-py3-none-any.whl", hash = "sha256:e3d940d8e34373dc250f998c1011c1da52721f980de9d83a0599daa2baa286e5"},
     {file = "anndata-0.12.10.tar.gz", hash = "sha256:73a73c99ca50400eb9dc7f2fdd400cf677ea4bb9ef1f7c04691c0fc557e43d7f"},
@@ -76,7 +76,7 @@ description = "A wrapper around NumPy and other array libraries to make them com
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"wgcna\""
+markers = "extra == \"wgcna\" or (extra == \"combat\" or extra == \"wgcna\") and python_version >= \"3.11\""
 files = [
     {file = "array_api_compat-1.14.0-py3-none-any.whl", hash = "sha256:ed5af1f9b6595a199c942505f281ec994892556b6efc24679a0501e87a7d6279"},
     {file = "array_api_compat-1.14.0.tar.gz", hash = "sha256:c819ba707f5c507800cb545f7e6348ff1ecc46538381d9ad9b371ffc9cd6d784"},
@@ -695,7 +695,7 @@ description = "Python package for configuring a python package"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "python_version >= \"3.11\" and extra == \"wgcna\""
+markers = "python_version >= \"3.11\" and (extra == \"combat\" or extra == \"wgcna\")"
 files = [
     {file = "donfig-0.8.1.post1-py3-none-any.whl", hash = "sha256:2a3175ce74a06109ff9307d90a230f81215cbac9a751f4d1c6194644b8204f9d"},
     {file = "donfig-0.8.1.post1.tar.gz", hash = "sha256:3bef3413a4c1c601b585e8d297256d0c1470ea012afa6e8461dc28bfb7c23f52"},
@@ -707,6 +707,18 @@ pyyaml = "*"
 [package.extras]
 docs = ["cloudpickle", "numpydoc", "pytest", "sphinx (>=4.0.0)"]
 test = ["cloudpickle", "pytest"]
+
+[[package]]
+name = "et-xmlfile"
+version = "2.0.0"
+description = "An implementation of lxml.xmlfile for the standard library"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "et_xmlfile-2.0.0-py3-none-any.whl", hash = "sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa"},
+    {file = "et_xmlfile-2.0.0.tar.gz", hash = "sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54"},
+]
 
 [[package]]
 name = "exceptiongroup"
@@ -742,6 +754,45 @@ files = [
 
 [package.extras]
 tests = ["asttokens (>=2.1.0)", "coverage", "coverage-enable-subprocess", "ipython", "littleutils", "pytest", "rich ; python_version >= \"3.11\""]
+
+[[package]]
+name = "fastcluster"
+version = "1.3.0"
+description = "Fast hierarchical clustering routines for R and Python."
+optional = true
+python-versions = ">=3"
+groups = ["main"]
+markers = "python_version >= \"3.11\" and extra == \"combat\""
+files = [
+    {file = "fastcluster-1.3.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:bdd5249ddd1746d5775034c30cf593eb8fa833461f679ed7db5271c29655f98d"},
+    {file = "fastcluster-1.3.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:f26ada34a0850a80f012090cf1637e1fb6565532fcc18fbc1e923046f7c60689"},
+    {file = "fastcluster-1.3.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:0f094894d2179633072b4c7bad20898e0ab9505c14d78dcb2f53b980443a050c"},
+    {file = "fastcluster-1.3.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:3017d38cb118fe29608934194f92e8798a09ba07fa5ecc86320e06a877208a3e"},
+    {file = "fastcluster-1.3.0-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0fd2389a1e0e5482f895ca49da618dbc1fd7d0281f366ede47d57a7d6ffb8af6"},
+    {file = "fastcluster-1.3.0-cp310-cp310-win_amd64.whl", hash = "sha256:1ad634a88239bff99f2a1f054564c7468a189ab0a2810f8a77278e924f898bdf"},
+    {file = "fastcluster-1.3.0-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:5ee25c5c36d2b68036aa0d9ff37ba316434824087e6b9884005f1eb09ceaf9ad"},
+    {file = "fastcluster-1.3.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:6a65bed904a67a966a9496f438d28d1d4cc7b57da5ff9525fbdc047874de60cf"},
+    {file = "fastcluster-1.3.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:41dc92126d6195d38f011ae8f4f33d0e4b0edc842da73749f6608b529b6c6d34"},
+    {file = "fastcluster-1.3.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:4e7037a010199cde6028c3d42327d2f84caae673fc708afed084b5f6c043650d"},
+    {file = "fastcluster-1.3.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7467e6da746dba310235546d0b6eef90a1652994dfd2c3022f7052effd142dee"},
+    {file = "fastcluster-1.3.0-cp311-cp311-win_amd64.whl", hash = "sha256:5ae60778ac7ed46108c1175478ff09af0a19a2dbb02090a1c13bf9c5bffbf230"},
+    {file = "fastcluster-1.3.0-cp312-cp312-macosx_10_13_universal2.whl", hash = "sha256:b20785852abb0ba5af62316327b654cea0fd736f819cd48792de0875ffb485f0"},
+    {file = "fastcluster-1.3.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:6be2e33529917df1398f5d85ea55856ebddd81041b0fbe2dfc6badcb0c3b2054"},
+    {file = "fastcluster-1.3.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1ddd6df989ee9ced20c4ecd7cef8df421a10b5410913385bb29d9183d21cc5ee"},
+    {file = "fastcluster-1.3.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d0d22a99d2fef1d7a314650e0f5fc78d4f91d4b233e5aa81b31da45506d25f21"},
+    {file = "fastcluster-1.3.0-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:428126288895fcb6316a239635bafaa19e4677240afee2723a952e488929091d"},
+    {file = "fastcluster-1.3.0-cp312-cp312-win_amd64.whl", hash = "sha256:317db2531895cdf178a3009d3a8b13dfa83a5ed4ab14943b33377174cf9420cf"},
+    {file = "fastcluster-1.3.0-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:07b7cb3a831958f3039064be193a7c125657861e57b257965245c755d41ac031"},
+    {file = "fastcluster-1.3.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:34f0be433cfe0f5c5f3f71052e1850a99fe712f625889adb08d8d1ae851fe7ec"},
+    {file = "fastcluster-1.3.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:400213bdc7d5135c4282fdb7ad6b0579d5a041c16e67ef69bd9d6749335256fd"},
+    {file = "fastcluster-1.3.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5c71b7236288b9067d329359639789060e030285e8da2724fcdacd55ae751947"},
+    {file = "fastcluster-1.3.0-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2dce31ace6f8e08c5400d6e19492fe09aba2b050f78a7aa6943ba2ae50dcd1b0"},
+    {file = "fastcluster-1.3.0-cp313-cp313-win_amd64.whl", hash = "sha256:e7c78f0e9e05c6f380d3d018ef5106d4526461abfd764fe7c0a7b53911b36c7d"},
+    {file = "fastcluster-1.3.0.tar.gz", hash = "sha256:d5233aeba5c3faa949c7fa6a39345a09f716ccebbd748541e5735c866696df02"},
+]
+
+[package.dependencies]
+numpy = ">=2"
 
 [[package]]
 name = "filelock"
@@ -853,7 +904,7 @@ description = "A python wrapper of the C library 'Google CRC32C'"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version >= \"3.11\" and extra == \"wgcna\""
+markers = "python_version >= \"3.11\" and (extra == \"combat\" or extra == \"wgcna\")"
 files = [
     {file = "google_crc32c-1.8.0-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:0470b8c3d73b5f4e3300165498e4cf25221c7eb37f1159e221d1825b6df8a7ff"},
     {file = "google_crc32c-1.8.0-cp310-cp310-macosx_12_0_x86_64.whl", hash = "sha256:119fcd90c57c89f30040b47c211acee231b25a45d225e3225294386f5d258288"},
@@ -971,7 +1022,7 @@ description = "Read and write HDF5 files from Python"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
-markers = "extra == \"wgcna\""
+markers = "extra == \"wgcna\" or (extra == \"combat\" or extra == \"wgcna\") and python_version >= \"3.11\""
 files = [
     {file = "h5py-3.16.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:e06f864bedb2c8e7c1358e6c73af48519e317457c444d6f3d332bb4e8fa6d7d9"},
     {file = "h5py-3.16.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:ec86d4fffd87a0f4cb3d5796ceb5a50123a2a6d99b43e616e5504e66a953eca3"},
@@ -1068,6 +1119,35 @@ files = [
     {file = "iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12"},
     {file = "iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730"},
 ]
+
+[[package]]
+name = "inmoose"
+version = "0.9.1"
+description = "InMoose: the Integrated Multi Omic Open Source Environment"
+optional = true
+python-versions = ">=3.11"
+groups = ["main"]
+markers = "python_version >= \"3.11\" and extra == \"combat\""
+files = [
+    {file = "inmoose-0.9.1.tar.gz", hash = "sha256:1a931cd1405f8bb4ad661a64facc264f2221e51f367e74721f27115316f9895d"},
+]
+
+[package.dependencies]
+anndata = "*"
+fastcluster = "*"
+jinja2 = "*"
+matplotlib = "*"
+mpmath = ">=1.1.0"
+numpy = "*"
+pandas = "*"
+patsy = "*"
+scikit-learn = "*"
+scipy = ">=1.16.0"
+seaborn = "*"
+statsmodels = ">=0.14.5"
+
+[package.extras]
+doc = ["scanpy", "sphinx", "sphinx_rtd_theme", "sphinxcontrib-repl"]
 
 [[package]]
 name = "ipython"
@@ -1224,7 +1304,7 @@ files = [
     {file = "jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"},
     {file = "jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"},
 ]
-markers = {main = "extra == \"wgcna\""}
+markers = {main = "extra == \"wgcna\" or (extra == \"combat\" or extra == \"wgcna\") and python_version >= \"3.11\""}
 
 [package.dependencies]
 MarkupSafe = ">=2.0"
@@ -1411,7 +1491,7 @@ description = "Legacy API wrapper."
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "python_version >= \"3.11\" and extra == \"wgcna\""
+markers = "python_version >= \"3.11\" and (extra == \"combat\" or extra == \"wgcna\")"
 files = [
     {file = "legacy_api_wrap-1.5-py3-none-any.whl", hash = "sha256:5a8ea50e3e3bcbcdec3447b77034fd0d32cb2cf4089db799238708e4d7e0098d"},
     {file = "legacy_api_wrap-1.5.tar.gz", hash = "sha256:b41ba6532f3ebfe3a897a35a7f97dec3be04b92a450f6c2bcf89f1b91c9cadf2"},
@@ -1635,7 +1715,7 @@ files = [
     {file = "markupsafe-3.0.3-cp39-cp39-win_arm64.whl", hash = "sha256:38664109c14ffc9e7437e86b4dceb442b0096dfe3541d7864d9cbe1da4cf36c8"},
     {file = "markupsafe-3.0.3.tar.gz", hash = "sha256:722695808f4b6457b320fdc131280796bdceb04ab50fe1795cd540799ebe1698"},
 ]
-markers = {main = "extra == \"wgcna\""}
+markers = {main = "extra == \"wgcna\" or (extra == \"combat\" or extra == \"wgcna\") and python_version >= \"3.11\""}
 
 [[package]]
 name = "matplotlib"
@@ -1912,6 +1992,28 @@ mkdocstrings = ">=0.30"
 typing-extensions = {version = ">=4.0", markers = "python_version < \"3.11\""}
 
 [[package]]
+name = "mpmath"
+version = "1.4.1"
+description = "Python library for arbitrary-precision floating-point arithmetic"
+optional = true
+python-versions = ">=3.9"
+groups = ["main"]
+markers = "python_version >= \"3.11\" and extra == \"combat\""
+files = [
+    {file = "mpmath-1.4.1-py3-none-any.whl", hash = "sha256:dc4f0ea2304480d4a9a48a94c1020571558ade522b44a6912efac63a586e140f"},
+    {file = "mpmath-1.4.1.tar.gz", hash = "sha256:efd6d1b75f09d69524a67609949812668b28e81ecbfe0ab449ced8c13e92642e"},
+]
+
+[package.extras]
+ci = ["diff_cover", "pytest-xdist"]
+develop = ["build", "flake518 (>=1.5)", "mpmath[tests]", "pytest-cov (>=7)", "wheel"]
+docs = ["matplotlib", "sphinx", "sphinxcontrib-autoprogram"]
+gmp = ["python-gmp"]
+gmpy = ["mpmath[gmpy2]"]
+gmpy2 = ["gmpy2 (>=2.3)"]
+tests = ["hypothesis", "ipython", "matplotlib", "numpy", "packaging", "pexpect", "pytest (>=6)", "pytest-timeout"]
+
+[[package]]
 name = "mypy"
 version = "1.20.0"
 description = "Optional static typing for Python"
@@ -1999,7 +2101,7 @@ description = "Simple yet flexible natural sorting in Python."
 optional = true
 python-versions = ">=3.7"
 groups = ["main"]
-markers = "extra == \"wgcna\""
+markers = "extra == \"wgcna\" or (extra == \"combat\" or extra == \"wgcna\") and python_version >= \"3.11\""
 files = [
     {file = "natsort-8.4.0-py3-none-any.whl", hash = "sha256:4732914fb471f56b5cce04d7bae6f164a592c7712e1c85f9ef585e197299521c"},
     {file = "natsort-8.4.0.tar.gz", hash = "sha256:45312c4a0e5507593da193dedd04abb1469253b601ecaf63445ad80f0a1ea581"},
@@ -2073,7 +2175,7 @@ description = "A Python package providing buffer compression and transformation 
 optional = true
 python-versions = ">=3.11"
 groups = ["main"]
-markers = "python_version >= \"3.11\" and extra == \"wgcna\""
+markers = "python_version >= \"3.11\" and (extra == \"combat\" or extra == \"wgcna\")"
 files = [
     {file = "numcodecs-0.16.5-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:78382dcea50622f2ef1e6e7a71dbe7f861d8fe376b27b7c297c26907304fef1e"},
     {file = "numcodecs-0.16.5-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:e2d04a19cb57a3c519b4127ac377cca6471aee1990d7c18f5b1e3a4fe1306689"},
@@ -2262,6 +2364,21 @@ files = [
 ]
 
 [[package]]
+name = "openpyxl"
+version = "3.1.5"
+description = "A Python library to read/write Excel 2010 xlsx/xlsm files"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2"},
+    {file = "openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050"},
+]
+
+[package.dependencies]
+et-xmlfile = "*"
+
+[[package]]
 name = "packaging"
 version = "26.0"
 description = "Core utilities for Python packages"
@@ -2431,7 +2548,7 @@ description = "A Python package for describing statistical models and for buildi
 optional = true
 python-versions = ">=3.6"
 groups = ["main"]
-markers = "extra == \"wgcna\""
+markers = "extra == \"wgcna\" or (extra == \"combat\" or extra == \"wgcna\") and python_version >= \"3.11\""
 files = [
     {file = "patsy-1.0.2-py2.py3-none-any.whl", hash = "sha256:37bfddbc58fcf0362febb5f54f10743f8b21dd2aa73dec7e7ef59d1b02ae668a"},
     {file = "patsy-1.0.2.tar.gz", hash = "sha256:cdc995455f6233e90e22de72c37fcadb344e7586fb83f06696f54d92f8ce74c0"},
@@ -2968,7 +3085,7 @@ files = [
     {file = "pyyaml-6.0.3-cp39-cp39-win_amd64.whl", hash = "sha256:2e71d11abed7344e42a8849600193d15b6def118602c4c176f748e4583246007"},
     {file = "pyyaml-6.0.3.tar.gz", hash = "sha256:d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f"},
 ]
-markers = {main = "python_version >= \"3.11\" and extra == \"wgcna\""}
+markers = {main = "python_version >= \"3.11\" and (extra == \"combat\" or extra == \"wgcna\")"}
 
 [[package]]
 name = "pyyaml-env-tag"
@@ -3088,6 +3205,25 @@ files = [
     {file = "ruff-0.15.9-py3-none-win_arm64.whl", hash = "sha256:0694e601c028fd97dc5c6ee244675bc241aeefced7ef80cd9c6935a871078f53"},
     {file = "ruff-0.15.9.tar.gz", hash = "sha256:29cbb1255a9797903f6dde5ba0188c707907ff44a9006eb273b5a17bfa0739a2"},
 ]
+
+[[package]]
+name = "scienceplots"
+version = "2.2.1"
+description = "Format Matplotlib for scientific plotting"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "scienceplots-2.2.1-py3-none-any.whl", hash = "sha256:a1a9f670cbf5b59d92cdd3250be85b079ee4cf08bcaf2ace5ef57995be0b6c42"},
+    {file = "scienceplots-2.2.1.tar.gz", hash = "sha256:51ad98c420e499d3284d07b6447a4b3aedd8ec122aca39ba91c58205226c408a"},
+]
+
+[package.dependencies]
+matplotlib = "*"
+
+[package.extras]
+all = ["SciencePlots[test]"]
+test = ["numpy", "pytest"]
 
 [[package]]
 name = "scikit-learn"
@@ -3361,7 +3497,7 @@ description = "Statistical data visualization"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "extra == \"wgcna\""
+markers = "extra == \"wgcna\" or (extra == \"combat\" or extra == \"wgcna\") and python_version >= \"3.11\""
 files = [
     {file = "seaborn-0.13.2-py3-none-any.whl", hash = "sha256:636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987"},
     {file = "seaborn-0.13.2.tar.gz", hash = "sha256:93e60a40988f4d65e9f4885df477e2fdaff6b73a9ded434c1ab356dd57eefff7"},
@@ -3439,7 +3575,7 @@ description = "Statistical computations and models for Python"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
-markers = "extra == \"wgcna\""
+markers = "extra == \"wgcna\" or (extra == \"combat\" or extra == \"wgcna\") and python_version >= \"3.11\""
 files = [
     {file = "statsmodels-0.14.6-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:f4ff0649a2df674c7ffb6fa1a06bffdb82a6adf09a48e90e000a15a6aaa734b0"},
     {file = "statsmodels-0.14.6-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:109012088b3e370080846ab053c76d125268631410142daad2f8c10770e8e8d9"},
@@ -3609,7 +3745,7 @@ files = [
     {file = "typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"},
     {file = "typing_extensions-4.15.0.tar.gz", hash = "sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466"},
 ]
-markers = {main = "extra == \"wgcna\""}
+markers = {main = "extra == \"wgcna\" or (extra == \"combat\" or extra == \"wgcna\") and python_version >= \"3.11\""}
 
 [[package]]
 name = "tzdata"
@@ -3724,7 +3860,7 @@ description = "An implementation of chunked, compressed, N-dimensional arrays fo
 optional = true
 python-versions = ">=3.11"
 groups = ["main"]
-markers = "python_version >= \"3.11\" and extra == \"wgcna\""
+markers = "python_version >= \"3.11\" and (extra == \"combat\" or extra == \"wgcna\")"
 files = [
     {file = "zarr-3.1.6-py3-none-any.whl", hash = "sha256:b5a82c5079d1c3d4ee8f06746fa3b9a98a7d804300fa3f4be154362a33e1207e"},
     {file = "zarr-3.1.6.tar.gz", hash = "sha256:d95e72cbea4b90e9a70679468b8266400331756232576ae2b43400ac5108d0eb"},
@@ -3745,9 +3881,10 @@ optional = ["universal-pathlib"]
 remote = ["fsspec (>=2023.10.0)", "obstore (>=0.5.1)"]
 
 [extras]
+combat = ["inmoose"]
 wgcna = ["PyWGCNA"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "7796a62e415c15d20c958ed33c40db8e3182533aa71a74b521a38a1750a5079a"
+content-hash = "142bce3847914ab47830ccd24699800d992f9554ab363ff64027ace204a4dd5b"

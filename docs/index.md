@@ -14,19 +14,19 @@
 
 **eigenradiomics** is a modular, scikit-learn-compatible dimensionality reduction framework for wide feature matrices, with an initial focus on radiomics tables such as the outputs produced by [Pictologics](https://github.com/martonkolossvary/pictologics).
 
-The package is designed around a simple, robust mathematical contract: reducing wide feature arrays \(X \in \mathbb{R}^{n \times m}\) down to a highly constrained dense subspace \(Y \in \mathbb{R}^{n \times k}\), where \(n\) represents the number of samples and the preserved feature count is massively compressed (\(k \ll m\)). By universally supporting multiple reducers (e.g., WGCNA, and planned methods like PCA or NMF) under a single architecture, the framework explicitly preserves latent metrics—spanning mathematical factors, clusters, and loadings—strictly preventing training data leakage. This enables seamless transfer of the dimensionality reduction to new, unseen data, guaranteeing deterministic mapping for completely independent predictive cohorts downstream.
+The package is built around a simple contract: reduce a wide feature matrix \(X \in \mathbb{R}^{n \times m}\) to a compact representation \(Y \in \mathbb{R}^{n \times k}\) with \(k \ll m\), where \(n\) is the number of samples. Each reducer learns its mapping (factors, clusters, loadings) from the training data only and stores it, so the same transformation can later be applied deterministically to new, unseen samples without re-fitting — avoiding leakage between cohorts. A single architecture hosts multiple reducers (currently WGCNA; PCA and NMF are planned).
 
 ## Why eigenradiomics?
 
-- **🧩 Modular framework**: Aggregate distinct dimensionality methods effortlessly without altering fundamental pipeline models or architectures locally.
-- **⚙️ Scikit-learn-native behavior**: Fully exploits native execution logic allowing parameter bindings, hyper-parameter GridSearch scanning (`GridSearchCV`), clustering cross-validations, and `sklearn.pipeline.Pipeline` integrations cleanly natively out of the box globally. Every specific argument of a given reducer inherently stays fully exposed fundamentally.
-- **🛡️ Safe handling of wide tables**: Evaluates and isolates DataFrame structures correctly avoiding silent misalignment failures frequently present during validation merges automatically.
-- **📊 Reducer-specific diagnostics**: Empowers specific estimators universally (e.g. `WGCNAReducer` exposes specific internal dendrograms, cluster densities, and topologies actively independently).
-- **🚀 Designed for reliable deployments**: Secure validation execution guarantees natively predicting outputs exactly identically across separate evaluation splits statically.
+- **🧩 Modular framework**: Add new dimensionality-reduction methods without changing the pipeline architecture.
+- **⚙️ Scikit-learn-native**: Works out of the box with `sklearn.pipeline.Pipeline`, `GridSearchCV`, and cross-validation; every reducer parameter is exposed for tuning.
+- **🛡️ Safe handling of wide tables**: Validates DataFrame feature names and order across `fit` and `transform`, so column misalignment is caught instead of silently producing wrong results.
+- **📊 Reducer-specific diagnostics**: Estimators expose their internals — for example, `WGCNAReducer` provides dendrograms, module sizes, and soft-power diagnostics.
+- **🚀 Reproducible by design**: A fitted reducer maps new data deterministically, giving identical outputs across runs and evaluation splits.
 
 ## Current Components
 
-- **`WGCNAReducer`**: Native functional encapsulation of [WGCNA](https://pubmed.ncbi.nlm.nih.gov/19114008/) driven via the highly optimized [PyWGCNA](https://pubmed.ncbi.nlm.nih.gov/37399090/) backbone algorithm mathematically extracting networks reliably.
+- **`WGCNAReducer`**: Module-based reduction using [WGCNA](https://pubmed.ncbi.nlm.nih.gov/19114008/) network construction (via [PyWGCNA](https://pubmed.ncbi.nlm.nih.gov/37399090/)), representing each module of correlated features by its eigengene.
 
 ## Documentation Map
 

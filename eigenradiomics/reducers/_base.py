@@ -89,7 +89,7 @@ class BaseReducer(ABC, TransformerMixin, BaseEstimator):
 
     def get_feature_names_out(self, input_features: NDArray | None = None) -> NDArray:
         """Return output feature names: ``{prefix}_{i}``."""
-        from eigenradiomics._utils import check_is_fitted
+        from sklearn.utils.validation import check_is_fitted
 
         check_is_fitted(self, "n_components_")
         return np.array(

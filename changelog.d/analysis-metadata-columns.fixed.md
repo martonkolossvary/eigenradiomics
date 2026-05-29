@@ -1,0 +1,1 @@
+`compute_batch_effects` and `compute_reproducibility` no longer crash when given a DataFrame containing non-numeric metadata columns (e.g. `PatientID`) without explicit selectors; such columns are now skipped automatically.

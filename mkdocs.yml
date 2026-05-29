@@ -80,6 +80,9 @@ nav:
       - Quick Start: user_guide/quick_start.md
       - Data Loading & Validation: user_guide/input_data_model.md
       - Pipelines & Preprocessing: user_guide/pipelines_and_grid_search.md
+      - Radiomics Table Preprocessing: user_guide/radiomics_preprocessing.md
+      - Reproducibility Analysis: user_guide/reproducibility.md
+      - Batch Effect Diagnostics: user_guide/batch_effects.md
       - Cookbook & Recipes: user_guide/recipes.md
       - Scalability Guide: user_guide/scalability.md
       - Troubleshooting: user_guide/troubleshooting.md
@@ -90,6 +93,9 @@ nav:
   - API Reference:
       - Package: api/package.md
       - Reducers: api/reducers.md
+      - Preprocessing: api/preprocessing.md
+      - Reproducibility: api/reproducibility.md
+      - Batch Effects: api/batch_effects.md
       - Interoperability Utilities: api/utils.md
   - Quality Report: quality.md
   - Changelog: changelog.md

@@ -84,6 +84,15 @@ def extract_feature_names(
     return np.array([f"feature_{i}" for i in range(m)], dtype=str)
 
 
+def _assert_dense_matrix(X: Any) -> None:
+    """Raise TypeError if X is a sparse matrix."""
+    if scipy.sparse.issparse(X):
+        raise TypeError(
+            "Sparse matrices are not supported. "
+            "Convert to a dense array or DataFrame before passing to the estimator."
+        )
+
+
 def validate_estimator_input(
     estimator: Any,
     X: NDArray | pd.DataFrame,
@@ -99,11 +108,7 @@ def validate_estimator_input(
     ``n_features_in_`` correctly while still supporting generated feature names
     for numpy inputs.
     """
-    if scipy.sparse.issparse(X):
-        raise TypeError(
-            "Sparse matrices are not supported. "
-            "Convert to a dense array or DataFrame before passing to the estimator."
-        )
+    _assert_dense_matrix(X)
     feature_name_estimator = cast(_SupportsFeatureNames, estimator)
     has_dataframe_names = isinstance(X, pd.DataFrame)
     had_feature_names = hasattr(estimator, "feature_names_in_")

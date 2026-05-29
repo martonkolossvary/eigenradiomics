@@ -1,0 +1,1 @@
+`WGCNAReducer` now correctly honors `include_grey`: unassigned features are identified from WGCNA's label 0 (rather than a literal `"grey"` color name, which PyWGCNA never emits) and are excluded by default and protected from module merging.

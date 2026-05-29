@@ -22,6 +22,24 @@ from eigenradiomics.reducers import WGCNAReducer  # noqa: E402
 from eigenradiomics.reducers._wgcna_utils import _wgcna_compute_eigengene  # noqa: E402
 
 
+def _noise_heavy_matrix() -> np.ndarray:
+    """Matrix with 4 correlated groups plus many uncorrelated noise features.
+
+    The noise features are not assigned to any module by WGCNA (the unassigned
+    "grey" module), which lets us test ``include_grey`` behaviour.
+    """
+    rng = np.random.default_rng(0)
+    n = 50
+    cols = []
+    for _ in range(4):  # 4 correlated groups of 25 features
+        latent = rng.standard_normal(n)
+        for _ in range(25):
+            cols.append(latent + rng.standard_normal(n) * 0.3)
+    for _ in range(40):  # 40 uncorrelated noise features
+        cols.append(rng.standard_normal(n))
+    return np.column_stack(cols)
+
+
 @pytest.fixture()
 def wgcna_default():
     """WGCNAReducer with fast settings for testing."""
@@ -146,14 +164,28 @@ class TestWGCNAReducerMethods:
         m = small_feature_matrix.shape[1]
         assert r.tom_.shape == (m, m)
 
-    def test_include_grey(self, small_feature_matrix):
+    def test_include_grey(self):
+        """include_grey must control whether unassigned features form a module.
+
+        Regression test: previously the unassigned module was only removed when
+        literally named "grey", which PyWGCNA never emits, so include_grey=False
+        silently kept all unassigned features.
+        """
+        X = _noise_heavy_matrix()
         r_no = WGCNAReducer(soft_power=6, min_module_size=20, include_grey=False, verbose=0)
         r_yes = WGCNAReducer(soft_power=6, min_module_size=20, include_grey=True, verbose=0)
-        r_no.fit(small_feature_matrix)
-        r_yes.fit(small_feature_matrix)
-        # If grey features exist, including them adds a module
-        if "grey" in r_yes.module_names_:
-            assert r_yes.n_components_ >= r_no.n_components_
+        r_no.fit(X)
+        r_yes.fit(X)
+
+        assigned_no = sum(len(v) for v in r_no.module_assignments_.values())
+        assigned_yes = sum(len(v) for v in r_yes.module_assignments_.values())
+
+        # Some noise features are unassigned and excluded by default ...
+        assert assigned_no < X.shape[1]
+        # ... but retained as an extra module when include_grey=True.
+        assert assigned_yes > assigned_no
+        assert r_yes.n_components_ > r_no.n_components_
+        assert set(r_no.module_names_).issubset(set(r_yes.module_names_))
 
 
 class TestWGCNAReducerPipeline:
@@ -264,6 +296,11 @@ class TestWGCNAReducerParameterValidation:
             ("verbose", -1, "verbose must be a non-negative integer"),
             ("network_type", "invalid", "network_type must be one of"),
             ("tom_type", "invalid", "tom_type must be one of"),
+            ("n_module_components", 0, "n_module_components must be a positive integer"),
+            ("n_module_components", -5, "n_module_components must be a positive integer"),
+            ("n_module_components", "invalid", "n_module_components must be a positive integer"),
+            ("n_jobs", 0, "n_jobs must be a non-zero integer"),
+            ("n_jobs", 1.5, "n_jobs must be a non-zero integer"),
         ],
     )
     def test_invalid_param_raises(self, param, value, match, small_feature_matrix):
@@ -504,12 +541,23 @@ class TestWGCNAReducerFeatureImportances:
 
 
 class TestWGCNAReducerRandomStateNJobs:
-    """Tests for random_state and n_jobs parameters."""
+    """Tests for n_module_components and n_jobs parameters."""
 
-    def test_random_state_accepted(self, small_feature_matrix):
-        r = WGCNAReducer(soft_power=6, min_module_size=20, verbose=0, random_state=42)
+    def test_n_module_components_multi(self, small_feature_matrix):
+        r = WGCNAReducer(soft_power=6, min_module_size=20, verbose=0, n_module_components=2)
         Y = r.fit_transform(small_feature_matrix)
         assert Y.ndim == 2
+        assert r.n_components_ > len(r.module_names_)
+
+        # Test inverse_transform with multi-eigengenes
+        X_recon = r.inverse_transform(Y)
+        assert X_recon.shape == small_feature_matrix.shape
+
+        # Test feature importances with multi-eigengenes
+        importances = r.wgcna_get_feature_importances()
+        assert isinstance(importances, dict)
+        for _, df in importances.items():
+            assert set(df.columns) == {"feature", "loading", "importance"}
 
     def test_n_jobs_one(self, small_feature_matrix):
         r = WGCNAReducer(soft_power=6, min_module_size=20, verbose=0, n_jobs=1)
@@ -529,9 +577,9 @@ class TestWGCNAReducerRandomStateNJobs:
         np.testing.assert_allclose(Y_seq, Y_par, atol=1e-12)
 
     def test_get_params_includes_new_params(self):
-        r = WGCNAReducer(random_state=42, n_jobs=3)
+        r = WGCNAReducer(n_module_components=3, n_jobs=3)
         params = r.get_params()
-        assert params["random_state"] == 42
+        assert params["n_module_components"] == 3
         assert params["n_jobs"] == 3
 
 
@@ -615,22 +663,6 @@ class TestWGCNAReducerCoverageGaps:
         r = WGCNAReducer(soft_power=6, min_module_size=20, verbose=1)
         r.fit(small_feature_matrix)
         assert r.n_components_ > 0
-
-    def test_include_grey_removes_grey_module(self, small_feature_matrix):
-        """_wgcna.py:303 — include_grey=False removing grey from module list.
-
-        We force a grey module by using very large min_module_size so some
-        features are unassigned, then verify grey is excluded.
-        """
-        r_no_grey = WGCNAReducer(
-            soft_power=6,
-            min_module_size=5,
-            include_grey=False,
-            verbose=0,
-        )
-        r_no_grey.fit(small_feature_matrix)
-        # Grey should never appear in module_names_ when include_grey=False
-        assert "grey" not in r_no_grey.module_names_
 
     def test_dendrogram_invalid_color_fallback(
         self,

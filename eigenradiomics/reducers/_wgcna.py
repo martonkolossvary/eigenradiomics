@@ -19,8 +19,8 @@ import pandas as pd
 from numpy.typing import NDArray
 from scipy.cluster.hierarchy import cut_tree, linkage
 from scipy.spatial.distance import squareform
+from sklearn.utils.validation import check_is_fitted
 
-from eigenradiomics._utils import check_is_fitted
 from eigenradiomics.reducers._base import BaseReducer
 from eigenradiomics.reducers._wgcna_utils import (
     _wgcna_compute_eigengene,
@@ -87,12 +87,8 @@ class WGCNAReducer(BaseReducer):
         0 = suppress PyWGCNA stdout, ≥1 = pass through.
     log_file : str or None
         If set, redirect PyWGCNA stdout to this file.
-    random_state : int, np.random.RandomState, or None
-        Seed for reproducible SVD sign alignment.  ``None`` means the
-        global numpy random state is used (current behaviour is fully
-        deterministic because the SVD itself is deterministic, so this
-        parameter is mainly for forward-compatibility with future
-        stochastic operations).
+    n_module_components : int
+        Number of principal components (eigengenes) to extract per module (default: 1).
     n_jobs : int or None
         Number of parallel jobs for per-module SVD computation during
         ``fit`` and ``transform``.  ``None`` means 1 (sequential).  -1
@@ -116,8 +112,8 @@ class WGCNAReducer(BaseReducer):
         include_grey: bool = False,
         verbose: int = 0,
         log_file: str | None = None,
-        random_state: int | np.random.RandomState | None = None,
         n_jobs: int | None = None,
+        n_module_components: int = 1,
     ) -> None:
         self.network_type = network_type
         self.tom_type = tom_type
@@ -132,8 +128,8 @@ class WGCNAReducer(BaseReducer):
         self.include_grey = include_grey
         self.verbose = verbose
         self.log_file = log_file
-        self.random_state = random_state
         self.n_jobs = n_jobs
+        self.n_module_components = n_module_components
 
     # ------------------------------------------------------------------
     # sklearn interface
@@ -157,6 +153,12 @@ class WGCNAReducer(BaseReducer):
             )
         if not 0 <= self.me_diss_threshold <= 1:
             raise ValueError(f"me_diss_threshold must be in [0, 1], got {self.me_diss_threshold}.")
+        if not isinstance(self.n_module_components, int) or self.n_module_components < 1:
+            raise ValueError(
+                f"n_module_components must be a positive integer, got {self.n_module_components}."
+            )
+        if self.n_jobs is not None and (not isinstance(self.n_jobs, int) or self.n_jobs == 0):
+            raise ValueError(f"n_jobs must be a non-zero integer or None, got {self.n_jobs!r}.")
         if self.deep_split not in {0, 1, 2, 3, 4}:
             raise ValueError(f"deep_split must be 0, 1, 2, 3, or 4, got {self.deep_split}.")
         if not isinstance(self.verbose, int) or self.verbose < 0:
@@ -254,6 +256,7 @@ class WGCNAReducer(BaseReducer):
             # --- 3. TOM ---
             tom = WGCNA.TOMsimilarity(adj, TOMType=self.tom_type)
             tom_arr = tom.values if isinstance(tom, pd.DataFrame) else np.asarray(tom)
+            del adj  # adjacency matrix no longer needed
 
             if self.store_tom:
                 self.tom_ = tom_arr
@@ -264,6 +267,7 @@ class WGCNAReducer(BaseReducer):
             # Convert square distance matrix to condensed form
             dist_condensed = dist[np.triu_indices(n_features, k=1)]
             dendro = linkage(dist_condensed, method="average")
+            del dist_condensed
 
             self.dendrogram_ = dendro
 
@@ -276,6 +280,7 @@ class WGCNAReducer(BaseReducer):
                 deepSplit=self.deep_split,
                 pamRespectsDendro=self.pam_respect_dendro,
             )
+            del dist, dist_df  # free (n_features × n_features) distance matrices
             # cutreeHybrid returns DataFrame with 'Name' and 'Value' columns
             if isinstance(cut_result, pd.DataFrame):
                 numeric_labels = cut_result.iloc[:, 0].values
@@ -287,20 +292,27 @@ class WGCNAReducer(BaseReducer):
             colors = WGCNA.labels2colors(label_df)
             color_list = colors.tolist() if isinstance(colors, np.ndarray) else list(colors)
 
+        # Identify the unassigned ("grey") module.  Standard WGCNA reserves
+        # label 0 for features not assigned to any module.  PyWGCNA's
+        # labels2colors does not guarantee the literal name "grey" for label 0
+        # (the colour depends on the palette), so resolve the unassigned colour
+        # from the numeric labels directly rather than by matching a name.
+        numeric_labels_arr = np.asarray(numeric_labels)
+        grey_color: str | None = None
+        if (numeric_labels_arr == 0).any():
+            grey_idx = int(np.flatnonzero(numeric_labels_arr == 0)[0])
+            grey_color = color_list[grey_idx]
+
         # --- 7. Merge close modules (own implementation) ---
-        # PyWGCNA's mergeCloseModules has pandas compatibility issues,
-        # so we merge using eigengene dissimilarity computed via SVD.
-        merged_colors = self._merge_close_modules(X_arr, color_list)
+        # PyWGCNA's mergeCloseModules has pandas compatibility issues, so we
+        # merge using eigengene dissimilarity computed via SVD.  The unassigned
+        # ("grey") module is never merged into a real module.
+        merged_colors = self._merge_close_modules(X_arr, color_list, protect=grey_color)
 
         # --- 8. Build module assignments ---
-        # The "grey" module in standard WGCNA corresponds to label 0
-        # (unassigned features).  PyWGCNA's labels2colors maps 0 → "grey".
-        # With non-zero labels the grey name depends on the color palette;
-        # we treat "grey" as the canonical unassigned name.
         unique_modules = sorted(set(merged_colors))
-        # pragma: no cover — PyWGCNA maps label 0 to "black" not "grey"
-        if not self.include_grey and "grey" in unique_modules:  # pragma: no cover
-            unique_modules.remove("grey")
+        if not self.include_grey and grey_color is not None and grey_color in unique_modules:
+            unique_modules.remove(grey_color)
 
         self.module_colors_ = merged_colors
         self.module_names_ = unique_modules
@@ -311,9 +323,14 @@ class WGCNAReducer(BaseReducer):
             )
 
         # --- 9. Compute eigengene loadings via SVD ---
-        self._compute_module_loadings(X_arr)
+        self._compute_module_loadings(X_arr, self.n_module_components)
 
-        self.n_components_ = len(unique_modules)
+        self.n_components_ = sum(
+            self.module_loadings_[mod].shape[1]
+            if self.module_loadings_[mod].ndim == 2
+            else 1
+            for mod in unique_modules
+        )
         return self
 
     def transform(self, X: NDArray | pd.DataFrame) -> NDArray:
@@ -382,14 +399,20 @@ class WGCNAReducer(BaseReducer):
         n_features = len(self.feature_names_in_)
         X_recon = np.zeros((n_samples, n_features))
 
-        for col_idx, mod in enumerate(self.module_names_):
+        col_offset = 0
+        for mod in self.module_names_:
             feat_idx = self.module_assignments_[mod]
-            Y_mod = Y_arr[:, col_idx : col_idx + 1]
             loadings = self.module_loadings_[mod]
-            # Reshape loadings to (1, n_mod_features)
-            loadings_row = loadings.reshape(1, -1)
-            # Reconstruct the scaled module features
-            X_mod_scaled = Y_mod @ loadings_row
+            if loadings.ndim == 2:
+                k_i = loadings.shape[1]
+                Y_mod = Y_arr[:, col_offset : col_offset + k_i]
+                X_mod_scaled = Y_mod @ loadings.T
+                col_offset += k_i
+            else:
+                Y_mod = Y_arr[:, col_offset : col_offset + 1]
+                loadings_row = loadings.reshape(1, -1)
+                X_mod_scaled = Y_mod @ loadings_row
+                col_offset += 1
             # Unscale and recenter
             X_recon[:, feat_idx] = (
                 X_mod_scaled * self.module_scales_[mod] + self.module_centers_[mod]
@@ -460,7 +483,12 @@ class WGCNAReducer(BaseReducer):
             feat_idx = self.module_assignments_[mod]
             names = self.feature_names_in_[feat_idx]
             loadings = self.module_loadings_[mod]
-            abs_load = np.abs(loadings)
+            if loadings.ndim == 2:
+                abs_load = np.sqrt((loadings ** 2).sum(axis=1))
+                primary_loading = loadings[:, 0]
+            else:
+                abs_load = np.abs(loadings)
+                primary_loading = loadings
             if normalize and abs_load.sum() > 0:
                 importance = abs_load / abs_load.sum()
             else:
@@ -468,7 +496,7 @@ class WGCNAReducer(BaseReducer):
             df = pd.DataFrame(
                 {
                     "feature": names,
-                    "loading": loadings,
+                    "loading": primary_loading,
                     "importance": importance,
                 }
             )
@@ -573,7 +601,9 @@ class WGCNAReducer(BaseReducer):
     # internal helpers
     # ------------------------------------------------------------------
 
-    def _merge_close_modules(self, X_arr: NDArray, color_list: list[str]) -> list[str]:
+    def _merge_close_modules(
+        self, X_arr: NDArray, color_list: list[str], protect: str | None = None
+    ) -> list[str]:
         """Iteratively merge modules via hierarchical clustering of eigengene
         dissimilarity, matching R/PyWGCNA methodology.
 
@@ -584,11 +614,16 @@ class WGCNAReducer(BaseReducer):
         4. Cut the ME dendrogram at ``me_diss_threshold`` — all modules on
            the same branch are merged (taking the colour of the largest).
         5. Repeat until no further merges occur.
+
+        ``protect`` names a module (the unassigned/"grey" colour) that is
+        excluded from the clustering so it is never merged into a real module.
         """
         colors = list(color_list)
 
         while True:
             unique_mods = sorted(set(colors))
+            if protect is not None and protect in unique_mods:
+                unique_mods.remove(protect)
             n_mods = len(unique_mods)
             if n_mods <= 1:
                 break
@@ -647,15 +682,15 @@ class WGCNAReducer(BaseReducer):
                 best = max(members, key=lambda m: sum(1 for c in colors if c == m))
                 branch_to_color[branch_id] = best
 
-            # Relabel
+            # Relabel (protected/unassigned colours are left unchanged)
             mod_to_merged: dict[str, str] = {}
             for k, mod in enumerate(unique_mods):
                 mod_to_merged[mod] = branch_to_color[branch_labels[k]]
-            colors = [mod_to_merged[c] for c in colors]
+            colors = [mod_to_merged.get(c, c) for c in colors]
 
         return colors
 
-    def _compute_module_loadings(self, X_arr: NDArray) -> None:
+    def _compute_module_loadings(self, X_arr: NDArray, n_module_components: int = 1) -> None:
         """Compute and store SVD loadings for each module."""
         self.module_centers_: dict[str, NDArray] = {}
         self.module_scales_: dict[str, NDArray] = {}
@@ -666,12 +701,14 @@ class WGCNAReducer(BaseReducer):
             from joblib import Parallel, delayed
 
             results = Parallel(n_jobs=effective_jobs)(
-                delayed(_wgcna_fit_single)(mod, X_arr, self.module_assignments_[mod])
+                delayed(_wgcna_fit_single)(
+                    mod, X_arr, self.module_assignments_[mod], n_module_components
+                )
                 for mod in self.module_names_
             )
         else:
             results = [
-                _wgcna_fit_single(mod, X_arr, self.module_assignments_[mod])
+                _wgcna_fit_single(mod, X_arr, self.module_assignments_[mod], n_module_components)
                 for mod in self.module_names_
             ]
 
@@ -704,14 +741,16 @@ class WGCNAReducer(BaseReducer):
 
         target = self.log_file if self.log_file is not None else os.devnull
 
+        old_stdout_fd = None
         with _capture_lock:
-            old_stdout_fd = os.dup(1)
             try:
+                old_stdout_fd = os.dup(1)
                 with open(target, "a", encoding="utf-8") as stream:
                     os.dup2(stream.fileno(), 1)
                     with contextlib.redirect_stdout(stream):
                         yield
                     stream.flush()
             finally:
-                os.dup2(old_stdout_fd, 1)
-                os.close(old_stdout_fd)
+                if old_stdout_fd is not None:
+                    os.dup2(old_stdout_fd, 1)
+                    os.close(old_stdout_fd)

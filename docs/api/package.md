@@ -10,4 +10,5 @@ The public package root re-exports the main reducer interfaces and package versi
       members:
         - __version__
         - BaseReducer
+        - RadiomicsFeatureRemover
         - WGCNAReducer

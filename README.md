@@ -43,6 +43,12 @@ With WGCNA support:
 pip install 'eigenradiomics[wgcna]'
 ```
 
+With ComBat batch-effect harmonization support (`inmoose`, requires Python >= 3.11):
+
+```bash
+pip install 'eigenradiomics[combat]'
+```
+
 For local development:
 
 ```bash
@@ -73,6 +79,22 @@ pipe = Pipeline(
 
 Y = pipe.fit_transform(X)
 ```
+
+To split selected Pictologics features out before reduction, use the preprocessing
+utilities:
+
+```python
+from eigenradiomics.preprocessing import split_radiomics_file
+
+split_radiomics_file(
+    "pictologics_features.csv",
+    "preprocessed/",
+    features=["volume_RNU0", "surface_area_C0JK"],
+)
+```
+
+For sklearn pipelines, `RadiomicsFeatureRemover` removes matching columns during
+`transform` and keeps the same fitted column contract as the reducers.
 
 ## Design Notes
 

@@ -97,3 +97,40 @@ pipe = Pipeline(
 ```
 
 This is useful for domain-specific or project-local preprocessing.
+
+## Extracting Multiple Eigengenes per Module
+
+If a single principal component (PC1) explains too little variance of a module's features, you can capture richer variations by extracting multiple principal components (eigengenes) using `n_module_components`:
+
+```python
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from eigenradiomics import WGCNAReducer
+
+pipe = Pipeline(
+    [
+        ("scale", StandardScaler()),
+        # Extract the top 2 principal components per module
+        ("reduce", WGCNAReducer(soft_power=6, min_module_size=20, n_module_components=2)),
+    ]
+)
+
+# Project training and testing data: the output dimensions will be sum(k_i) across modules
+Y_train = pipe.fit_transform(X_train)
+Y_test = pipe.transform(X_test)
+
+# The total number of columns Y will be n_modules * n_module_components (capped by module sizes)
+print(f"Total reduced components: {Y_train.shape[1]}")
+```
+
+When calling `wgcna_get_feature_importances()`, the framework automatically uses the **L2 Euclidean Norm** of the SVD loadings across the selected components to reflect each feature's overall contribution:
+
+```python
+reducer = pipe.named_steps["reduce"]
+importances = reducer.wgcna_get_feature_importances()
+
+# Dataframe schema: ["feature", "loading", "importance"]
+# "loading" corresponds to the primary (first) component,
+# while "importance" represents the combined weight across both components.
+print(importances["blue"].head())
+```

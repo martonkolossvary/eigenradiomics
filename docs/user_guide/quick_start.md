@@ -1,8 +1,17 @@
 # Quick Start
 
-This guide gets you from a wide feature matrix to a reduced representation with minimal setup.
+This guide gets you from a wide feature matrix to a reduced representation with
+minimal setup.
 
-## Minimal Example
+## Install
+
+```bash
+pip install 'eigenradiomics[wgcna]'   # WGCNA backend included
+```
+
+See [Installation](installation.md) for the `combat` extra and development setup.
+
+## Minimal example
 
 ```python
 import pandas as pd
@@ -26,16 +35,27 @@ pipe = Pipeline(
 )
 
 Y = pipe.fit_transform(X)
-print(Y.shape)
+print(Y.shape)   # (n_samples, n_modules)
 ```
 
-The output `Y` is an \\(n \\times k\\) matrix with `k << m` and reducer-specific output names such as `wgcna_0`, `wgcna_1`, and so on.
+The output `Y` is an \\(n \\times k\\) matrix with `k << m` and reducer-specific
+output names such as `wgcna_0`, `wgcna_1`, ... Upstream preprocessing stays in
+the same pipeline.
 
-Upstream preprocessing stays in the same pipeline.
+!!! tip "Always scale before reducing"
+    WGCNA (like PCA) is sensitive to feature scale. Keep an imputer and a scaler
+    upstream of the reducer — `WGCNAReducer` does not standardize for you.
 
-## Train / Test Pattern
+!!! warning "Missing values"
+    PyWGCNA can hang on `NaN`/`Inf`. Impute (e.g. `SimpleImputer`) **before** the
+    reducer. A `VarianceThreshold` also removes constant columns that carry no
+    signal. See [Troubleshooting](troubleshooting.md).
 
-The core use case is to fit on training data and later apply the same fitted reducer to unseen samples.
+## Train / test pattern
+
+The core use case is to fit on training data and later apply the same fitted
+reducer to unseen samples — without recomputing the network, so no information
+leaks from test to train.
 
 ```python
 from sklearn.model_selection import train_test_split
@@ -47,21 +67,35 @@ Y_train = pipe.transform(X_train)
 Y_test = pipe.transform(X_test)
 ```
 
-If you fit the reducer directly on a pandas DataFrame, later transforms must use the same feature names in the same order. After upstream sklearn steps convert the data to an ndarray, validation falls back to feature order.
+If you fit the reducer directly on a pandas DataFrame, later transforms must use
+the same feature names in the same order. After upstream sklearn steps convert
+the data to an ndarray, validation falls back to feature order. See
+[Input Data Model](input_data_model.md).
 
-## Inspecting the WGCNA Fit
+## Inspect and visualize the fit
 
 ```python
 reducer = pipe.named_steps["reduce"]
 
-module_sizes = reducer.wgcna_get_module_sizes()
-assignments = reducer.wgcna_get_module_assignments()
-soft_power_table = reducer.wgcna_get_soft_power_table()
+reducer.wgcna_get_module_sizes()        # {'turquoise': 38, 'blue': 35, ...}
+reducer.wgcna_get_module_assignments()  # module -> list of feature names
+reducer.wgcna_get_soft_power_table()    # scale-free topology table (soft_power="auto")
+
+fig = reducer.wgcna_plot_dendrogram(figsize=(11, 4))
+fig.savefig("dendrogram.png", dpi=150)
 ```
 
-These diagnostics make it easier to decide whether to keep the auto-selected soft power or refit with an explicit value.
+The dendrogram shows how features cluster into modules (the colour bar):
 
-## Next Steps
+![WGCNA feature dendrogram with module colour bar](../assets/figures/wgcna_dendrogram.png)
 
-- Read [Input Data Model](input_data_model.md) to understand accepted matrix formats.
-- Read [Pipelines and Grid Search](pipelines_and_grid_search.md) before tuning unsupervised reducers inside sklearn model selection workflows.
+These diagnostics make it easier to decide whether to keep the auto-selected
+soft power or refit with an explicit value. See the
+[WGCNA Reducer](../reducers/wgcna.md) guide for the full diagnostic set.
+
+## Going further
+
+- Load and align radiomics with clinical data → [Data Ingestion & Datasets](data_ingestion.md)
+- Screen unreliable features → [Reproducibility](reproducibility.md)
+- Check scanner/center effects → [Batch Effects](batch_effects.md)
+- Tune the reducer inside model selection → [Pipelines & Grid Search](pipelines_and_grid_search.md)

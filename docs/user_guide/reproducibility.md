@@ -128,6 +128,17 @@ fig = plot_reproducibility_histograms(
 )
 ```
 
+The figure shows the Spearman, Pearson, and ICC(2,1) distributions across
+features, each with summary statistics and the retention threshold:
+
+![Reproducibility metric histograms for Spearman, Pearson, and ICC](../assets/figures/reproducibility_histograms.png)
+
+!!! tip "Choosing a threshold"
+    A common convention treats ICC ≥ 0.75 as *good* and ≥ 0.90 as *excellent*
+    reliability. The `primary_threshold` is what populates the `retained_*`
+    flags — pick it to match your study's tolerance, then drop the features that
+    fall below it before modeling (see the pipeline example below).
+
 **Accessibility and Design features**:
 * **Color Independence**: High-contrast, colorblind-friendly colors (Steel Blue, Indian Red, Muted Teal) assigned to each metric.
 * **Dark Outlines**: Distinct outlines around histogram bars (`edgecolor='0.25'`) to ensure a contrast ratio $> 3:1$ against the background.

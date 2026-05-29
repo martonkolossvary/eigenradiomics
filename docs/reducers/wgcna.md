@@ -2,6 +2,19 @@
 
 `WGCNAReducer` is an unsupervised reducer, originally developed for gene-expression data and built on the `PyWGCNA` backend. It groups tightly correlated features into modules and represents each module by a single summary variable (its eigengene), turning a very wide feature matrix into a small set of module-level components. The fitted loadings are stored so the same mapping can be applied to new data.
 
+```mermaid
+flowchart LR
+    X([Scaled features]) --> A["Adjacency<br/>|corr|^β"]
+    A --> T[Topological<br/>Overlap Matrix]
+    T --> D[Hierarchical clustering<br/>on 1 − TOM]
+    D --> M["Modules<br/>(≥ min_module_size)"]
+    M --> G[Merge similar<br/>modules]
+    G --> E[Module eigengenes<br/>SVD loadings stored]
+    E --> Y([Reduced Y<br/>wgcna_0, wgcna_1, ...])
+```
+
+The steps below map one-to-one onto this flow.
+
 ## Mathematical Formulation
 
 Unlike global factorization methods such as Principal Component Analysis, which decompose variance across all features at once, WGCNA works bottom-up: it builds a feature-to-feature similarity network and derives modules from its structure.
@@ -104,12 +117,26 @@ fig = reducer.wgcna_plot_soft_power(figsize=(10, 5))
 fig.savefig("soft_power.png", dpi=150)
 ```
 
+![WGCNA soft-power selection: scale-free fit and mean connectivity](../assets/figures/wgcna_soft_power.png)
+
+!!! tip "Reading the soft-power plot"
+    Pick the lowest power whose R² (left panel) crosses the dashed
+    `r_squared_cut` line while mean connectivity (right panel) is still
+    reasonable. `soft_power="auto"` does this for you; the plot lets you sanity-
+    check the choice or pick an explicit integer for fully deterministic runs.
+
 The dendrogram plot shows the hierarchical clustering of features, with a colour bar indicating each feature's module assignment:
 
 ```python
 fig = reducer.wgcna_plot_dendrogram(figsize=(12, 4))
 fig.savefig("dendrogram.png", dpi=150)
 ```
+
+![WGCNA feature dendrogram with module colour bar](../assets/figures/wgcna_dendrogram.png)
+
+Each coloured branch is a module of co-expressed features; the bar beneath maps
+every leaf to its module. Unassigned features form the "grey" module and are
+dropped unless `include_grey=True`.
 
 ## Parameter Guide
 

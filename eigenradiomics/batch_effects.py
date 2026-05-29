@@ -10,105 +10,22 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
 from numpy.typing import NDArray
 from sklearn.base import TransformerMixin, clone
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
 
 from eigenradiomics._excel import write_styled_workbook
-from eigenradiomics.preprocessing._feature_remover import RadiomicsFeatureRemover
+from eigenradiomics._features import resolve_analysis_features
+from eigenradiomics._plotting import apply_science_style
+from eigenradiomics._stats import (
+    _fdr_correct,
+    anova_effect,
+    kruskal_effect,
+    levene_test,
+    permanova_euclidean,
+)
 from eigenradiomics.preprocessing._prep import RadiomicsPrepTransformer
-from eigenradiomics.reproducibility import _fdr_correct
-
-
-def anova_effect(groups: list[NDArray]) -> tuple[float, float, float]:
-    """Calculate one-way ANOVA F-statistic, p-value, and eta-squared effect size."""
-    groups = [g[np.isfinite(g)] for g in groups if np.isfinite(g).sum() > 0]
-    if len(groups) < 2:
-        return np.nan, np.nan, np.nan
-    values = np.concatenate(groups)
-    if len(values) <= len(groups) or np.nanvar(values) == 0:
-        return np.nan, np.nan, np.nan
-
-    f_stat, p_value = stats.f_oneway(*groups)
-    grand = np.nanmean(values)
-    ss_between = sum(len(g) * (np.nanmean(g) - grand) ** 2 for g in groups)
-    ss_total = np.nansum((values - grand) ** 2)
-    eta2 = ss_between / ss_total if ss_total > 0 else np.nan
-    return float(f_stat), float(p_value), float(eta2)
-
-
-def kruskal_effect(groups: list[NDArray]) -> tuple[float, float, float]:
-    """Calculate Kruskal-Wallis H-statistic, p-value, and epsilon-squared effect size."""
-    groups = [g[np.isfinite(g)] for g in groups if np.isfinite(g).sum() > 0]
-    if len(groups) < 2:
-        return np.nan, np.nan, np.nan
-    values = np.concatenate(groups)
-    if len(values) <= len(groups):
-        return np.nan, np.nan, np.nan
-
-    h_stat, p_value = stats.kruskal(*groups)
-    n = len(values)
-    k = len(groups)
-    epsilon2 = max((h_stat - k + 1) / (n - k), 0) if n > k else np.nan
-    return float(h_stat), float(p_value), float(epsilon2)
-
-
-def levene_test(groups: list[NDArray]) -> tuple[float, float]:
-    """Calculate Brown-Forsythe/Levene variance homogeneity test statistic and p-value."""
-    groups = [g[np.isfinite(g)] for g in groups if np.isfinite(g).sum() > 1]
-    if len(groups) < 2:
-        return np.nan, np.nan
-    stat, p_value = stats.levene(*groups, center="median")
-    return float(stat), float(p_value)
-
-
-def permanova_euclidean(
-    values: pd.DataFrame,
-    batch: pd.Series,
-    permutations: int = 999,
-    random_state: int = 42,
-) -> tuple[float, float, float]:
-    """Perform PERMANOVA pseudo-F permutation test on a PCA scores matrix."""
-    x = values.to_numpy(float)
-    labels = batch.astype(str).to_numpy()
-    unique = np.unique(labels)
-    n = x.shape[0]
-    k = len(unique)
-
-    if k < 2 or n <= k:
-        return np.nan, np.nan, np.nan
-
-    grand = x.mean(axis=0)
-    sst = float(((x - grand) ** 2).sum())
-    if sst == 0:
-        return np.nan, np.nan, np.nan
-
-    def pseudo_f(current_labels: np.ndarray) -> tuple[float, float]:
-        ss_between = 0.0
-        for label in unique:
-            group = x[current_labels == label]
-            if len(group) == 0:
-                continue
-            ss_between += len(group) * float(((group.mean(axis=0) - grand) ** 2).sum())
-        ss_within = sst - ss_between
-        f_val = (ss_between / (k - 1)) / (ss_within / (n - k)) if ss_within > 0 else np.inf
-        return f_val, ss_between / sst
-
-    observed_f, r2 = pseudo_f(labels)
-    if permutations == 0 or not np.isfinite(observed_f):
-        return float(observed_f), float(r2), np.nan
-
-    rng = np.random.default_rng(random_state)
-    exceed = 0
-    for _ in range(permutations):
-        permuted = rng.permutation(labels)
-        perm_f, _ = pseudo_f(permuted)
-        exceed += int(perm_f >= observed_f)
-
-    p_value = (exceed + 1) / (permutations + 1)
-    return float(observed_f), float(r2), float(p_value)
 
 
 def _feature_qc(
@@ -413,34 +330,15 @@ def compute_batch_effects(
     if catalog is not None:
         catalog_df = catalog if isinstance(catalog, pd.DataFrame) else pd.read_csv(Path(catalog))
 
-    # 2. DRY Selector-Based Feature Filtering using RadiomicsFeatureRemover
-    has_selectors = (
-        features is not None
-        or configs is not None
-        or families is not None
-        or family_groups is not None
+    # 2. Resolve features to analyze (selectors, else every numeric column).
+    features_to_analyze = resolve_analysis_features(
+        X_df,
+        features=features,
+        configs=configs,
+        families=families,
+        family_groups=family_groups,
+        catalog=catalog_df,
     )
-
-    if has_selectors:
-        remover = RadiomicsFeatureRemover(
-            features=features,
-            configs=configs,
-            families=families,
-            family_groups=family_groups,
-            catalog=catalog_df,
-            metadata_columns="auto",
-            allow_missing=True,
-        )
-        remover.fit(X_df)
-        features_to_analyze = remover.removed_feature_names_
-    else:
-        remover = RadiomicsFeatureRemover(metadata_columns="auto")
-        remover.fit(X_df)
-        # Without selectors, analyse every numeric column. Non-numeric metadata
-        # columns (e.g. PatientID) are skipped so they do not break preprocessing.
-        features_to_analyze = np.asarray(
-            [c for c in remover.kept_feature_names_ if pd.api.types.is_numeric_dtype(X_df[c])]
-        )
 
     if len(features_to_analyze) == 0:
         raise ValueError("No features selected for batch effects analysis.")
@@ -740,27 +638,7 @@ def plot_batch_effects(
     fig : matplotlib.pyplot.Figure
         The created figure object.
     """
-    try:
-        plt.style.use(["science", "no-latex"])
-    except Exception:
-        plt.style.use(
-            "seaborn-v0_8-whitegrid"
-            if "seaborn-v0_8-whitegrid" in plt.style.available
-            else "default"
-        )
-
-    plt.rcParams.update(
-        {
-            "font.family": "sans-serif",
-            "font.sans-serif": ["Arial", "Liberation Sans", "DejaVu Sans", "sans-serif"],
-            "font.size": 10,
-            "axes.labelsize": 11,
-            "axes.titlesize": 12,
-            "xtick.labelsize": 9,
-            "ytick.labelsize": 9,
-            "figure.titlesize": 14,
-        }
-    )
+    apply_science_style(figure_titlesize=14)
 
     pca_results = results.get("_pca_results", {})
     batch_series = results.get("_batch_series", pd.Series(dtype=float))

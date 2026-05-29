@@ -1,16 +1,19 @@
 # Troubleshooting
 
-Common issues and solutions when deploying **eigenradiomics**. The debugging guides are separated strictly into cross-framework bounds and isolated algorithm-specific parameters.
+Common issues and fixes when using **eigenradiomics**, grouped into
+framework-level problems and WGCNA/PyWGCNA-specific ones.
 
 ---
 
-## 1. General Framework Issues (eigenradiomics)
+## 1. Framework issues
 
-### Installation & Dependency Failures
+### Installation & dependencies
 
 | Problem | Solution |
 |---|---|
-| `pip install eigenradiomics` fails | Ensure Python ≥ 3.10 and pip ≥ 23. Try `pip install --upgrade pip` first. |
+| `pip install eigenradiomics` fails | Ensure Python ≥ 3.10 and a recent pip (`pip install --upgrade pip`), then retry. |
+| `ModuleNotFoundError: No module named 'PyWGCNA'` | WGCNA is optional. Install the extra: `pip install 'eigenradiomics[wgcna]'`. |
+| ComBat step is skipped | Install the ComBat extra: `pip install 'eigenradiomics[combat]'` (requires Python ≥ 3.11). |
 
 ### Sparse matrix input
 
@@ -18,32 +21,39 @@ Common issues and solutions when deploying **eigenradiomics**. The debugging gui
 TypeError: Sparse matrices are not supported.
 ```
 
-Convert matrices explicitly to dense arrays before projecting structures natively:
+Convert to a dense array first:
 
 ```python
 X_dense = X_sparse.toarray()
 reducer.fit(X_dense)
 ```
 
-### Feature name mismatch
+### Feature-name mismatch
 
 ```
-ValueError: Reducer requires input features to be in the same order as during fit.
+ValueError: ... requires input features to be in the same order as during fit.
 ```
 
-The column order of `X_new` must identically match the training vector properties algebraically. If you fitted natively exposing DataFrame structures explicitly, pass identical structures matching exactly the original column names and layouts statically to prevent unscaled misalignments.
+If you fit on a DataFrame, `transform` must receive the **same column names in
+the same order**. Reindex the new data back to the fitted columns:
 
-### Feature count mismatch
+```python
+Y = reducer.transform(X_new[reducer.feature_names_in_])
+```
+
+### Feature-count mismatch
 
 ```
-ValueError: X has N features, but Reducer is expecting M features
+ValueError: X has N features, but ... is expecting M features
 ```
 
-The number of dimensions bounding `.transform()` calculations fundamentally must parallel limits initialized during `.fit()`. Verify upstream pipelines identically processed valid subsets locally.
+`transform` must receive the same number of features as `fit`. This usually
+means an upstream step (e.g. `VarianceThreshold`) selected different columns —
+fit the whole pipeline together rather than steps in isolation.
 
-### Sklearn Integration (NotFittedError)
+### NotFittedError
 
-Verify the dimensional block initializes mathematically **before** downstream methods evaluate arrays dynamically:
+Fit the pipeline before calling `predict`/`transform`:
 
 ```python
 from sklearn.linear_model import Ridge
@@ -60,97 +70,100 @@ pipe = Pipeline([
 pipe.fit(X_train, y_train)
 ```
 
-### Grid search is extremely slow
+### Grid search is very slow
 
-Cross-validations explicitly evaluate all parameter states generating permutations limitlessly! Prevent heavy dimensional methods from triggering nested processing overlaps by explicitly defining processing threads correctly globally across `GridSearchCV(n_jobs=-1)`, avoiding isolated subsystem distributions mathematically.
+`GridSearchCV` refits the whole pipeline for every parameter combination × fold.
+Parallelize the **search** (`GridSearchCV(n_jobs=-1)`) and keep the reducer
+single-threaded (`WGCNAReducer(n_jobs=1)`) to avoid nested processes. See
+[Scalability](scalability.md).
 
 ---
 
-## 2. Reducer-Specific Issues 
+## 2. WGCNA-specific issues
 
-### WGCNA: Module Clustering & Topologies
-
-#### `ModuleNotFoundError: No module named 'PyWGCNA'`
-
-Install the specifically defined WGCNA backend packages implicitly locally: `pip install 'eigenradiomics[wgcna]'`
-
-#### Automatic soft-power selection fails
+### Automatic soft-power selection fails
 
 ```
 ValueError: Automatic soft-power selection failed — no power reached the R² threshold.
 ```
 
-**Cause:** The scale-free topology bounds logically never reliably reached the `r_squared_cut` structurally.
+**Cause:** no candidate power reached `r_squared_cut` for the scale-free
+topology fit.
 
-**Solutions:**
-1. Lower the threshold boundary limits: `WGCNAReducer(soft_power="auto", r_squared_cut=0.8)`
-2. Configure mapping limits explicitly manually: `WGCNAReducer(soft_power=6)`
-3. Dynamically track algorithmic evaluations securely returning calculations algebraically:
+**Fixes:**
+
+1. Lower the threshold: `WGCNAReducer(soft_power="auto", r_squared_cut=0.8)`.
+2. Set the power explicitly: `WGCNAReducer(soft_power=6)`.
+3. Inspect the table to choose a power yourself:
 
 ```python
-reducer = WGCNAReducer(soft_power="auto", r_squared_cut=0.7)
-reducer.fit(X)
+reducer = WGCNAReducer(soft_power="auto", r_squared_cut=0.7).fit(X)
 print(reducer.wgcna_get_soft_power_table())
 ```
 
-#### Too few samples or features (Matrix boundaries)
+### Too few samples or features
 
 ```
 ValueError: WGCNAReducer requires n_samples >= 3
 ```
 
-Algorithm parameters mathematically require base minimum metrics securely driving reliable covariances analytically. (Optimal estimation natively binds **n_samples ≥ 15** safely algorithmically).
+Correlation-based networks need enough samples to be meaningful. The hard
+minimum is 3 samples / 3 features; **15+ samples** is recommended for stable
+module detection.
 
-#### Only one module detected
+### Only one module detected
 
-**Causes:**
-- `min_module_size` limit vastly overshadows logical isolated parameter segmentations statically.
-- `me_diss_threshold` estimates statistically agglomerated structures recursively statically.
+**Likely causes:** `min_module_size` is too large for the data, or
+`me_diss_threshold` merged everything together.
 
-**Solutions:**
-- Sub-divide hierarchical bounds dynamically limiting density block requirements: `min_module_size=20`
-- Limit explicit parameter correlation bindings functionally avoiding nested overlaps: `me_diss_threshold=0.15`
-- Explode structural tree arrays natively resolving matrices logically explicitly: `deep_split=3`
+**Fixes:**
 
-#### Features universally bound to Grey Modules
+- Lower `min_module_size` (e.g. `20`).
+- Lower `me_diss_threshold` (e.g. `0.15`) so fewer modules are merged.
+- Increase `deep_split` (e.g. `3`) to cut the dendrogram more aggressively.
 
-This logically calculates isolated networks independently failing completely meeting mapping limits. Drastically minimize `min_module_size` or implicitly trigger `include_grey=True` strictly capturing isolated vector clusters automatically algorithmically. 
+### Most features land in the grey module
 
-#### High RAM Execution Limits
+The grey module holds features that don't fit any cluster. If almost everything
+is grey, the network found little structure. Lower `min_module_size`, or set
+`include_grey=True` to keep those features as a pseudo-module.
 
-Massive configurations inherently trigger \(O(n^2)\) dependency barriers globally limiting memory pools. Set `store_tom=False` (the default) to avoid caching the full TOM matrix in RAM.
+### High memory use
 
-#### Intrusive Subprocess Logging
+The Topological Overlap Matrix is `O(n_features²)`. Keep `store_tom=False` (the
+default) so it isn't retained after `fit`, and pre-filter very wide tables (see
+[Scalability](scalability.md)).
 
-PyWGCNA bounds automatically natively dump broad structural output arrays directly logging console spans unprompted limitlessly!
+### Suppressing PyWGCNA console output
 
-Route bounds gracefully silently organically structuring diagnostic parameters accurately logically natively directly capturing structural constraints:
+PyWGCNA prints progress to stdout. Silence it or route it to a file:
+
 ```python
-reducer = WGCNAReducer(log_file="wgcna_output.log", verbose=0)
+reducer = WGCNAReducer(verbose=0)                       # suppress
+reducer = WGCNAReducer(verbose=0, log_file="wgcna.log") # send to a file
 ```
 
 ---
 
-## 3. PyWGCNA Common Blockers
+## 3. PyWGCNA backend notes
 
-PyWGCNA has its own dependencies and edge cases not immediately obvious.
+### Hanging during `fit`
 
-### ImportError: No module named 'matplotlib' or 'scipy'
+If `reducer.fit(X)` hangs, the input most likely contains `NaN`, `Inf`, or
+all-zero columns, which can deadlock PyWGCNA's internal checks. Impute and
+variance-filter first:
 
-**Reason:** `PyWGCNA` tries to generate plotting objects and topological diagrams internally. Sometimes, incomplete base installations miss `matplotlib`.
-**Solution:** Install it explicitly:
-```bash
-pip install matplotlib scipy PyWGCNA
+```python
+from sklearn.impute import SimpleImputer
+from sklearn.feature_selection import VarianceThreshold
+# SimpleImputer(strategy="median") then VarianceThreshold(threshold=0.0) upstream
 ```
 
-### Freezing / Hanging During Fit
-
-If the program hangs indefinitely during `reducer.fit(X)`, it is highly likely that the data contains `NaN`, `Inf`, or universally zeroes, causing `goodSamplesGenes` inside PyWGCNA to deadlock on matrix divisions.
-**Solution:** Ensure all missing values are imputed via `sklearn.impute.SimpleImputer` before the reducer block.
-
-### Warning: Zero-Variance Feature
+### Zero-variance feature warning
 
 ```
 UserWarning: Module 'grey' contains 5 zero-variance feature(s)
 ```
-Eigenradiomics automatically safeguards correlation divisions with scales set to `1.0`. These variables intrinsically provide zero predictive power down the `Pipeline` dynamically. Using `VarianceThreshold` prior to `fit` is recommended.
+
+eigenradiomics safely sets the scale of constant features to `1.0`, but they
+carry no signal. Add a `VarianceThreshold` before the reducer to drop them.

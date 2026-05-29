@@ -27,9 +27,11 @@ pipe = Pipeline(
 X_reduced = pipe.fit_transform(X)
 ```
 
-## Strict Data Leakage Prevention
+## Prevent data leakage
 
-Always invoke `.fit` entirely on explicit model boundaries preventing structural cross-contamination natively. 
+Fit on the training split only, then transform both splits with the *same*
+fitted pipeline. Reindex the test columns to the training order so feature
+identity is preserved.
 
 ```python
 pipe.fit(X_train)
@@ -37,33 +39,36 @@ Y_train = pipe.transform(X_train)
 Y_test = pipe.transform(X_test[X_train.columns])
 ```
 
-## Mathematical Reconstruction (Inverse Mapping)
+## Reconstruct features (inverse transform)
 
-Once compressed organically, methods supporting dimensional loading topologies (e.g. `WGCNAReducer` natively via PC1) permit symmetric structural reconstructions natively.
+Reducers that store loadings (e.g. `WGCNAReducer`) can approximately reconstruct
+the original feature space from the reduced representation — handy for
+reconstruction-error diagnostics.
 
 ```python
 Y_test = pipe.transform(X_test)
 
-# Expand representations returning approximate original topological layouts identically:
+# Approximately reconstruct the original features:
 X_test_reconstructed = pipe.named_steps["reduce"].inverse_transform(Y_test)
 ```
 
-## Keep the Diagnostics
+## Keep the diagnostics
 
-You natively retain deep internal parameter attributes generated dynamically during `.fit()`.
+The reducer retains its fitted internals, so you can inspect or visualize the
+model after `.fit()`.
 
 ```python
 reducer = pipe.named_steps["reduce"]
 
-# Standard text topology metrics natively tracking parameters:
+# Tabular diagnostics:
 module_sizes = reducer.wgcna_get_module_sizes()
 module_assignments = reducer.wgcna_get_module_assignments()
 
-# Generate visual diagnostic renderings internally testing scale-free topological index:
+# Soft-power diagnostic plot:
 fig_sp = reducer.wgcna_plot_soft_power(figsize=(10, 5))
 fig_sp.savefig("soft_power.png")
 
-# Native module color allocations against structural hierarchical distances symmetrically:
+# Feature dendrogram with module colours:
 fig_dendro = reducer.wgcna_plot_dendrogram(figsize=(12, 4))
 fig_dendro.savefig("dendrogram.png")
 ```

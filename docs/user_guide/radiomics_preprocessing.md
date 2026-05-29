@@ -120,6 +120,16 @@ prep = RadiomicsPrepTransformer(winsor_lower=0.01, winsor_upper=0.99)
 X_clean = prep.fit_transform(X)  # NaNs in X stay NaN in X_clean
 ```
 
+A right-skewed, outlier-laden feature becomes approximately normal and centered,
+while missing values pass straight through:
+
+![Raw vs. preprocessed feature distribution](../assets/figures/preprocessing_before_after.png)
+
+!!! tip "Order matters"
+    Winsorization caps outliers *before* the Yeo-Johnson fit, so a handful of
+    extreme values can't dominate the power-transform parameter. Constant columns
+    are detected and passed through unchanged rather than erroring.
+
 The fitted parameters (per-column winsor bounds, power transform, and scaling)
 are stored, so `transform` applies exactly the same cleaning to unseen data. As
 with the reducers, feature names and order are checked at `transform` time, so a

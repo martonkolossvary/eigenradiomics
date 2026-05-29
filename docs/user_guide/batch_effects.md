@@ -121,6 +121,18 @@ fig = plot_batch_effects(
 )
 ```
 
+The panels make the batch effect and its correction visually obvious: samples
+separate by center along PC1 *before* ComBat and mix *after*, while the q-value
+histogram quantifies how many features differ significantly across centers:
+
+![PCA before and after ComBat, plus an ANOVA FDR q-value histogram](../assets/figures/batch_effects.png)
+
+!!! note "ComBat here is a sensitivity check, not a default"
+    `compute_batch_effects` reports how much center-associated variance *would*
+    remain after ComBat; it does not silently harmonize your features. Use the
+    diagnostics to decide whether harmonization is warranted, then apply it
+    deliberately.
+
 **Accessibility Rules Applied**:
 * **Colorblind-Friendly Palettes**: High-contrast colors representing different centers.
 * **Contrast Outlines**: Scatter points and histogram bins are framed with dark boundaries (`edgecolor='0.25'`) to maintain a contrast ratio $> 3:1$.

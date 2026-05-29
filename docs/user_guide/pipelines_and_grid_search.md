@@ -33,15 +33,24 @@ pipe = Pipeline(
 
 Because eigenradiomics reducers are unsupervised transformers, a pipeline that ends at a reducer does **not** provide a default score.
 
-## Strategies for Unsupervised Optimization
+!!! tip "Avoid nested parallelism"
+    When tuning `WGCNAReducer` inside `GridSearchCV`, set `n_jobs=-1` on the
+    search and `n_jobs=1` on the reducer. Nesting both multiplies the number of
+    processes and can thrash the CPU or exhaust memory. See
+    [Scalability](scalability.md).
 
-Optimizing unsupervised transformers isolated inside generic searches requires explicit structuring since there are no ground-truth targets to validate against natively. There are two primary strategies for evaluating the goodness-of-fit of reductions cleanly.
+## Strategies for unsupervised optimization
 
-### Strategy 1: Downstream Supervised Evaluation
+Because there is no target to score against, you must give `GridSearchCV`
+something to optimize. There are two practical strategies for judging the quality
+of an unsupervised reduction.
 
-The most pragmatic way to optimize an unsupervised reduction method is to couple it inside a `Pipeline` directly connected to a supervised predictive model (e.g., Logistic Regression or Ridge Regression). 
+### Strategy 1: downstream supervised evaluation
 
-Rather than judging the reducer purely on matrix reconstructions mathematically, `GridSearchCV` evaluates whether a specific parameter state (like `me_diss_threshold`) generated a feature subspace that statistically improved clinical prediction metrics.
+The most common approach is to put a supervised model (e.g. logistic or ridge
+regression) after the reducer in the same `Pipeline` and let prediction quality
+judge the reduction. The grid then asks: did this parameter setting (like
+`me_diss_threshold`) produce a subspace that improves the downstream model?
 
 ```python
 from sklearn.feature_selection import VarianceThreshold
@@ -78,33 +87,34 @@ search = GridSearchCV(
 # Execute grid operations
 search.fit(X_train, y_train)
 
-# The search automatically binds 'best_estimator_' dynamically,
-# directly predicting validations seamlessly natively:
+# best_estimator_ is the full pipeline refit on all training data:
 y_pred = search.predict(X_test)
 ```
 
-### Strategy 2: Intrinsic Unsupervised Scoring (Goodness-of-Fit)
+### Strategy 2: intrinsic unsupervised scoring
 
-To optimize the reducer entirely independent of supervised labels, construct internal custom `make_scorer` configurations predicting mathematical limits natively. Commonly adapted unsupervised metric families include:
+To tune the reducer without labels, score the reduction itself with a custom
+scorer. Useful intrinsic metrics include:
 
-1. **Reconstruction Error (MSE):** Measures algorithmic loss leveraging `inverse_transform`. Excellent for methods calculating how faithfully the constrained topologies replicate original noise signatures organically.
-2. **Variance Retained (Explained Variance):** Evaluates matrix distributions preserving the mathematical footprints dominating variance arrays cleanly after reduction (common across SVD / PCA estimations natively).
-3. **Internal Node Cohesion (Silhouette Score):** Numerically determines if internal grouping parameters (like WGCNA clustering bounds) accurately generated tight dimensional populations strongly decoupled optimally from adjacent structures mathematically.
+1. **Reconstruction error (MSE):** how faithfully `inverse_transform` recovers the original features.
+2. **Explained variance:** how much of the original variance the reduced space retains (as in PCA/SVD).
+3. **Silhouette score:** how cleanly the discovered modules separate.
 
-By pairing `make_scorer` against one of these topologies (e.g. measuring reconstruction error dynamically), the internal search natively evaluates reductions cleanly without relying natively on explicit target distributions `y`.
+Pairing such a scorer with the search lets it evaluate reductions without any
+target `y`.
 
 ```python
 from sklearn.metrics import mean_squared_error, make_scorer
 
 # Define a function returning negative MSE (since GridSearchCV inherently maximizes scores)
 def reconstruction_scorer(estimator, X, y=None):
-    # Fetch the standalone reduction steps natively
+    # Grab the fitted reducer step
     reducer = estimator.named_steps["reduce"]
-    
-    # Calculate dimensional projection representations
+
+    # Project, then reconstruct
     Y_subspace = reducer.transform(X)
     X_reconstructed = reducer.inverse_transform(Y_subspace)
-    
+
     return -mean_squared_error(X, X_reconstructed)
 
 unsupervised_search = GridSearchCV(
@@ -114,20 +124,20 @@ unsupervised_search = GridSearchCV(
     cv=3
 )
 
-# Execute grid mapping natively against raw vectors alone identically
+# No y needed: the scorer measures reconstruction error
 unsupervised_search.fit(X_train)
 
-# Transform dynamically exploiting optimally grouped cluster dependencies reliably:
+# Transform new data with the best-found parameters:
 Y_optimal = unsupervised_search.transform(X_test)
 ```
 
-### Advanced: Multi-Metric Tracking
+### Advanced: multi-metric tracking
 
-For highly rigorous diagnostic pipelines, you may track internal mathematical degradation matrices *concurrently* alongside standard downstream clinical predictions dynamically!
-
-Provide a mapping dictionary defining arbitrary scoring targets implicitly. Note that scikit-learn evaluates each specific validation fold entirely independently calculating simultaneous boundaries, eventually averaging every metric distinctly (`mean_test_score`). It does **not** dynamically aggregate multiple criteria into a single global combination variable blindly!
-
-You must structurally instruct the algorithmic loop specifically through the `refit="key"` parameter dictating explicitly *which* distinct isolated evaluation mathematically defines algorithmic convergence globally locating optimal estimator instances securely. The orthogonal configurations remaining are cleanly logged statistically for your external analytic review:
+You can track several scores at once — for example a supervised metric *and*
+reconstruction error. scikit-learn evaluates each metric per fold and averages
+them separately; it does not combine them into one number. Use `refit="<key>"`
+to choose which metric selects the final `best_estimator_`; the others are
+logged in `cv_results_` for inspection:
 
 ```python
 multi_metrics = {
@@ -146,12 +156,12 @@ robust_search = GridSearchCV(
 # Execute operations
 robust_search.fit(X_train, y_train)
 
-# Print concurrent tracking performance outputs locally structurally mapping iterations
+# Report both metrics at the selected parameter setting
 best_index = robust_search.best_index_
 print(f"Optimal Test Accuracy: {robust_search.cv_results_['mean_test_supervised_accuracy'][best_index]}")
 print(f"Optimal Reconstruction Loss: {robust_search.cv_results_['mean_test_reconstruction'][best_index]}")
 
-# Operations immediately deploy tracking logic maximizing 'supervised_accuracy' entirely logically:
+# predict() uses the model refit on supervised_accuracy:
 y_test_pred = robust_search.predict(X_test)
 ```
 

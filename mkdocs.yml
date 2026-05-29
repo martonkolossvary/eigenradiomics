@@ -63,7 +63,11 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - admonition
@@ -79,6 +83,7 @@ nav:
       - Installation: user_guide/installation.md
       - Quick Start: user_guide/quick_start.md
       - Data Loading & Validation: user_guide/input_data_model.md
+      - Data Ingestion & Datasets: user_guide/data_ingestion.md
       - Pipelines & Preprocessing: user_guide/pipelines_and_grid_search.md
       - Radiomics Table Preprocessing: user_guide/radiomics_preprocessing.md
       - Reproducibility Analysis: user_guide/reproducibility.md
@@ -92,6 +97,7 @@ nav:
       - WGCNA: reducers/wgcna.md
   - API Reference:
       - Package: api/package.md
+      - Ingestion & Datasets: api/ingestion.md
       - Reducers: api/reducers.md
       - Preprocessing: api/preprocessing.md
       - Reproducibility: api/reproducibility.md

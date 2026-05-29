@@ -4,6 +4,14 @@ from eigenradiomics.batch_effects import (
     plot_batch_effects,
     write_batch_effects_excel,
 )
+from eigenradiomics.catalog import FeatureCatalog
+from eigenradiomics.dataset import RadiomicsDataset, StudyDesign
+from eigenradiomics.ingest import (
+    MergeResult,
+    merge_tables,
+    normalize_id_column,
+    resolve_duplicates,
+)
 from eigenradiomics.preprocessing import RadiomicsFeatureRemover, RadiomicsPrepTransformer
 from eigenradiomics.reducers import BaseReducer, WGCNAReducer
 from eigenradiomics.reproducibility import (
@@ -18,6 +26,13 @@ __all__ = [
     "RadiomicsFeatureRemover",
     "WGCNAReducer",
     "RadiomicsPrepTransformer",
+    "FeatureCatalog",
+    "RadiomicsDataset",
+    "StudyDesign",
+    "MergeResult",
+    "merge_tables",
+    "normalize_id_column",
+    "resolve_duplicates",
     "compute_reproducibility",
     "plot_reproducibility_histograms",
     "write_reproducibility_excel",

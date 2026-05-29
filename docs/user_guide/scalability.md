@@ -41,6 +41,9 @@ Control the number of workers via the `n_jobs` parameter.
 - **`n_jobs=1`:** Stable, minimal RAM overhead. Recommended for highly iterative GridSearches where `GridSearchCV` is already parallelizing cross-validation.
 - **`n_jobs=-1`:** Utilizes all CPU cores. Ideal for processing a single massive matrix when fitting or transforming. Note that `joblib` needs to copy the data into worker processes, temporarily increasing memory usage. 
 
-**Warning on Nested Parallelization:** 
-If you are running `GridSearchCV(n_jobs=-1, estimator=WGCNAReducer(n_jobs=-1))`, the number of spawned processes can multiply multiplicatively leading to CPU context-switching thrash or out-of-memory limits. It is strongly recommended to set `n_jobs=-1` on the `GridSearchCV` and `n_jobs=1` on the reducer itself.
+!!! warning "Nested parallelization"
+    Running `GridSearchCV(n_jobs=-1, estimator=WGCNAReducer(n_jobs=-1))`
+    multiplies the number of spawned processes, which can thrash the CPU or
+    exhaust memory. Set `n_jobs=-1` on the `GridSearchCV` and `n_jobs=1` on the
+    reducer itself.
 

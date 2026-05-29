@@ -11,9 +11,8 @@ import openpyxl
 import pandas as pd
 import pytest
 
+from eigenradiomics._stats import _get_deterministic_seed, _icc_2_1_estimate
 from eigenradiomics.reproducibility import (
-    _get_deterministic_seed,
-    _icc_2_1_estimate,
     compute_reproducibility,
     plot_reproducibility_histograms,
     write_reproducibility_excel,

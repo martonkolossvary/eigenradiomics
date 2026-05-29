@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import warnings
 from collections.abc import Sequence
 from pathlib import Path
@@ -15,163 +14,14 @@ import scipy.stats as stats
 from numpy.typing import NDArray
 
 from eigenradiomics._excel import write_styled_workbook
-from eigenradiomics.preprocessing._feature_remover import RadiomicsFeatureRemover
-
-
-def _get_deterministic_seed(feature_name: str, base_seed: int = 42) -> int:
-    """Generate a unique 32-bit integer seed for a feature name deterministically."""
-    hasher = hashlib.blake2b(key=str(base_seed).encode())
-    hasher.update(feature_name.encode())
-    return int(hasher.hexdigest(), 16) % (2**32)
-
-
-def _icc_2_1_estimate(Y: NDArray) -> dict[str, float]:
-    """Calculate two-way random-effects, absolute-agreement, single-measure ICC(2,1).
-
-    Parameters
-    ----------
-    Y : ndarray of shape (n_samples, n_observers)
-        Matrix of measurements.
-
-    Returns
-    -------
-    stats : dict[str, float]
-        Dictionary of computed ANOVA MS values and the ICC estimate.
-    """
-    n, k = Y.shape
-    if n < 2 or k < 2:
-        return {
-            "icc": np.nan,
-            "ms_between_subjects": np.nan,
-            "ms_between_observers": np.nan,
-            "ms_error": np.nan,
-            "f_stat": np.nan,
-            "p_value": np.nan,
-        }
-
-    # Grand mean
-    grand_mean = np.mean(Y)
-
-    # Sum of squares
-    ss_total = np.sum((Y - grand_mean) ** 2)
-
-    # Between subjects
-    subject_means = np.mean(Y, axis=1)
-    ss_between_subjects = k * np.sum((subject_means - grand_mean) ** 2)
-    df_between_subjects = n - 1
-    ms_between_subjects = ss_between_subjects / df_between_subjects
-
-    # Between observers
-    observer_means = np.mean(Y, axis=0)
-    ss_between_observers = n * np.sum((observer_means - grand_mean) ** 2)
-    df_between_observers = k - 1
-    ms_between_observers = ss_between_observers / df_between_observers
-
-    # Residual / Error
-    ss_error = ss_total - ss_between_subjects - ss_between_observers
-    df_error = df_between_subjects * df_between_observers
-    ms_error = max(ss_error / df_error, 1e-15)  # Avoid division by zero
-
-    # F-statistic and p-value for subjects
-    f_stat = ms_between_subjects / ms_error
-    p_value = stats.f.sf(f_stat, df_between_subjects, df_error)
-
-    # ICC(2,1) formula
-    denominator = (
-        ms_between_subjects
-        + (k - 1) * ms_error
-        + (k / n) * (ms_between_observers - ms_error)
-    )
-    if denominator <= 0 or np.isnan(denominator):
-        icc = np.nan
-    else:
-        icc = (ms_between_subjects - ms_error) / denominator
-
-    return {
-        "icc": float(icc),
-        "ms_between_subjects": float(ms_between_subjects),
-        "ms_between_observers": float(ms_between_observers),
-        "ms_error": float(ms_error),
-        "f_stat": float(f_stat),
-        "p_value": float(p_value),
-    }
-
-
-def _bootstrap_icc_ci(
-    Y: NDArray,
-    feature_name: str,
-    iterations: int = 1000,
-    base_seed: int = 42,
-) -> tuple[float, float]:
-    """Deterministically estimate the 95% Confidence Interval for ICC(2,1) via bootstrapping."""
-    n, k = Y.shape
-    if n < 3 or k < 2 or iterations <= 0:
-        return np.nan, np.nan
-
-    seed = _get_deterministic_seed(feature_name, base_seed=base_seed)
-    rng = np.random.default_rng(seed)
-
-    boot_estimates = []
-    for _ in range(iterations):
-        boot_indices = rng.choice(n, size=n, replace=True)
-        Y_boot = Y[boot_indices]
-        est = _icc_2_1_estimate(Y_boot)
-        if not np.isnan(est["icc"]):
-            boot_estimates.append(est["icc"])
-
-    if len(boot_estimates) < min(10, iterations // 2):
-        return np.nan, np.nan
-
-    ci_low = float(np.percentile(boot_estimates, 2.5))
-    ci_high = float(np.percentile(boot_estimates, 97.5))
-    return ci_low, ci_high
-
-
-def _fisher_ci(r: float, n: int, is_spearman: bool = False) -> tuple[float, float]:
-    """Compute Fisher-transformed 95% Confidence Interval for a correlation coefficient."""
-    if n <= 3 or np.isnan(r):
-        return np.nan, np.nan
-
-    # Clip r to prevent infinite values in arctanh
-    r_clipped = np.clip(r, -0.9999, 0.9999)
-    z = np.arctanh(r_clipped)
-
-    # Standard error adjustments
-    se = (1.03 if is_spearman else 1.0) / np.sqrt(n - 3)
-
-    z_low = z - 1.96 * se
-    z_high = z + 1.96 * se
-
-    return float(np.tanh(z_low)), float(np.tanh(z_high))
-
-
-def _fdr_correct(p_values: NDArray) -> NDArray:
-    """Apply Benjamini-Hochberg False Discovery Rate (FDR) multiple testing correction."""
-    n = len(p_values)
-    if n == 0:
-        return p_values
-
-    valid_mask = ~np.isnan(p_values)
-    valid_p = p_values[valid_mask]
-    if len(valid_p) == 0:
-        return p_values
-
-    sorted_indices = np.argsort(valid_p)
-    sorted_p = valid_p[sorted_indices]
-
-    q_values = np.zeros_like(valid_p)
-    prev_q = 1.0
-    for rank in range(len(valid_p) - 1, -1, -1):
-        p = sorted_p[rank]
-        q = p * len(valid_p) / (rank + 1)
-        q = min(q, prev_q)
-        q_values[rank] = q
-        prev_q = q
-
-    corrected_p = np.zeros_like(p_values, dtype=float)
-    corrected_p[~valid_mask] = np.nan
-    corrected_p[valid_mask] = q_values[np.argsort(sorted_indices)]
-    return corrected_p
+from eigenradiomics._features import resolve_analysis_features
+from eigenradiomics._plotting import apply_science_style
+from eigenradiomics._stats import (
+    _bootstrap_icc_ci,
+    _fdr_correct,
+    _fisher_ci,
+    _icc_2_1_estimate,
+)
 
 
 def compute_reproducibility(
@@ -277,35 +127,15 @@ def compute_reproducibility(
                 )
             aligned_datasets.append(df)
 
-    # 2. DRY Selector-Based Feature Filtering using RadiomicsFeatureRemover
-    has_selectors = (
-        features is not None
-        or configs is not None
-        or families is not None
-        or family_groups is not None
+    # 2. Resolve features to analyze (selectors, else every numeric column).
+    features_to_analyze = resolve_analysis_features(
+        aligned_datasets[0],
+        features=features,
+        configs=configs,
+        families=families,
+        family_groups=family_groups,
+        catalog=catalog,
     )
-
-    if has_selectors:
-        remover = RadiomicsFeatureRemover(
-            features=features,
-            configs=configs,
-            families=families,
-            family_groups=family_groups,
-            catalog=catalog,
-            metadata_columns="auto",
-            allow_missing=True,
-        )
-        remover.fit(aligned_datasets[0])
-        features_to_analyze = remover.removed_feature_names_
-    else:
-        remover = RadiomicsFeatureRemover(metadata_columns="auto")
-        remover.fit(aligned_datasets[0])
-        # Without selectors, analyse every numeric column. Non-numeric metadata
-        # columns (e.g. PatientID) are skipped so they do not break the analysis.
-        ref_df = aligned_datasets[0]
-        features_to_analyze = np.asarray(
-            [c for c in remover.kept_feature_names_ if pd.api.types.is_numeric_dtype(ref_df[c])]
-        )
 
     if len(features_to_analyze) == 0:
         raise ValueError("No features selected for reproducibility analysis.")
@@ -540,29 +370,7 @@ def plot_reproducibility_histograms(
         The created figure object.
     """
     # 1. Apply science plots formatting rules with sans-serif fonts and clean styling
-    try:
-        plt.style.use(["science", "no-latex"])
-    except Exception:
-        # Safe fallback style sheet
-        plt.style.use(
-            "seaborn-v0_8-whitegrid"
-            if "seaborn-v0_8-whitegrid" in plt.style.available
-            else "default"
-        )
-
-    # Force sans-serif typography for maximum accessibility/readability
-    plt.rcParams.update(
-        {
-            "font.family": "sans-serif",
-            "font.sans-serif": ["Arial", "Liberation Sans", "DejaVu Sans", "sans-serif"],
-            "font.size": 10,
-            "axes.labelsize": 11,
-            "axes.titlesize": 12,
-            "xtick.labelsize": 9,
-            "ytick.labelsize": 9,
-            "figure.titlesize": 13,
-        }
-    )
+    apply_science_style(figure_titlesize=13)
 
     # 2. Check which sheets exist and extract data
     sheets_to_plot = []

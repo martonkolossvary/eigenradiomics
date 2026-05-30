@@ -354,6 +354,11 @@ def test_combat_path_mocked_dataframe(monkeypatch):
     assert "combat_feature_stats" in res
     assert "combat_adjustment_notes" in res
 
+    # With ComBat results present, the plot gains the "PCA After ComBat" panel.
+    fig = plot_batch_effects(res)
+    assert len(fig.axes) == 3
+    plt.close(fig)
+
 
 def test_combat_path_mocked_ndarray_and_nonfinite(monkeypatch):
     def norm(data, batch=None, covar_mod=None, par_prior=True, mean_only=False, ref_batch=None):

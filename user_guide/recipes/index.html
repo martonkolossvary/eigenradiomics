@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/recipes/">
       
       
-        <link rel="prev" href="../pipelines_and_grid_search/">
+        <link rel="prev" href="../batch_effects/">
       
       
         <link rel="next" href="../scalability/">
@@ -595,6 +595,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../data_ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Ingestion & Datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../pipelines_and_grid_search/" class="md-nav__link">
         
   
@@ -603,6 +631,90 @@
     
   
     Pipelines & Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../radiomics_preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radiomics Table Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reproducibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducibility Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../batch_effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Effect Diagnostics
   
 
     
@@ -694,10 +806,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#strict-data-leakage-prevention" class="md-nav__link">
+  <a href="#prevent-data-leakage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Strict Data Leakage Prevention
+        Prevent data leakage
       
     </span>
   </a>
@@ -705,10 +817,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#mathematical-reconstruction-inverse-mapping" class="md-nav__link">
+  <a href="#reconstruct-features-inverse-transform" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Mathematical Reconstruction (Inverse Mapping)
+        Reconstruct features (inverse transform)
       
     </span>
   </a>
@@ -719,7 +831,7 @@
   <a href="#keep-the-diagnostics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Keep the Diagnostics
+        Keep the diagnostics
       
     </span>
   </a>
@@ -742,6 +854,17 @@
     <span class="md-ellipsis">
       
         Use a Custom Transformer Upstream
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extracting-multiple-eigengenes-per-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting Multiple Eigengenes per Module
       
     </span>
   </a>
@@ -1022,6 +1145,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion & Datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/reducers/" class="md-nav__link">
         
   
@@ -1030,6 +1181,90 @@
     
   
     Reducers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/reproducibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/batch_effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Effects
   
 
     
@@ -1197,10 +1432,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#strict-data-leakage-prevention" class="md-nav__link">
+  <a href="#prevent-data-leakage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Strict Data Leakage Prevention
+        Prevent data leakage
       
     </span>
   </a>
@@ -1208,10 +1443,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#mathematical-reconstruction-inverse-mapping" class="md-nav__link">
+  <a href="#reconstruct-features-inverse-transform" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Mathematical Reconstruction (Inverse Mapping)
+        Reconstruct features (inverse transform)
       
     </span>
   </a>
@@ -1222,7 +1457,7 @@
   <a href="#keep-the-diagnostics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Keep the Diagnostics
+        Keep the diagnostics
       
     </span>
   </a>
@@ -1245,6 +1480,17 @@
     <span class="md-ellipsis">
       
         Use a Custom Transformer Upstream
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#extracting-multiple-eigengenes-per-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting Multiple Eigengenes per Module
       
     </span>
   </a>
@@ -1295,32 +1541,37 @@
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
 <a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="n">X_reduced</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
 </code></pre></div>
-<h2 id="strict-data-leakage-prevention">Strict Data Leakage Prevention</h2>
-<p>Always invoke <code>.fit</code> entirely on explicit model boundaries preventing structural cross-contamination natively. </p>
+<h2 id="prevent-data-leakage">Prevent data leakage</h2>
+<p>Fit on the training split only, then transform both splits with the <em>same</em>
+fitted pipeline. Reindex the test columns to the training order so feature
+identity is preserved.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">pipe</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">Y_train</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">Y_test</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">[</span><span class="n">X_train</span><span class="o">.</span><span class="n">columns</span><span class="p">])</span>
 </code></pre></div>
-<h2 id="mathematical-reconstruction-inverse-mapping">Mathematical Reconstruction (Inverse Mapping)</h2>
-<p>Once compressed organically, methods supporting dimensional loading topologies (e.g. <code>WGCNAReducer</code> natively via PC1) permit symmetric structural reconstructions natively.</p>
+<h2 id="reconstruct-features-inverse-transform">Reconstruct features (inverse transform)</h2>
+<p>Reducers that store loadings (e.g. <code>WGCNAReducer</code>) can approximately reconstruct
+the original feature space from the reduced representation — handy for
+reconstruction-error diagnostics.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">Y_test</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Expand representations returning approximate original topological layouts identically:</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Approximately reconstruct the original features:</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">X_test_reconstructed</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">&quot;reduce&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">inverse_transform</span><span class="p">(</span><span class="n">Y_test</span><span class="p">)</span>
 </code></pre></div>
-<h2 id="keep-the-diagnostics">Keep the Diagnostics</h2>
-<p>You natively retain deep internal parameter attributes generated dynamically during <code>.fit()</code>.</p>
+<h2 id="keep-the-diagnostics">Keep the diagnostics</h2>
+<p>The reducer retains its fitted internals, so you can inspect or visualize the
+model after <code>.fit()</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">&quot;reduce&quot;</span><span class="p">]</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Standard text topology metrics natively tracking parameters:</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Tabular diagnostics:</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">module_sizes</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_get_module_sizes</span><span class="p">()</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">module_assignments</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_get_module_assignments</span><span class="p">()</span>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Generate visual diagnostic renderings internally testing scale-free topological index:</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Soft-power diagnostic plot:</span>
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">fig_sp</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_plot_soft_power</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">fig_sp</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;soft_power.png&quot;</span><span class="p">)</span>
 <a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># Native module color allocations against structural hierarchical distances symmetrically:</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># Feature dendrogram with module colours:</span>
 <a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">fig_dendro</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_plot_dendrogram</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 <a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">fig_dendro</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;dendrogram.png&quot;</span><span class="p">)</span>
 </code></pre></div>
@@ -1346,6 +1597,36 @@
 <a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="p">)</span>
 </code></pre></div>
 <p>This is useful for domain-specific or project-local preprocessing.</p>
+<h2 id="extracting-multiple-eigengenes-per-module">Extracting Multiple Eigengenes per Module</h2>
+<p>If a single principal component (PC1) explains too little variance of a module's features, you can capture richer variations by extracting multiple principal components (eigengenes) using <code>n_module_components</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">WGCNAReducer</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="p">[</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>        <span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()),</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="c1"># Extract the top 2 principal components per module</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">n_module_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)),</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="p">]</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="p">)</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="c1"># Project training and testing data: the output dimensions will be sum(k_i) across modules</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="n">Y_train</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="n">Y_test</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="c1"># The total number of columns Y will be n_modules * n_module_components (capped by module sizes)</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total reduced components: </span><span class="si">{</span><span class="n">Y_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>When calling <code>wgcna_get_feature_importances()</code>, the framework automatically uses the <strong>L2 Euclidean Norm</strong> of the SVD loadings across the selected components to reflect each feature's overall contribution:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">&quot;reduce&quot;</span><span class="p">]</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">importances</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_get_feature_importances</span><span class="p">()</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Dataframe schema: [&quot;feature&quot;, &quot;loading&quot;, &quot;importance&quot;]</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># &quot;loading&quot; corresponds to the primary (first) component,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># while &quot;importance&quot; represents the combined weight across both components.</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">importances</span><span class="p">[</span><span class="s2">&quot;blue&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+</code></pre></div>
 
 
 

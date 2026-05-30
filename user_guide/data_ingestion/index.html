@@ -12,13 +12,13 @@
         <meta name="author" content="Márton Kolossváry">
       
       
-        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/installation/">
+        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/data_ingestion/">
       
       
-        <link rel="prev" href="../..">
+        <link rel="prev" href="../input_data_model/">
       
       
-        <link rel="next" href="../quick_start/">
+        <link rel="next" href="../pipelines_and_grid_search/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Installation - eigenradiomics</title>
+        <title>Data Ingestion & Datasets - eigenradiomics</title>
       
     
     
@@ -98,7 +98,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#installation" class="md-skip">
+        <a href="#data-ingestion-datasets" class="md-skip">
           Skip to content
         </a>
       
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Installation
+              Data Ingestion & Datasets
             
           </span>
         </div>
@@ -267,7 +267,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -508,37 +508,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Installation
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -554,59 +527,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-pypi" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install from PyPI
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install from Source
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -672,10 +592,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../data_ingestion/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Ingestion & Datasets
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -691,6 +638,76 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-feature-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The feature catalog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aligning-radiomics-with-clinical-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aligning radiomics with clinical data
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#carrying-features-and-metadata-together" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Carrying features and metadata together
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Carrying features and metadata together">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-matters-for-pipelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why this matters for pipelines
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1377,10 +1394,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#the-feature-catalog" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Prerequisites
+        The feature catalog
       
     </span>
   </a>
@@ -1388,10 +1405,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-pypi" class="md-nav__link">
+  <a href="#aligning-radiomics-with-clinical-data" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from PyPI
+        Aligning radiomics with clinical data
       
     </span>
   </a>
@@ -1399,13 +1416,30 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
+  <a href="#carrying-features-and-metadata-together" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from Source
+        Carrying features and metadata together
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Carrying features and metadata together">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-matters-for-pipelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why this matters for pipelines
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1429,36 +1463,109 @@
   
 
 
-<h1 id="installation">Installation</h1>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Python &gt;= 3.10</li>
-<li><code>pip</code> for installation or Poetry for local development</li>
-</ul>
-<h2 id="install-from-pypi">Install from PyPI</h2>
-<p>Base package:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>eigenradiomics
+<h1 id="data-ingestion-datasets">Data Ingestion &amp; Datasets</h1>
+<p>Before any analysis you need a clean <code>n_samples x n_features</code> matrix aligned with
+its metadata (identifiers, center/batch, clinical covariates, outcomes).
+eigenradiomics provides study-agnostic primitives for that entry point, plus a
+container that keeps features and metadata together as they flow through
+scikit-learn pipelines.</p>
+<pre class="mermaid"><code>flowchart LR
+    R[radiomics_features.csv] --&gt; N1[normalize_id_column]
+    C[clinical.csv] --&gt; N2[normalize_id_column]
+    N2 --&gt; DD[resolve_duplicates]
+    N1 --&gt; M[merge_tables&lt;br/&gt;validate + diagnostics]
+    DD --&gt; M
+    CAT[features_catalog.csv] -.-&gt; FC[FeatureCatalog]
+    M --&gt; DS[RadiomicsDataset]
+    FC -.-&gt; DS
+    DS --&gt;|to_pipeline_input| P([X, y, groups&lt;br/&gt;→ sklearn Pipeline])</code></pre>
+<p>Every box below is a single function or class; you can use them piecemeal or
+chain them into the flow above.</p>
+<h2 id="the-feature-catalog">The feature catalog</h2>
+<p>Pictologics-style tables name feature columns <code>{config}__{feature_key}</code> and ship
+a sidecar catalog with one row per feature. <code>FeatureCatalog</code> turns that table
+into a first-class object used for annotation, validation, and grouping:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureCatalog</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">catalog</span> <span class="o">=</span> <span class="n">FeatureCatalog</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="s2">&quot;features_catalog.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">catalog</span><span class="o">.</span><span class="n">feature_names</span>        <span class="c1"># [&#39;original__Energy&#39;, &#39;original__Entropy&#39;, ...]</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">catalog</span><span class="o">.</span><span class="n">families</span><span class="p">()</span>           <span class="c1"># [&#39;firstorder&#39;, &#39;glcm&#39;, ...]</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Check that a table&#39;s feature columns are all known (raises if not)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">catalog</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">feature_columns</span><span class="p">)</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Left-join catalog metadata onto a results table keyed by feature name</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">annotated</span> <span class="o">=</span> <span class="n">catalog</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">results_df</span><span class="p">)</span>   <span class="c1"># adds config/feature_key/family/...</span>
 </code></pre></div>
-<p>With WGCNA support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[wgcna]&#39;</span>
+<p>A legacy single <code>feature</code> column containing <code>config__feature_key</code> values is also
+accepted.</p>
+<h2 id="aligning-radiomics-with-clinical-data">Aligning radiomics with clinical data</h2>
+<p>The three ingestion primitives make the join explicit and auditable, so silent
+misalignment cannot occur.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize_id_column</span><span class="p">,</span> <span class="n">resolve_duplicates</span><span class="p">,</span> <span class="n">merge_tables</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">radiomics</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;radiomics_features.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">clinical</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;clinical.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># 1. Normalize identifiers (strip/collapse whitespace, blank-like -&gt; missing)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">clinical</span><span class="p">,</span> <span class="n">changes</span> <span class="o">=</span> <span class="n">normalize_id_column</span><span class="p">(</span><span class="n">clinical</span><span class="p">,</span> <span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">radiomics</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_id_column</span><span class="p">(</span><span class="n">radiomics</span><span class="p">,</span> <span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># 2. Resolve duplicate clinical rows (e.g. keep the earliest procedure)</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">clinical</span><span class="p">,</span> <span class="n">dropped</span> <span class="o">=</span> <span class="n">resolve_duplicates</span><span class="p">(</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="n">clinical</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">,</span> <span class="n">order_column</span><span class="o">=</span><span class="s2">&quot;procedure_date&quot;</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">)</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># 3. Merge with cardinality validation and mismatch diagnostics</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">result</span> <span class="o">=</span> <span class="n">merge_tables</span><span class="p">(</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    <span class="n">radiomics</span><span class="p">,</span> <span class="n">clinical</span><span class="p">,</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="n">left_on</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="n">right_on</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="s2">&quot;one_to_one&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="p">)</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="n">merged</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">merged</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="n">result</span><span class="o">.</span><span class="n">left_only</span>     <span class="c1"># radiomics rows with no clinical match</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="n">result</span><span class="o">.</span><span class="n">right_only</span>    <span class="c1"># clinical rows with no radiomics match</span>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="n">result</span><span class="o">.</span><span class="n">n_matched</span>     <span class="c1"># number of matched keys</span>
 </code></pre></div>
-<p><code>PyWGCNA</code> is optional because only <code>WGCNAReducer</code> requires it.</p>
-<p>With ComBat batch-effect harmonization support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[combat]&#39;</span>
+<p><code>resolve_duplicates</code> supports <code>policy</code> values <code>"error"</code> (default), <code>"first"</code>,
+<code>"last"</code>, <code>"most_complete"</code> (most non-missing values), and <code>"min"</code> / <code>"max"</code>
+(by <code>order_column</code>). <code>merge_tables</code> accepts any pandas <code>how</code> and the
+<code>validate</code> cardinality checks (<code>"one_to_one"</code>, <code>"one_to_many"</code>, ...), and it
+computes the unmatched-key diagnostics independently of <code>how</code> so you always see
+both sides.</p>
+<h2 id="carrying-features-and-metadata-together">Carrying features and metadata together</h2>
+<p><code>RadiomicsDataset</code> wraps the merged table, separating feature columns from
+metadata and recording <strong>study-design roles</strong> (which column is the patient
+group, the batch, the survival endpoint, etc.). It then hands a clean feature
+matrix to a pipeline while keeping groups and targets available for splitters
+and models.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsDataset</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">RadiomicsDataset</span><span class="o">.</span><span class="n">from_wide</span><span class="p">(</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">merged</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span>        <span class="c1"># used to identify feature columns (or auto-detect &quot;__&quot;)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">group</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span>      <span class="c1"># for leakage-safe grouped cross-validation</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">batch</span><span class="o">=</span><span class="s2">&quot;Center&quot;</span><span class="p">,</span>         <span class="c1"># for batch-effect analysis</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">time</span><span class="o">=</span><span class="s2">&quot;fu_years&quot;</span><span class="p">,</span>        <span class="c1"># survival duration</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">event</span><span class="o">=</span><span class="s2">&quot;death&quot;</span><span class="p">,</span>          <span class="c1"># survival event</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">ds</span><span class="o">.</span><span class="n">features</span>        <span class="c1"># DataFrame of feature columns only (the X for sklearn)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">ds</span><span class="o">.</span><span class="n">metadata</span>        <span class="c1"># the non-feature columns</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="n">ds</span><span class="o">.</span><span class="n">groups</span>          <span class="c1"># patient-id array for GroupKFold</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_pipeline_input</span><span class="p">()</span>   <span class="c1"># y is [time, event] here</span>
 </code></pre></div>
-<p>The <code>combat</code> extra installs <code>inmoose</code>, which powers the optional ComBat
-sensitivity diagnostic in <code>compute_batch_effects</code>. It requires Python &gt;= 3.11;
-on Python 3.10 the ComBat step is skipped with a warning. You can combine
-extras, e.g. <code>pip install 'eigenradiomics[wgcna,combat]'</code>.</p>
-<h2 id="install-from-source">Install from Source</h2>
-<p>Clone the repository and install locally:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pip<span class="w"> </span>install<span class="w"> </span>.
-</code></pre></div>
-<p>For editable development work:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>poetry<span class="w"> </span>install<span class="w"> </span>--with<span class="w"> </span>dev<span class="w"> </span>--extras<span class="w"> </span>wgcna
-</code></pre></div>
+<p>Feature columns are inferred from the catalog when given, otherwise from the
+<code>__</code> naming convention; you can also pass <code>feature_columns</code> explicitly. Extra
+roles (<code>observer</code>, <code>phase</code>, <code>timepoint</code>, <code>mask</code>, ...) can be supplied via
+<code>roles={...}</code> and read back from <code>ds.design.roles</code>.</p>
+<h3 id="why-this-matters-for-pipelines">Why this matters for pipelines</h3>
+<p>scikit-learn transformers operate on the feature matrix only. By splitting
+features from metadata up front and exposing <code>groups</code> / <code>y</code> separately,
+<code>RadiomicsDataset</code> lets every downstream step (preprocessing, feature selection,
+reduction) run inside a <code>Pipeline</code> while group-aware splitters keep all rows of
+a patient on the same side of a train/test split — preventing leakage.</p>
 
 
 

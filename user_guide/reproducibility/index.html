@@ -12,13 +12,13 @@
         <meta name="author" content="Márton Kolossváry">
       
       
-        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/installation/">
+        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/reproducibility/">
       
       
-        <link rel="prev" href="../..">
+        <link rel="prev" href="../radiomics_preprocessing/">
       
       
-        <link rel="next" href="../quick_start/">
+        <link rel="next" href="../batch_effects/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Installation - eigenradiomics</title>
+        <title>Reproducibility Analysis - eigenradiomics</title>
       
     
     
@@ -98,7 +98,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#installation" class="md-skip">
+        <a href="#radiomics-feature-reproducibility-analysis" class="md-skip">
           Skip to content
         </a>
       
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Installation
+              Reproducibility Analysis
             
           </span>
         </div>
@@ -267,7 +267,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -508,37 +508,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Installation
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -554,59 +527,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-pypi" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install from PyPI
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install from Source
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -756,10 +676,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../reproducibility/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducibility Analysis
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -775,6 +722,114 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#why-icc21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why ICC(2,1)?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quality-control-qc-auto-alignment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality Control (QC) &amp; Auto-Alignment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-observer-studies-k-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2-Observer Studies (\(K = 2\))
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-observer-studies-k-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Observer Studies (\(K &gt; 2\))
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-selector-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Selector Filtering
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#polished-excel-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Polished Excel Reports
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accessible-scientific-histograms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessible Scientific Histograms
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-scikit-learn-pipeline-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End scikit-learn Pipeline Integration
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1377,10 +1432,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#why-icc21" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Prerequisites
+        Why ICC(2,1)?
       
     </span>
   </a>
@@ -1388,10 +1443,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-pypi" class="md-nav__link">
+  <a href="#quality-control-qc-auto-alignment" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from PyPI
+        Quality Control (QC) &amp; Auto-Alignment
       
     </span>
   </a>
@@ -1399,10 +1454,65 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
+  <a href="#2-observer-studies-k-2" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from Source
+        2-Observer Studies (\(K = 2\))
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-observer-studies-k-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Observer Studies (\(K &gt; 2\))
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-selector-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Selector Filtering
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#polished-excel-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Polished Excel Reports
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accessible-scientific-histograms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessible Scientific Histograms
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-scikit-learn-pipeline-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End scikit-learn Pipeline Integration
       
     </span>
   </a>
@@ -1429,35 +1539,144 @@
   
 
 
-<h1 id="installation">Installation</h1>
-<h2 id="prerequisites">Prerequisites</h2>
+<h1 id="radiomics-feature-reproducibility-analysis">Radiomics Feature Reproducibility Analysis</h1>
+<p>Evaluating the robustness and reproducibility of machine learning features across different observers, readers, or software settings is a fundamental step in high-dimensional radiomics pipelines. Non-reproducible features can introduce substantial noise and bias, and should be excluded early in the modeling process.</p>
+<p><code>eigenradiomics</code> provides a publication-grade reproducibility framework featuring rigorous Quality Control (QC), multiple-rater statistics, formatted Excel reports, and accessible scientific visuals conforming strictly to OUP journals styling rules.</p>
+<hr />
+<h2 id="why-icc21">Why ICC(2,1)?</h2>
+<p>The framework implements the <strong>two-way random-effects, absolute-agreement, single-measure Intraclass Correlation Coefficient (ICC(2,1))</strong> (McGraw &amp; Wong, 1996; Shrout &amp; Fleiss, 1979). </p>
 <ul>
-<li>Python &gt;= 3.10</li>
-<li><code>pip</code> for installation or Poetry for local development</li>
+<li><strong>Generalizability</strong>: By modeling both the subjects (patients) and the observers (readers/settings) as random effects, the reliability coefficients generalize beyond the specific raters in the study to the broader population.</li>
+<li><strong>Absolute Agreement</strong>: Standardizes absolute measurements rather than just relative ranks (which is critical in clinical imaging).</li>
+<li><strong>Multi-Observer Support</strong>: The underlying ANOVA Mean Squares formulation natively handles any <span class="arithmatex">\(K \ge 2\)</span> observers concurrently.</li>
+<li><strong>Deterministic Bootstrapping</strong>: Computes 95% Confidence Intervals deterministically via feature-name-keyed seed hashing (using BLAKE2b) to guarantee 100% reproducible results across platforms.</li>
 </ul>
-<h2 id="install-from-pypi">Install from PyPI</h2>
-<p>Base package:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>eigenradiomics
+<hr />
+<h2 id="quality-control-qc-auto-alignment">Quality Control (QC) &amp; Auto-Alignment</h2>
+<p>Mismatched row orders (subjects) or column orders (features) across datasets can lead to catastrophic, silent statistical errors. <code>eigenradiomics</code> implements a strict validation layer:</p>
+<ol>
+<li><strong>Name-Based Matching (Named DataFrames)</strong>:</li>
+<li>Asserts that all input DataFrames share the exact same sets of column names and row indices.</li>
+<li>If any features or subjects are missing or unexpected across datasets, a detailed <code>ValueError</code> is raised (detailing the first 5 mismatched items).</li>
+<li>If the columns or rows match exactly but are out of order, the framework <strong>automatically reorders</strong> them to align perfectly with the first dataset's layout.</li>
+<li><strong>Positional Matching (Arrays / RangeIndexes)</strong>:</li>
+<li>Fallback for numpy arrays or RangeIndex DataFrames. Asserts that all datasets share identical shapes and aligns columns by positional indexes.</li>
+</ol>
+<hr />
+<h2 id="2-observer-studies-k-2">2-Observer Studies (<span class="arithmatex">\(K = 2\)</span>)</h2>
+<p>For studies comparing exactly two readers, the framework reports detailed correlation metrics for every analyzed feature:
+* <strong>Spearman's <span class="arithmatex">\(\rho\)</span> and Pearson's <span class="arithmatex">\(r\)</span></strong>: Correlation estimates.
+* <strong>95% Confidence Intervals</strong>: Fisher-transformed confidence intervals for both metrics.
+* <strong>Multiple Testing Correction</strong>: Raw <span class="arithmatex">\(p\)</span>-values and FDR-corrected <span class="arithmatex">\(p\)</span>-values (Benjamini-Hochberg procedure).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_reproducibility</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Reader 1 and Reader 2 feature DataFrames</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">df_reader1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;reader1_features.csv&quot;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">df_reader2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;reader2_features.csv&quot;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># Calculate reproducibility</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">results</span> <span class="o">=</span> <span class="n">compute_reproducibility</span><span class="p">(</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">datasets</span><span class="o">=</span><span class="p">[</span><span class="n">df_reader1</span><span class="p">,</span> <span class="n">df_reader2</span><span class="p">],</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">bootstrap_iterations</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">primary_threshold</span><span class="o">=</span><span class="mf">0.80</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">)</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="c1"># results is a dictionary containing Spearman, Pearson, and ICC DataFrames</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;ICC&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;Spearman&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 </code></pre></div>
-<p>With WGCNA support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[wgcna]&#39;</span>
+<hr />
+<h2 id="multi-observer-studies-k-2">Multi-Observer Studies (<span class="arithmatex">\(K &gt; 2\)</span>)</h2>
+<p>When comparing three or more observers/settings, reporting a single correlation between two readers is insufficient. For <span class="arithmatex">\(K &gt; 2\)</span>, the framework computes all <span class="arithmatex">\(\binom{K}{2}\)</span> pairwise combinations and compiles aggregate statistics for the Spearman and Pearson sheets:
+* <strong>mean</strong>: Arithmetic mean of pairwise correlations.
+* <strong>median</strong>: Median of pairwise correlations.
+* <strong>sd</strong>: Standard deviation of pairwise correlations (capturing observer consensus).
+* <strong>q25, q75</strong>: 25th and 75th percentiles.
+* <strong>min, max</strong>: Minimum and maximum pairwise correlations.</p>
+<p>The ICC sheet computes the unified <span class="arithmatex">\(n \times K\)</span> table Intraclass Correlation Coefficient.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># 3 different readers</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">results</span> <span class="o">=</span> <span class="n">compute_reproducibility</span><span class="p">(</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">datasets</span><span class="o">=</span><span class="p">[</span><span class="n">df_reader1</span><span class="p">,</span> <span class="n">df_reader2</span><span class="p">,</span> <span class="n">df_reader3</span><span class="p">],</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">bootstrap_iterations</span><span class="o">=</span><span class="mi">1000</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">)</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># View Spearman aggregate metrics across the rater pairs</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;Spearman&quot;</span><span class="p">][[</span><span class="s2">&quot;feature&quot;</span><span class="p">,</span> <span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;sd&quot;</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 </code></pre></div>
-<p><code>PyWGCNA</code> is optional because only <code>WGCNAReducer</code> requires it.</p>
-<p>With ComBat batch-effect harmonization support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[combat]&#39;</span>
+<hr />
+<h2 id="feature-selector-filtering">Feature Selector Filtering</h2>
+<p>You can calculate reproducibility over a subset of target features using standard Pictologics-style selectors (<code>features</code>, <code>configs</code>, <code>families</code>, <code>family_groups</code>, and <code>catalog</code>). This behaves exactly like <code>RadiomicsFeatureRemover</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Evaluate only first-order features belonging to the &quot;original&quot; config</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">results</span> <span class="o">=</span> <span class="n">compute_reproducibility</span><span class="p">(</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">datasets</span><span class="o">=</span><span class="p">[</span><span class="n">df_reader1</span><span class="p">,</span> <span class="n">df_reader2</span><span class="p">],</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;*Energy&quot;</span><span class="p">,</span> <span class="s2">&quot;*Entropy&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">configs</span><span class="o">=</span><span class="s2">&quot;original&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">)</span>
 </code></pre></div>
-<p>The <code>combat</code> extra installs <code>inmoose</code>, which powers the optional ComBat
-sensitivity diagnostic in <code>compute_batch_effects</code>. It requires Python &gt;= 3.11;
-on Python 3.10 the ComBat step is skipped with a warning. You can combine
-extras, e.g. <code>pip install 'eigenradiomics[wgcna,combat]'</code>.</p>
-<h2 id="install-from-source">Install from Source</h2>
-<p>Clone the repository and install locally:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pip<span class="w"> </span>install<span class="w"> </span>.
+<hr />
+<h2 id="polished-excel-reports">Polished Excel Reports</h2>
+<p>To share statistics with collaborators, export the results dictionary to a pristine Excel workbook. It automatically applies:
+* <strong>Frozen headers (<code>A2</code>)</strong> and <strong>active auto-filters</strong> on all sheets (<code>Spearman</code>, <code>Pearson</code>, <code>ICC</code>).
+* <strong>Auto-fit column widths</strong> with dynamic padding to prevent cropped values.
+* <strong>Sleek dark-navy fills</strong> on the header row.
+* <strong>Tailored alignments &amp; decimal formatting</strong> (e.g. 3 decimal places for coefficients, 4 decimal places/scientific notation for <span class="arithmatex">\(p\)</span>-values).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_reproducibility_excel</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">write_reproducibility_excel</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="s2">&quot;reproducibility_report.xlsx&quot;</span><span class="p">)</span>
 </code></pre></div>
-<p>For editable development work:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>poetry<span class="w"> </span>install<span class="w"> </span>--with<span class="w"> </span>dev<span class="w"> </span>--extras<span class="w"> </span>wgcna
+<hr />
+<h2 id="accessible-scientific-histograms">Accessible Scientific Histograms</h2>
+<p>Visualize metric distributions using publication-ready scientific plots built on the <code>scienceplots</code> package, with accessibility-focused styling (high-contrast colors, dark bar outlines, direct labeling, and sans-serif typography):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_reproducibility_histograms</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_reproducibility_histograms</span><span class="p">(</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">results</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">path</span><span class="o">=</span><span class="s2">&quot;reproducibility_distributions.png&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">primary_threshold</span><span class="o">=</span><span class="mf">0.80</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">)</span>
+</code></pre></div>
+<p>The figure shows the Spearman, Pearson, and ICC(2,1) distributions across
+features, each with summary statistics and the retention threshold:</p>
+<p><img alt="Reproducibility metric histograms for Spearman, Pearson, and ICC" src="../../assets/figures/reproducibility_histograms.png" /></p>
+<div class="admonition tip">
+<p class="admonition-title">Choosing a threshold</p>
+<p>A common convention treats ICC ≥ 0.75 as <em>good</em> and ≥ 0.90 as <em>excellent</em>
+reliability. The <code>primary_threshold</code> is what populates the <code>retained_*</code>
+flags — pick it to match your study's tolerance, then drop the features that
+fall below it before modeling (see the pipeline example below).</p>
+</div>
+<p><strong>Accessibility and Design features</strong>:
+* <strong>Color Independence</strong>: High-contrast, colorblind-friendly colors (Steel Blue, Indian Red, Muted Teal) assigned to each metric.
+* <strong>Dark Outlines</strong>: Distinct outlines around histogram bars (<code>edgecolor='0.25'</code>) to ensure a contrast ratio <span class="arithmatex">\(&gt; 3:1\)</span> against the background.
+* <strong>Direct Labeling</strong>: The 0.80 cutoff threshold line is directly labeled with a contrasting bounding box, avoiding convoluted legends.
+* <strong>Sans-serif Typography</strong>: Uses clear sans-serif typography (Arial/Helvetica) sized between 10 pt and 12 pt for reading accessibility.</p>
+<hr />
+<h2 id="end-to-end-scikit-learn-pipeline-integration">End-to-End scikit-learn Pipeline Integration</h2>
+<p>A standard workflow consists of running a reproducibility analysis, identifying features that fail to meet a reliability threshold (e.g. <span class="arithmatex">\(ICC &lt; 0.80\)</span>), and excluding them before downstream training:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsFeatureRemover</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">,</span> <span class="n">compute_reproducibility</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># 1. Run reproducibility analysis</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">results</span> <span class="o">=</span> <span class="n">compute_reproducibility</span><span class="p">([</span><span class="n">df_reader1</span><span class="p">,</span> <span class="n">df_reader2</span><span class="p">])</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">icc_df</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;ICC&quot;</span><span class="p">]</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="c1"># 2. Identify non-reproducible features. Features whose ICC could not be</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1">#    estimated (NaN, e.g. too few paired samples) are treated as</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1">#    non-reproducible here via fillna(0.0); drop the fillna to keep them.</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">icc_values</span> <span class="o">=</span> <span class="n">icc_df</span><span class="p">[</span><span class="s2">&quot;icc_2_1&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="n">non_reproducible</span> <span class="o">=</span> <span class="n">icc_df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">icc_values</span> <span class="o">&lt;</span> <span class="mf">0.80</span><span class="p">,</span> <span class="s2">&quot;feature&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="c1"># 3. Feed non-reproducible features to RadiomicsFeatureRemover in a pipeline</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="p">(</span><span class="s2">&quot;exclude_non_reproducible&quot;</span><span class="p">,</span> <span class="n">RadiomicsFeatureRemover</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">non_reproducible</span><span class="p">)),</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()),</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">30</span><span class="p">))</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="p">])</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="c1"># Fit and transform training data safely</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="n">X_train_clean</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">df_reader1</span><span class="p">)</span>
 </code></pre></div>
 
 

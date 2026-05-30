@@ -595,6 +595,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../data_ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Ingestion & Datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../pipelines_and_grid_search/" class="md-nav__link">
         
   
@@ -603,6 +631,90 @@
     
   
     Pipelines & Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../radiomics_preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radiomics Table Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reproducibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducibility Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../batch_effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Effect Diagnostics
   
 
     
@@ -739,22 +851,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-general-framework-issues-eigenradiomics" class="md-nav__link">
+  <a href="#1-framework-issues" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. General Framework Issues (eigenradiomics)
+        1. Framework issues
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. General Framework Issues (eigenradiomics)">
+    <nav class="md-nav" aria-label="1. Framework issues">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#installation-dependency-failures" class="md-nav__link">
+  <a href="#installation-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation &amp; Dependency Failures
+        Installation &amp; dependencies
       
     </span>
   </a>
@@ -776,7 +888,7 @@
   <a href="#feature-name-mismatch" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Feature name mismatch
+        Feature-name mismatch
       
     </span>
   </a>
@@ -787,7 +899,7 @@
   <a href="#feature-count-mismatch" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Feature count mismatch
+        Feature-count mismatch
       
     </span>
   </a>
@@ -795,10 +907,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sklearn-integration-notfittederror" class="md-nav__link">
+  <a href="#notfittederror" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sklearn Integration (NotFittedError)
+        NotFittedError
       
     </span>
   </a>
@@ -806,10 +918,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#grid-search-is-extremely-slow" class="md-nav__link">
+  <a href="#grid-search-is-very-slow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Grid search is extremely slow
+        Grid search is very slow
       
     </span>
   </a>
@@ -822,39 +934,16 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-reducer-specific-issues" class="md-nav__link">
+  <a href="#2-wgcna-specific-issues" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Reducer-Specific Issues
+        2. WGCNA-specific issues
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="2. Reducer-Specific Issues">
+    <nav class="md-nav" aria-label="2. WGCNA-specific issues">
       <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#wgcna-module-clustering-topologies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        WGCNA: Module Clustering &amp; Topologies
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="WGCNA: Module Clustering &amp; Topologies">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#modulenotfounderror-no-module-named-pywgcna" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ModuleNotFoundError: No module named 'PyWGCNA'
-      
-    </span>
-  </a>
-  
-</li>
         
           <li class="md-nav__item">
   <a href="#automatic-soft-power-selection-fails" class="md-nav__link">
@@ -868,10 +957,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#too-few-samples-or-features-matrix-boundaries" class="md-nav__link">
+  <a href="#too-few-samples-or-features" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Too few samples or features (Matrix boundaries)
+        Too few samples or features
       
     </span>
   </a>
@@ -890,10 +979,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#features-universally-bound-to-grey-modules" class="md-nav__link">
+  <a href="#most-features-land-in-the-grey-module" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features universally bound to Grey Modules
+        Most features land in the grey module
       
     </span>
   </a>
@@ -901,10 +990,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#high-ram-execution-limits" class="md-nav__link">
+  <a href="#high-memory-use" class="md-nav__link">
     <span class="md-ellipsis">
       
-        High RAM Execution Limits
+        High memory use
       
     </span>
   </a>
@@ -912,18 +1001,13 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#intrusive-subprocess-logging" class="md-nav__link">
+  <a href="#suppressing-pywgcna-console-output" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Intrusive Subprocess Logging
+        Suppressing PyWGCNA console output
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -933,22 +1017,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-pywgcna-common-blockers" class="md-nav__link">
+  <a href="#3-pywgcna-backend-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. PyWGCNA Common Blockers
+        3. PyWGCNA backend notes
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. PyWGCNA Common Blockers">
+    <nav class="md-nav" aria-label="3. PyWGCNA backend notes">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#importerror-no-module-named-matplotlib-or-scipy" class="md-nav__link">
+  <a href="#hanging-during-fit" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ImportError: No module named 'matplotlib' or 'scipy'
+        Hanging during fit
       
     </span>
   </a>
@@ -956,21 +1040,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#freezing-hanging-during-fit" class="md-nav__link">
+  <a href="#zero-variance-feature-warning" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Freezing / Hanging During Fit
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#warning-zero-variance-feature" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Warning: Zero-Variance Feature
+        Zero-variance feature warning
       
     </span>
   </a>
@@ -1200,6 +1273,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion & Datasets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/reducers/" class="md-nav__link">
         
   
@@ -1208,6 +1309,90 @@
     
   
     Reducers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/preprocessing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/reproducibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reproducibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/batch_effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Effects
   
 
     
@@ -1364,22 +1549,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-general-framework-issues-eigenradiomics" class="md-nav__link">
+  <a href="#1-framework-issues" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. General Framework Issues (eigenradiomics)
+        1. Framework issues
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. General Framework Issues (eigenradiomics)">
+    <nav class="md-nav" aria-label="1. Framework issues">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#installation-dependency-failures" class="md-nav__link">
+  <a href="#installation-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation &amp; Dependency Failures
+        Installation &amp; dependencies
       
     </span>
   </a>
@@ -1401,7 +1586,7 @@
   <a href="#feature-name-mismatch" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Feature name mismatch
+        Feature-name mismatch
       
     </span>
   </a>
@@ -1412,7 +1597,7 @@
   <a href="#feature-count-mismatch" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Feature count mismatch
+        Feature-count mismatch
       
     </span>
   </a>
@@ -1420,10 +1605,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sklearn-integration-notfittederror" class="md-nav__link">
+  <a href="#notfittederror" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Sklearn Integration (NotFittedError)
+        NotFittedError
       
     </span>
   </a>
@@ -1431,10 +1616,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#grid-search-is-extremely-slow" class="md-nav__link">
+  <a href="#grid-search-is-very-slow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Grid search is extremely slow
+        Grid search is very slow
       
     </span>
   </a>
@@ -1447,39 +1632,16 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-reducer-specific-issues" class="md-nav__link">
+  <a href="#2-wgcna-specific-issues" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Reducer-Specific Issues
+        2. WGCNA-specific issues
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="2. Reducer-Specific Issues">
+    <nav class="md-nav" aria-label="2. WGCNA-specific issues">
       <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#wgcna-module-clustering-topologies" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        WGCNA: Module Clustering &amp; Topologies
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="WGCNA: Module Clustering &amp; Topologies">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#modulenotfounderror-no-module-named-pywgcna" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ModuleNotFoundError: No module named 'PyWGCNA'
-      
-    </span>
-  </a>
-  
-</li>
         
           <li class="md-nav__item">
   <a href="#automatic-soft-power-selection-fails" class="md-nav__link">
@@ -1493,10 +1655,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#too-few-samples-or-features-matrix-boundaries" class="md-nav__link">
+  <a href="#too-few-samples-or-features" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Too few samples or features (Matrix boundaries)
+        Too few samples or features
       
     </span>
   </a>
@@ -1515,10 +1677,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#features-universally-bound-to-grey-modules" class="md-nav__link">
+  <a href="#most-features-land-in-the-grey-module" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features universally bound to Grey Modules
+        Most features land in the grey module
       
     </span>
   </a>
@@ -1526,10 +1688,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#high-ram-execution-limits" class="md-nav__link">
+  <a href="#high-memory-use" class="md-nav__link">
     <span class="md-ellipsis">
       
-        High RAM Execution Limits
+        High memory use
       
     </span>
   </a>
@@ -1537,18 +1699,13 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#intrusive-subprocess-logging" class="md-nav__link">
+  <a href="#suppressing-pywgcna-console-output" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Intrusive Subprocess Logging
+        Suppressing PyWGCNA console output
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -1558,22 +1715,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-pywgcna-common-blockers" class="md-nav__link">
+  <a href="#3-pywgcna-backend-notes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. PyWGCNA Common Blockers
+        3. PyWGCNA backend notes
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="3. PyWGCNA Common Blockers">
+    <nav class="md-nav" aria-label="3. PyWGCNA backend notes">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#importerror-no-module-named-matplotlib-or-scipy" class="md-nav__link">
+  <a href="#hanging-during-fit" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ImportError: No module named 'matplotlib' or 'scipy'
+        Hanging during fit
       
     </span>
   </a>
@@ -1581,21 +1738,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#freezing-hanging-during-fit" class="md-nav__link">
+  <a href="#zero-variance-feature-warning" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Freezing / Hanging During Fit
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#warning-zero-variance-feature" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Warning: Zero-Variance Feature
+        Zero-variance feature warning
       
     </span>
   </a>
@@ -1628,10 +1774,11 @@
 
 
 <h1 id="troubleshooting">Troubleshooting</h1>
-<p>Common issues and solutions when deploying <strong>eigenradiomics</strong>. The debugging guides are separated strictly into cross-framework bounds and isolated algorithm-specific parameters.</p>
+<p>Common issues and fixes when using <strong>eigenradiomics</strong>, grouped into
+framework-level problems and WGCNA/PyWGCNA-specific ones.</p>
 <hr />
-<h2 id="1-general-framework-issues-eigenradiomics">1. General Framework Issues (eigenradiomics)</h2>
-<h3 id="installation-dependency-failures">Installation &amp; Dependency Failures</h3>
+<h2 id="1-framework-issues">1. Framework issues</h2>
+<h3 id="installation-dependencies">Installation &amp; dependencies</h3>
 <table>
 <thead>
 <tr>
@@ -1642,95 +1789,117 @@
 <tbody>
 <tr>
 <td><code>pip install eigenradiomics</code> fails</td>
-<td>Ensure Python ≥ 3.10 and pip ≥ 23. Try <code>pip install --upgrade pip</code> first.</td>
+<td>Ensure Python ≥ 3.10 and a recent pip (<code>pip install --upgrade pip</code>), then retry.</td>
+</tr>
+<tr>
+<td><code>ModuleNotFoundError: No module named 'PyWGCNA'</code></td>
+<td>WGCNA is optional. Install the extra: <code>pip install 'eigenradiomics[wgcna]'</code>.</td>
+</tr>
+<tr>
+<td>ComBat step is skipped</td>
+<td>Install the ComBat extra: <code>pip install 'eigenradiomics[combat]'</code> (requires Python ≥ 3.11).</td>
 </tr>
 </tbody>
 </table>
 <h3 id="sparse-matrix-input">Sparse matrix input</h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>TypeError: Sparse matrices are not supported.
 </code></pre></div>
-<p>Convert matrices explicitly to dense arrays before projecting structures natively:</p>
+<p>Convert to a dense array first:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">X_dense</span> <span class="o">=</span> <span class="n">X_sparse</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">reducer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_dense</span><span class="p">)</span>
 </code></pre></div>
-<h3 id="feature-name-mismatch">Feature name mismatch</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ValueError: Reducer requires input features to be in the same order as during fit.
+<h3 id="feature-name-mismatch">Feature-name mismatch</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>ValueError: ... requires input features to be in the same order as during fit.
 </code></pre></div>
-<p>The column order of <code>X_new</code> must identically match the training vector properties algebraically. If you fitted natively exposing DataFrame structures explicitly, pass identical structures matching exactly the original column names and layouts statically to prevent unscaled misalignments.</p>
-<h3 id="feature-count-mismatch">Feature count mismatch</h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ValueError: X has N features, but Reducer is expecting M features
+<p>If you fit on a DataFrame, <code>transform</code> must receive the <strong>same column names in
+the same order</strong>. Reindex the new data back to the fitted columns:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">Y</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_new</span><span class="p">[</span><span class="n">reducer</span><span class="o">.</span><span class="n">feature_names_in_</span><span class="p">])</span>
 </code></pre></div>
-<p>The number of dimensions bounding <code>.transform()</code> calculations fundamentally must parallel limits initialized during <code>.fit()</code>. Verify upstream pipelines identically processed valid subsets locally.</p>
-<h3 id="sklearn-integration-notfittederror">Sklearn Integration (NotFittedError)</h3>
-<p>Verify the dimensional block initializes mathematically <strong>before</strong> downstream methods evaluate arrays dynamically:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Ridge</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">WGCNAReducer</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()),</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)),</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="n">Ridge</span><span class="p">()),</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="p">])</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">pipe</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+<h3 id="feature-count-mismatch">Feature-count mismatch</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>ValueError: X has N features, but ... is expecting M features
 </code></pre></div>
-<h3 id="grid-search-is-extremely-slow">Grid search is extremely slow</h3>
-<p>Cross-validations explicitly evaluate all parameter states generating permutations limitlessly! Prevent heavy dimensional methods from triggering nested processing overlaps by explicitly defining processing threads correctly globally across <code>GridSearchCV(n_jobs=-1)</code>, avoiding isolated subsystem distributions mathematically.</p>
+<p><code>transform</code> must receive the same number of features as <code>fit</code>. This usually
+means an upstream step (e.g. <code>VarianceThreshold</code>) selected different columns —
+fit the whole pipeline together rather than steps in isolation.</p>
+<h3 id="notfittederror">NotFittedError</h3>
+<p>Fit the pipeline before calling <code>predict</code>/<code>transform</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Ridge</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">WGCNAReducer</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()),</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)),</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="n">Ridge</span><span class="p">()),</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="p">])</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">pipe</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="grid-search-is-very-slow">Grid search is very slow</h3>
+<p><code>GridSearchCV</code> refits the whole pipeline for every parameter combination × fold.
+Parallelize the <strong>search</strong> (<code>GridSearchCV(n_jobs=-1)</code>) and keep the reducer
+single-threaded (<code>WGCNAReducer(n_jobs=1)</code>) to avoid nested processes. See
+<a href="../scalability/">Scalability</a>.</p>
 <hr />
-<h2 id="2-reducer-specific-issues">2. Reducer-Specific Issues</h2>
-<h3 id="wgcna-module-clustering-topologies">WGCNA: Module Clustering &amp; Topologies</h3>
-<h4 id="modulenotfounderror-no-module-named-pywgcna"><code>ModuleNotFoundError: No module named 'PyWGCNA'</code></h4>
-<p>Install the specifically defined WGCNA backend packages implicitly locally: <code>pip install 'eigenradiomics[wgcna]'</code></p>
-<h4 id="automatic-soft-power-selection-fails">Automatic soft-power selection fails</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ValueError: Automatic soft-power selection failed — no power reached the R² threshold.
+<h2 id="2-wgcna-specific-issues">2. WGCNA-specific issues</h2>
+<h3 id="automatic-soft-power-selection-fails">Automatic soft-power selection fails</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>ValueError: Automatic soft-power selection failed — no power reached the R² threshold.
 </code></pre></div>
-<p><strong>Cause:</strong> The scale-free topology bounds logically never reliably reached the <code>r_squared_cut</code> structurally.</p>
-<p><strong>Solutions:</strong>
-1. Lower the threshold boundary limits: <code>WGCNAReducer(soft_power="auto", r_squared_cut=0.8)</code>
-2. Configure mapping limits explicitly manually: <code>WGCNAReducer(soft_power=6)</code>
-3. Dynamically track algorithmic evaluations securely returning calculations algebraically:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">r_squared_cut</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">reducer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_get_soft_power_table</span><span class="p">())</span>
+<p><strong>Cause:</strong> no candidate power reached <code>r_squared_cut</code> for the scale-free
+topology fit.</p>
+<p><strong>Fixes:</strong></p>
+<ol>
+<li>Lower the threshold: <code>WGCNAReducer(soft_power="auto", r_squared_cut=0.8)</code>.</li>
+<li>Set the power explicitly: <code>WGCNAReducer(soft_power=6)</code>.</li>
+<li>Inspect the table to choose a power yourself:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">r_squared_cut</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_get_soft_power_table</span><span class="p">())</span>
 </code></pre></div>
-<h4 id="too-few-samples-or-features-matrix-boundaries">Too few samples or features (Matrix boundaries)</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>ValueError: WGCNAReducer requires n_samples &gt;= 3
+<h3 id="too-few-samples-or-features">Too few samples or features</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>ValueError: WGCNAReducer requires n_samples &gt;= 3
 </code></pre></div>
-<p>Algorithm parameters mathematically require base minimum metrics securely driving reliable covariances analytically. (Optimal estimation natively binds <strong>n_samples ≥ 15</strong> safely algorithmically).</p>
-<h4 id="only-one-module-detected">Only one module detected</h4>
-<p><strong>Causes:</strong>
-- <code>min_module_size</code> limit vastly overshadows logical isolated parameter segmentations statically.
-- <code>me_diss_threshold</code> estimates statistically agglomerated structures recursively statically.</p>
-<p><strong>Solutions:</strong>
-- Sub-divide hierarchical bounds dynamically limiting density block requirements: <code>min_module_size=20</code>
-- Limit explicit parameter correlation bindings functionally avoiding nested overlaps: <code>me_diss_threshold=0.15</code>
-- Explode structural tree arrays natively resolving matrices logically explicitly: <code>deep_split=3</code></p>
-<h4 id="features-universally-bound-to-grey-modules">Features universally bound to Grey Modules</h4>
-<p>This logically calculates isolated networks independently failing completely meeting mapping limits. Drastically minimize <code>min_module_size</code> or implicitly trigger <code>include_grey=True</code> strictly capturing isolated vector clusters automatically algorithmically. </p>
-<h4 id="high-ram-execution-limits">High RAM Execution Limits</h4>
-<p>Massive configurations inherently trigger <span class="arithmatex">\(O(n^2)\)</span> dependency barriers globally limiting memory pools. Set <code>store_tom=False</code> (the default) to avoid caching the full TOM matrix in RAM.</p>
-<h4 id="intrusive-subprocess-logging">Intrusive Subprocess Logging</h4>
-<p>PyWGCNA bounds automatically natively dump broad structural output arrays directly logging console spans unprompted limitlessly!</p>
-<p>Route bounds gracefully silently organically structuring diagnostic parameters accurately logically natively directly capturing structural constraints:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">log_file</span><span class="o">=</span><span class="s2">&quot;wgcna_output.log&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</code></pre></div></p>
+<p>Correlation-based networks need enough samples to be meaningful. The hard
+minimum is 3 samples / 3 features; <strong>15+ samples</strong> is recommended for stable
+module detection.</p>
+<h3 id="only-one-module-detected">Only one module detected</h3>
+<p><strong>Likely causes:</strong> <code>min_module_size</code> is too large for the data, or
+<code>me_diss_threshold</code> merged everything together.</p>
+<p><strong>Fixes:</strong></p>
+<ul>
+<li>Lower <code>min_module_size</code> (e.g. <code>20</code>).</li>
+<li>Lower <code>me_diss_threshold</code> (e.g. <code>0.15</code>) so fewer modules are merged.</li>
+<li>Increase <code>deep_split</code> (e.g. <code>3</code>) to cut the dendrogram more aggressively.</li>
+</ul>
+<h3 id="most-features-land-in-the-grey-module">Most features land in the grey module</h3>
+<p>The grey module holds features that don't fit any cluster. If almost everything
+is grey, the network found little structure. Lower <code>min_module_size</code>, or set
+<code>include_grey=True</code> to keep those features as a pseudo-module.</p>
+<h3 id="high-memory-use">High memory use</h3>
+<p>The Topological Overlap Matrix is <code>O(n_features²)</code>. Keep <code>store_tom=False</code> (the
+default) so it isn't retained after <code>fit</code>, and pre-filter very wide tables (see
+<a href="../scalability/">Scalability</a>).</p>
+<h3 id="suppressing-pywgcna-console-output">Suppressing PyWGCNA console output</h3>
+<p>PyWGCNA prints progress to stdout. Silence it or route it to a file:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>                       <span class="c1"># suppress</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">log_file</span><span class="o">=</span><span class="s2">&quot;wgcna.log&quot;</span><span class="p">)</span> <span class="c1"># send to a file</span>
+</code></pre></div>
 <hr />
-<h2 id="3-pywgcna-common-blockers">3. PyWGCNA Common Blockers</h2>
-<p>PyWGCNA has its own dependencies and edge cases not immediately obvious.</p>
-<h3 id="importerror-no-module-named-matplotlib-or-scipy">ImportError: No module named 'matplotlib' or 'scipy'</h3>
-<p><strong>Reason:</strong> <code>PyWGCNA</code> tries to generate plotting objects and topological diagrams internally. Sometimes, incomplete base installations miss <code>matplotlib</code>.
-<strong>Solution:</strong> Install it explicitly:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>pip<span class="w"> </span>install<span class="w"> </span>matplotlib<span class="w"> </span>scipy<span class="w"> </span>PyWGCNA
-</code></pre></div></p>
-<h3 id="freezing-hanging-during-fit">Freezing / Hanging During Fit</h3>
-<p>If the program hangs indefinitely during <code>reducer.fit(X)</code>, it is highly likely that the data contains <code>NaN</code>, <code>Inf</code>, or universally zeroes, causing <code>goodSamplesGenes</code> inside PyWGCNA to deadlock on matrix divisions.
-<strong>Solution:</strong> Ensure all missing values are imputed via <code>sklearn.impute.SimpleImputer</code> before the reducer block.</p>
-<h3 id="warning-zero-variance-feature">Warning: Zero-Variance Feature</h3>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>UserWarning: Module &#39;grey&#39; contains 5 zero-variance feature(s)
+<h2 id="3-pywgcna-backend-notes">3. PyWGCNA backend notes</h2>
+<h3 id="hanging-during-fit">Hanging during <code>fit</code></h3>
+<p>If <code>reducer.fit(X)</code> hangs, the input most likely contains <code>NaN</code>, <code>Inf</code>, or
+all-zero columns, which can deadlock PyWGCNA's internal checks. Impute and
+variance-filter first:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.impute</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimpleImputer</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.feature_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">VarianceThreshold</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># SimpleImputer(strategy=&quot;median&quot;) then VarianceThreshold(threshold=0.0) upstream</span>
 </code></pre></div>
-Eigenradiomics automatically safeguards correlation divisions with scales set to <code>1.0</code>. These variables intrinsically provide zero predictive power down the <code>Pipeline</code> dynamically. Using <code>VarianceThreshold</code> prior to <code>fit</code> is recommended.</p>
+<h3 id="zero-variance-feature-warning">Zero-variance feature warning</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>UserWarning: Module &#39;grey&#39; contains 5 zero-variance feature(s)
+</code></pre></div>
+<p>eigenradiomics safely sets the scale of constant features to <code>1.0</code>, but they
+carry no signal. Add a <code>VarianceThreshold</code> before the reducer to drop them.</p>
 
 
 

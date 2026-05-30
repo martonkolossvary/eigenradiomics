@@ -12,13 +12,13 @@
         <meta name="author" content="Márton Kolossváry">
       
       
-        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/installation/">
+        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/radiomics_preprocessing/">
       
       
-        <link rel="prev" href="../..">
+        <link rel="prev" href="../pipelines_and_grid_search/">
       
       
-        <link rel="next" href="../quick_start/">
+        <link rel="next" href="../reproducibility/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Installation - eigenradiomics</title>
+        <title>Radiomics Table Preprocessing - eigenradiomics</title>
       
     
     
@@ -98,7 +98,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#installation" class="md-skip">
+        <a href="#radiomics-table-preprocessing" class="md-skip">
           Skip to content
         </a>
       
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Installation
+              Radiomics Table Preprocessing
             
           </span>
         </div>
@@ -267,7 +267,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -508,37 +508,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Installation
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -554,59 +527,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-pypi" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install from PyPI
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install from Source
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -728,10 +648,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../radiomics_preprocessing/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Radiomics Table Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -747,6 +694,81 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#split-a-csv-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Split a CSV Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#selector-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selector Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#catalog-backed-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Catalog-Backed Selection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sklearn-pipeline-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sklearn Pipeline Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-feature-cleaning-with-radiomicspreptransformer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Feature Cleaning with RadiomicsPrepTransformer
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1377,10 +1399,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#split-a-csv-table" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Prerequisites
+        Split a CSV Table
       
     </span>
   </a>
@@ -1388,10 +1410,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-pypi" class="md-nav__link">
+  <a href="#selector-types" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from PyPI
+        Selector Types
       
     </span>
   </a>
@@ -1399,10 +1421,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
+  <a href="#catalog-backed-selection" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from Source
+        Catalog-Backed Selection
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sklearn-pipeline-use" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sklearn Pipeline Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#per-feature-cleaning-with-radiomicspreptransformer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-Feature Cleaning with RadiomicsPrepTransformer
       
     </span>
   </a>
@@ -1429,36 +1473,112 @@
   
 
 
-<h1 id="installation">Installation</h1>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Python &gt;= 3.10</li>
-<li><code>pip</code> for installation or Poetry for local development</li>
-</ul>
-<h2 id="install-from-pypi">Install from PyPI</h2>
-<p>Base package:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>eigenradiomics
+<h1 id="radiomics-table-preprocessing">Radiomics Table Preprocessing</h1>
+<p><code>eigenradiomics.preprocessing</code> provides utilities for splitting selected
+Pictologics wide-format feature columns out of a radiomics table before
+downstream modeling or reduction.</p>
+<p>Pictologics wide tables use feature columns named as:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>{config}__{feature_key}
 </code></pre></div>
-<p>With WGCNA support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[wgcna]&#39;</span>
+<p>For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>standard_fbn_32__volume_RNU0
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>standard_fbn_32__joint_entropy_TU9B
 </code></pre></div>
-<p><code>PyWGCNA</code> is optional because only <code>WGCNAReducer</code> requires it.</p>
-<p>With ComBat batch-effect harmonization support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[combat]&#39;</span>
+<p>Columns that do not follow this pattern are treated as metadata by default.</p>
+<h2 id="split-a-csv-table">Split a CSV Table</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">split_radiomics_file</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">split_radiomics_file</span><span class="p">(</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="s2">&quot;pictologics_features.csv&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="s2">&quot;preprocessed/&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;volume_RNU0&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">stripped_table</span><span class="p">)</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">removed_table</span><span class="p">)</span>
 </code></pre></div>
-<p>The <code>combat</code> extra installs <code>inmoose</code>, which powers the optional ComBat
-sensitivity diagnostic in <code>compute_batch_effects</code>. It requires Python &gt;= 3.11;
-on Python 3.10 the ComBat step is skipped with a warning. You can combine
-extras, e.g. <code>pip install 'eigenradiomics[wgcna,combat]'</code>.</p>
-<h2 id="install-from-source">Install from Source</h2>
-<p>Clone the repository and install locally:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pip<span class="w"> </span>install<span class="w"> </span>.
+<p>This writes a stripped radiomics table without the selected feature columns and
+a removed-feature table containing metadata columns plus the removed features.</p>
+<h2 id="selector-types">Selector Types</h2>
+<p><code>features</code> accepts exact feature keys, full column names, and <code>*</code> wildcards:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">features</span><span class="o">=</span><span class="s2">&quot;volume_RNU0&quot;</span>                    <span class="c1"># all configs</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">features</span><span class="o">=</span><span class="s2">&quot;standard_fbn_32__volume_RNU0&quot;</span>   <span class="c1"># one config-feature pair</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">features</span><span class="o">=</span><span class="s2">&quot;standard_fbn_*__volume_RNU0&quot;</span>    <span class="c1"># matching configs</span>
 </code></pre></div>
-<p>For editable development work:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>poetry<span class="w"> </span>install<span class="w"> </span>--with<span class="w"> </span>dev<span class="w"> </span>--extras<span class="w"> </span>wgcna
+<p><code>configs</code> is a global filter over configuration names:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">split_radiomics_file</span><span class="p">(</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="s2">&quot;pictologics_features.csv&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="s2">&quot;preprocessed/&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">features</span><span class="o">=</span><span class="s2">&quot;volume_RNU0&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">configs</span><span class="o">=</span><span class="s2">&quot;standard_fbn_*&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
 </code></pre></div>
+<h2 id="catalog-backed-selection">Catalog-Backed Selection</h2>
+<p>If you provide a Pictologics <code>describe_features()</code> catalog, you can select by
+granular family or broad family group:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">split_radiomics_file</span><span class="p">(</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="s2">&quot;pictologics_features.csv&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="s2">&quot;preprocessed/&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">catalog</span><span class="o">=</span><span class="s2">&quot;feature_catalog.csv&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">family_groups</span><span class="o">=</span><span class="s2">&quot;Texture&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">)</span>
+</code></pre></div>
+<p>The catalog should contain <code>config</code>, <code>feature_key</code>, <code>family</code>, and
+<code>family_group</code> columns. A legacy single <code>feature</code> column is also supported when
+it contains <code>{config}__{feature_key}</code> values.</p>
+<h2 id="sklearn-pipeline-use">sklearn Pipeline Use</h2>
+<p><code>RadiomicsFeatureRemover</code> is a scikit-learn-compatible transformer. Use it when
+the removal should be part of a fitted preprocessing pipeline:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsFeatureRemover</span><span class="p">,</span> <span class="n">WGCNAReducer</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="p">[</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="p">(</span><span class="s2">&quot;remove&quot;</span><span class="p">,</span> <span class="n">RadiomicsFeatureRemover</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="s2">&quot;volume_RNU0&quot;</span><span class="p">)),</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        <span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()),</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">30</span><span class="p">)),</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="p">]</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="p">)</span>
+</code></pre></div>
+<p>Like the reducers, the transformer validates that DataFrame columns at
+<code>transform</code> time match the columns seen during <code>fit</code>.</p>
+<h2 id="per-feature-cleaning-with-radiomicspreptransformer">Per-Feature Cleaning with <code>RadiomicsPrepTransformer</code></h2>
+<p><code>RadiomicsPrepTransformer</code> is a scikit-learn-compatible transformer that
+cleans each feature column independently while <strong>preserving NaN values</strong>
+(standard sklearn transformers often fail or propagate NaN across a row). For
+every column it applies, in order:</p>
+<ol>
+<li><strong>Winsorization</strong> — clip values to the <code>winsor_lower</code> / <code>winsor_upper</code>
+   quantiles (defaults 0.01 / 0.99) to tame extreme outliers.</li>
+<li><strong>Yeo-Johnson</strong> power transform — reduce skew (skip with
+   <code>skip_yeo_johnson=True</code>; constant columns are passed through unchanged).</li>
+<li><strong>Standardization</strong> — z-score to zero mean / unit variance (disable with
+   <code>standardize=False</code>).</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsPrepTransformer</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">prep</span> <span class="o">=</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">(</span><span class="n">winsor_lower</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">winsor_upper</span><span class="o">=</span><span class="mf">0.99</span><span class="p">)</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">X_clean</span> <span class="o">=</span> <span class="n">prep</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>  <span class="c1"># NaNs in X stay NaN in X_clean</span>
+</code></pre></div>
+<p>A right-skewed, outlier-laden feature becomes approximately normal and centered,
+while missing values pass straight through:</p>
+<p><img alt="Raw vs. preprocessed feature distribution" src="../../assets/figures/preprocessing_before_after.png" /></p>
+<div class="admonition tip">
+<p class="admonition-title">Order matters</p>
+<p>Winsorization caps outliers <em>before</em> the Yeo-Johnson fit, so a handful of
+extreme values can't dominate the power-transform parameter. Constant columns
+are detected and passed through unchanged rather than erroring.</p>
+</div>
+<p>The fitted parameters (per-column winsor bounds, power transform, and scaling)
+are stored, so <code>transform</code> applies exactly the same cleaning to unseen data. As
+with the reducers, feature names and order are checked at <code>transform</code> time, so a
+re-ordered or mismatched table is rejected rather than silently mis-cleaned. A
+DataFrame input returns a DataFrame (preserving the index and columns); an
+array input returns an array.</p>
+<p>It is the default preprocessing step inside <code>compute_batch_effects</code>, and works
+as a normal step in an sklearn <code>Pipeline</code>.</p>
 
 
 

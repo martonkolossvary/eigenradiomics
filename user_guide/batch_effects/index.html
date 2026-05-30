@@ -12,13 +12,13 @@
         <meta name="author" content="Márton Kolossváry">
       
       
-        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/installation/">
+        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/batch_effects/">
       
       
-        <link rel="prev" href="../..">
+        <link rel="prev" href="../reproducibility/">
       
       
-        <link rel="next" href="../quick_start/">
+        <link rel="next" href="../recipes/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Installation - eigenradiomics</title>
+        <title>Batch Effect Diagnostics - eigenradiomics</title>
       
     
     
@@ -98,7 +98,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#installation" class="md-skip">
+        <a href="#center-associated-batch-effects-diagnostics" class="md-skip">
           Skip to content
         </a>
       
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Installation
+              Batch Effect Diagnostics
             
           </span>
         </div>
@@ -267,7 +267,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -508,37 +508,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Installation
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -554,59 +527,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-pypi" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install from PyPI
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install from Source
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -784,10 +704,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../batch_effects/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Batch Effect Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -803,6 +750,131 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#the-preprocessing-pipeline-radiomicspreptransformer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Preprocessing Pipeline: RadiomicsPrepTransformer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-level-statistical-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature-Level Statistical Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multivariate-global-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multivariate Global Diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#combat-correction-sensitivity-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ComBat Correction Sensitivity Check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-diagnostics-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Diagnostics Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#polished-excel-reports-scientific-plots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Polished Excel Reports &amp; Scientific Plots
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Polished Excel Reports &amp; Scientific Plots">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#multi-sheet-excel-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Sheet Excel Reports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accessible-scientific-figures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessible Scientific Figures
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pipeline-and-preprocessing-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline and Preprocessing Integration
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1377,10 +1449,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#the-preprocessing-pipeline-radiomicspreptransformer" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Prerequisites
+        The Preprocessing Pipeline: RadiomicsPrepTransformer
       
     </span>
   </a>
@@ -1388,10 +1460,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-pypi" class="md-nav__link">
+  <a href="#feature-level-statistical-tests" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from PyPI
+        Feature-Level Statistical Tests
       
     </span>
   </a>
@@ -1399,10 +1471,82 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
+  <a href="#multivariate-global-diagnostics" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from Source
+        Multivariate Global Diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#combat-correction-sensitivity-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ComBat Correction Sensitivity Check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#end-to-end-diagnostics-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        End-to-End Diagnostics Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#polished-excel-reports-scientific-plots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Polished Excel Reports &amp; Scientific Plots
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Polished Excel Reports &amp; Scientific Plots">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#multi-sheet-excel-reports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Sheet Excel Reports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accessible-scientific-figures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessible Scientific Figures
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pipeline-and-preprocessing-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline and Preprocessing Integration
       
     </span>
   </a>
@@ -1429,35 +1573,140 @@
   
 
 
-<h1 id="installation">Installation</h1>
-<h2 id="prerequisites">Prerequisites</h2>
-<ul>
-<li>Python &gt;= 3.10</li>
-<li><code>pip</code> for installation or Poetry for local development</li>
-</ul>
-<h2 id="install-from-pypi">Install from PyPI</h2>
-<p>Base package:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>eigenradiomics
+<h1 id="center-associated-batch-effects-diagnostics">Center-Associated Batch Effects Diagnostics</h1>
+<p>Radiomics features extracted from medical images are notoriously sensitive to variation in scanner manufacturer, imaging protocols, reconstruction kernels, and slice thicknesses. These variations introduce non-biological variations (batch effects) that can severely confound predictive models, leading to models that learn to classify scanners rather than clinical pathology.</p>
+<p><code>eigenradiomics</code> provides a publication-grade <strong>Batch Effect Diagnostics Framework</strong> to identify, evaluate, and perform sensitivity checks on scanner/center-associated batch effects. It integrates rigorous preprocessing, feature-level tests, multivariate global diagnostics, ComBat correction sensitivity, and structured Excel/accessible visual reports.</p>
+<hr />
+<h2 id="the-preprocessing-pipeline-radiomicspreptransformer">The Preprocessing Pipeline: <code>RadiomicsPrepTransformer</code></h2>
+<p>To perform clean statistics, feature distributions must be prepared. Standard scikit-learn preprocessing transformers (such as <code>PowerTransformer</code> or <code>StandardScaler</code>) fail immediately on incomplete matrices containing missing values (NaNs). </p>
+<p><code>eigenradiomics</code> introduces <code>RadiomicsPrepTransformer</code>, a scikit-learn compatible preprocessor designed specifically for sparse radiomics matrices. It performs:
+1. <strong>Outlier Winsorization</strong>: Clips features at custom percentiles (e.g. 1st and 99th) column-by-column to mitigate the impact of extreme radiomics outliers.
+2. <strong>Yeo-Johnson Transformation</strong>: Automatically estimates and applies Yeo-Johnson power transformations per feature to optimize normality. Constant columns are safely bypassed.
+3. <strong>Standard Scaling</strong>: Standardizes features to zero mean and unit variance.
+4. <strong>NaN Carriage</strong>: Natively carries and preserves NaN values during both fitting and transformation, avoiding matrix imputation.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsPrepTransformer</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># Create a sample radiomics table with a massive outlier and a missing value</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s2">&quot;feat_1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">,</span> <span class="mf">500.0</span><span class="p">],</span>  <span class="c1"># Outlier 500.0</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="s2">&quot;feat_2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">]</span>   <span class="c1"># Constant column</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">})</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">transformer</span> <span class="o">=</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">(</span><span class="n">winsor_lower</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">winsor_upper</span><span class="o">=</span><span class="mf">0.9</span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">df_trans</span> <span class="o">=</span> <span class="n">transformer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1"># NaNs are preserved, outliers are clipped, and constant columns are returned safely</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">df_trans</span><span class="p">)</span>
 </code></pre></div>
-<p>With WGCNA support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[wgcna]&#39;</span>
+<hr />
+<h2 id="feature-level-statistical-tests">Feature-Level Statistical Tests</h2>
+<p>The framework computes detailed feature-level diagnostics, choosing the input matrix to match each test's assumptions:
+* <strong>ANOVA F-statistic and <span class="arithmatex">\(\eta^2\)</span></strong> — computed on the <strong>preprocessed/transformed</strong> features, where the test's normality assumption is more reasonable. Parametric test assessing the difference in feature means across centers; <span class="arithmatex">\(\eta^2\)</span> is the proportion of variance explained by center association.
+* <strong>Kruskal-Wallis H-statistic and <span class="arithmatex">\(\epsilon^2\)</span></strong> — computed on the <strong>raw</strong> features. Non-parametric analog of ANOVA, robust to skewed non-normal distributions, so it is applied directly to the untransformed values.
+* <strong>Brown-Forsythe/Levene test</strong> — computed on the <strong>raw</strong> features. Assesses heteroscedasticity (inequality of variance) across centers.
+* <strong>FDR q-values</strong>: Corrects all <span class="arithmatex">\(p\)</span>-values using the Benjamini-Hochberg false discovery rate procedure.</p>
+<hr />
+<h2 id="multivariate-global-diagnostics">Multivariate Global Diagnostics</h2>
+<p>To understand the global impact of batch effects across the entire radiomics feature space, the framework computes:
+* <strong>Principal Component Analysis (PCA)</strong>: Project features into low-dimensional orthogonal space. We report the explained variance ratio of PC1 and PC2.
+* <strong>Silhouette Score</strong>: Evaluates cluster separation of centers in the PCA subspace. A higher positive score (<span class="arithmatex">\(&gt; 0.1\)</span>) implies strong clustering by center (severe batch effect).
+* <strong>PERMANOVA Pseudo-F test</strong>: A non-parametric permutation-based MANOVA test (using Euclidean distance, 999 permutation steps, and a hardcoded random seed of <code>42</code> to guarantee perfect reproducibility). A significant p-value (<span class="arithmatex">\(p &lt; 0.05\)</span>) indicates that centers/scanners occupy statistically distinct regions of the feature space.</p>
+<hr />
+<h2 id="combat-correction-sensitivity-check">ComBat Correction Sensitivity Check</h2>
+<p>If the optional <code>inmoose</code> library (or <code>combat</code> extra) is installed, the framework automatically performs a <strong>ComBat sensitivity diagnostic</strong>. It runs parametric/non-parametric ComBat adjustment and re-evaluates all feature-level and global diagnostics to show exactly how much center-associated variance remains after correction.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># To install the optional ComBat dependency:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>pip<span class="w"> </span>install<span class="w"> </span>eigenradiomics<span class="o">[</span>combat<span class="o">]</span>
 </code></pre></div>
-<p><code>PyWGCNA</code> is optional because only <code>WGCNAReducer</code> requires it.</p>
-<p>With ComBat batch-effect harmonization support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[combat]&#39;</span>
+<hr />
+<h2 id="end-to-end-diagnostics-example">End-to-End Diagnostics Example</h2>
+<p>Evaluate center-associated batch effects on a wide-format radiomics DataFrame:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_batch_effects</span><span class="p">,</span> <span class="n">write_batch_effects_excel</span><span class="p">,</span> <span class="n">plot_batch_effects</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># 1. Load radiomics features and center batch labels</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">X</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;features.csv&quot;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">batch</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;centers.csv&quot;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">)[</span><span class="s2">&quot;CenterID&quot;</span><span class="p">]</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># 2. Run the diagnostics pipeline</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">results</span> <span class="o">=</span> <span class="n">compute_batch_effects</span><span class="p">(</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="n">X</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="n">batch</span><span class="p">,</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="n">permutations</span><span class="o">=</span><span class="mi">999</span><span class="p">,</span>      <span class="c1"># High permutations for publication-ready p-values</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="n">no_combat</span><span class="o">=</span><span class="kc">False</span>        <span class="c1"># Perform ComBat sensitivity check</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="p">)</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="c1"># 3. View the global diagnostics summary</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;global_diagnostics&quot;</span><span class="p">])</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="c1"># 4. View detailed feature-level tests</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;feature_stats&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 </code></pre></div>
-<p>The <code>combat</code> extra installs <code>inmoose</code>, which powers the optional ComBat
-sensitivity diagnostic in <code>compute_batch_effects</code>. It requires Python &gt;= 3.11;
-on Python 3.10 the ComBat step is skipped with a warning. You can combine
-extras, e.g. <code>pip install 'eigenradiomics[wgcna,combat]'</code>.</p>
-<h2 id="install-from-source">Install from Source</h2>
-<p>Clone the repository and install locally:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pip<span class="w"> </span>install<span class="w"> </span>.
+<hr />
+<h2 id="polished-excel-reports-scientific-plots">Polished Excel Reports &amp; Scientific Plots</h2>
+<h3 id="multi-sheet-excel-reports">Multi-Sheet Excel Reports</h3>
+<p>Export the complete diagnostics suite to a highly formatted Excel file with:
+* <strong>Active auto-filters</strong> and <strong>frozen headers (<code>A2</code>)</strong> on all sheets.
+* <strong>Sleek dark-navy table headers</strong>.
+* <strong>Auto-fit columns</strong> with dynamic padding to prevent string truncation.
+* <strong>Custom decimal formatting</strong> (3 decimals for statistical coefficients, 4 decimals/scientific notation for p-values).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">write_batch_effects_excel</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="s2">&quot;batch_effects_report.xlsx&quot;</span><span class="p">)</span>
 </code></pre></div>
-<p>For editable development work:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>poetry<span class="w"> </span>install<span class="w"> </span>--with<span class="w"> </span>dev<span class="w"> </span>--extras<span class="w"> </span>wgcna
+<h3 id="accessible-scientific-figures">Accessible Scientific Figures</h3>
+<p>Generate high-contrast, publication-grade figures conforming to Oxford University Press (OUP) journals styling rules:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_batch_effects</span><span class="p">(</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">results</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">path</span><span class="o">=</span><span class="s2">&quot;batch_effects_visuals.png&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">primary_alpha</span><span class="o">=</span><span class="mf">0.05</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">)</span>
+</code></pre></div>
+<p>The panels make the batch effect and its correction visually obvious: samples
+separate by center along PC1 <em>before</em> ComBat and mix <em>after</em>, while the q-value
+histogram quantifies how many features differ significantly across centers:</p>
+<p><img alt="PCA before and after ComBat, plus an ANOVA FDR q-value histogram" src="../../assets/figures/batch_effects.png" /></p>
+<div class="admonition note">
+<p class="admonition-title">ComBat here is a sensitivity check, not a default</p>
+<p><code>compute_batch_effects</code> reports how much center-associated variance <em>would</em>
+remain after ComBat; it does not silently harmonize your features. Use the
+diagnostics to decide whether harmonization is warranted, then apply it
+deliberately.</p>
+</div>
+<p><strong>Accessibility Rules Applied</strong>:
+* <strong>Colorblind-Friendly Palettes</strong>: High-contrast colors representing different centers.
+* <strong>Contrast Outlines</strong>: Scatter points and histogram bins are framed with dark boundaries (<code>edgecolor='0.25'</code>) to maintain a contrast ratio <span class="arithmatex">\(&gt; 3:1\)</span>.
+* <strong>No Redundant Legends</strong>: The ANOVA FDR q-value histogram uses direct text annotations to label the primary alpha cut line instead of using separate color boxes.
+* <strong>Clear Typography</strong>: Sized perfectly in sans-serif fonts for comfortable readability.</p>
+<hr />
+<h2 id="pipeline-and-preprocessing-integration">Pipeline and Preprocessing Integration</h2>
+<p>You can define a custom scikit-learn preprocessing pipeline, pass it directly to <code>compute_batch_effects</code>, and then reuse the exact same preprocessing parameters in your downstream model:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">,</span> <span class="n">RadiomicsFeatureRemover</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># 1. Define your standard preprocessing configuration</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">prep_pipeline</span> <span class="o">=</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">(</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">winsor_lower</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">winsor_upper</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">skip_yeo_johnson</span><span class="o">=</span><span class="kc">False</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">)</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1"># 2. Diagnose batch effects using your exact pipeline settings</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">results</span> <span class="o">=</span> <span class="n">compute_batch_effects</span><span class="p">(</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="n">X</span><span class="p">,</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="n">batch</span><span class="p">,</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="n">pipeline</span><span class="o">=</span><span class="n">prep_pipeline</span><span class="p">,</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>    <span class="n">no_combat</span><span class="o">=</span><span class="kc">False</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="p">)</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="c1"># 3. Inspect which features failed QC or show severe batch effects</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="n">qc_failed</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;feature_qc&quot;</span><span class="p">][</span><span class="o">~</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;feature_qc&quot;</span><span class="p">][</span><span class="s2">&quot;keep&quot;</span><span class="p">]][</span><span class="s2">&quot;feature&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="c1"># 4. Construct downstream machine learning model using the same prep steps</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="n">model_pipeline</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>    <span class="p">(</span><span class="s2">&quot;qc_filter&quot;</span><span class="p">,</span> <span class="n">RadiomicsFeatureRemover</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">qc_failed</span><span class="p">)),</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>    <span class="p">(</span><span class="s2">&quot;prep&quot;</span><span class="p">,</span> <span class="n">prep_pipeline</span><span class="p">),</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>    <span class="c1"># ... classifier, feature reducer, etc.</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="p">])</span>
 </code></pre></div>
 
 

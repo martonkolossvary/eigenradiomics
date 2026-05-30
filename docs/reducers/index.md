@@ -33,6 +33,36 @@ For straightforward traceability in downstream coefficient tables or hyperparame
 
 These names are returned by `get_feature_names_out()` and are propagated through scikit-learn pipelines automatically.
 
+## Reduction Artifacts
+
+Beyond the transformed matrix, a reducer can expose **structured intermediate
+outputs** for downstream plotting and analysis through one uniform interface:
+
+```python
+artifacts = reducer.get_reduction_artifacts()
+artifacts.available()    # e.g. ['similarity', 'linkage', 'cluster_labels',
+                         #       'feature_order', 'feature_importances']
+artifacts.similarity     # feature × feature DataFrame, or None
+```
+
+Each reducer populates whichever elements it can produce and leaves the rest as
+`None`, so a method that only estimates a similarity matrix and one that also
+assigns clusters both feed the same `ReductionArtifacts` container — and the
+same downstream code (clustered heatmaps, exports, analysis).
+
+| Element | Meaning |
+|---------|---------|
+| `feature_names` | input feature names (always present) |
+| `similarity` | symmetric feature × feature similarity (e.g. WGCNA TOM) |
+| `linkage` | SciPy hierarchical-clustering linkage matrix |
+| `cluster_labels` | per-feature cluster / module label |
+| `feature_order` | features in a meaningful display order (e.g. dendrogram leaves) |
+| `feature_importances` | per-feature contribution to the reduction |
+
+`WGCNAReducer` populates all of these (`similarity`/TOM requires
+`store_tom=True`). The forthcoming clustered-heatmap utility consumes a
+`ReductionArtifacts` directly.
+
 ## Currently Implemented Reducers
 
 | Reducer | Technique | Reference |

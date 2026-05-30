@@ -1,4 +1,5 @@
 from eigenradiomics._version import __version__
+from eigenradiomics.artifacts import ReductionArtifacts
 from eigenradiomics.batch_effects import (
     compute_batch_effects,
     plot_batch_effects,
@@ -23,6 +24,7 @@ from eigenradiomics.reproducibility import (
 __all__ = [
     "__version__",
     "BaseReducer",
+    "ReductionArtifacts",
     "RadiomicsFeatureRemover",
     "WGCNAReducer",
     "RadiomicsPrepTransformer",

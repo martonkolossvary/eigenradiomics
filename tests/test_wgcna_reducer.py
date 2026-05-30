@@ -301,6 +301,9 @@ class TestWGCNAReducerParameterValidation:
             ("n_module_components", "invalid", "n_module_components must be a positive integer"),
             ("n_jobs", 0, "n_jobs must be a non-zero integer"),
             ("n_jobs", 1.5, "n_jobs must be a non-zero integer"),
+            ("correlation_method", "kendall", "correlation_method must be one of"),
+            ("power_min", 0, "power_min must be a positive integer"),
+            ("power_max", 0, "power_max must be an integer >= power_min"),
         ],
     )
     def test_invalid_param_raises(self, param, value, match, small_feature_matrix):
@@ -786,3 +789,71 @@ def test_base_tags(wgcna_default):
     assert isinstance(tags1, dict)
     assert not tags1.get("requires_y", True)
     assert tags2 is not None
+
+
+class TestWGCNAReducerArtifacts:
+    """Structured reduction-artifact outputs for downstream plotting/analysis."""
+
+    def test_artifacts_with_tom(self, small_feature_matrix):
+        r = WGCNAReducer(
+            soft_power=6, min_module_size=20, store_tom=True, verbose=0
+        ).fit(small_feature_matrix)
+        art = r.get_reduction_artifacts()
+        m = small_feature_matrix.shape[1]
+        assert set(art.available()) == {
+            "similarity",
+            "linkage",
+            "cluster_labels",
+            "feature_order",
+            "feature_importances",
+        }
+        assert art.similarity.shape == (m, m)
+        assert art.linkage.shape == (m - 1, 4)
+        assert len(art.cluster_labels) == m
+        assert len(art.feature_order) == m
+        assert {"feature", "loading", "importance", "module"}.issubset(
+            art.feature_importances.columns
+        )
+
+    def test_artifacts_without_tom(self, small_feature_matrix):
+        r = WGCNAReducer(
+            soft_power=6, min_module_size=20, store_tom=False, verbose=0
+        ).fit(small_feature_matrix)
+        art = r.get_reduction_artifacts()
+        assert art.similarity is None
+        assert "similarity" not in art.available()
+        assert art.linkage is not None  # linkage available without the TOM
+
+
+class TestWGCNAReducerCorrelationMethod:
+    def test_spearman_fit_and_transform(self, small_feature_matrix):
+        r = WGCNAReducer(
+            soft_power=6, min_module_size=20, correlation_method="spearman", verbose=0
+        )
+        Y = r.fit_transform(small_feature_matrix)
+        assert Y.shape == (small_feature_matrix.shape[0], r.n_components_)
+        # Loadings are on the original scale, so transform of unseen rows is defined.
+        Y2 = r.transform(small_feature_matrix[:10])
+        assert Y2.shape == (10, r.n_components_)
+
+    def test_spearman_tom_differs_from_pearson(self, small_feature_matrix):
+        common = dict(soft_power=6, min_module_size=20, store_tom=True, verbose=0)
+        p = WGCNAReducer(correlation_method="pearson", **common).fit(small_feature_matrix)
+        s = WGCNAReducer(correlation_method="spearman", **common).fit(small_feature_matrix)
+        assert not np.allclose(p.tom_, s.tom_)
+
+
+class TestWGCNAReducerPowerRange:
+    def test_auto_power_within_range(self, small_feature_matrix):
+        r = WGCNAReducer(
+            soft_power="auto",
+            power_min=2,
+            power_max=12,
+            r_squared_cut=0.8,
+            min_module_size=20,
+            verbose=0,
+        )
+        r.fit(small_feature_matrix)
+        table = r.wgcna_get_soft_power_table()
+        assert table["Power"].between(2, 12).all()
+        assert 2 <= r.soft_power_ <= 12

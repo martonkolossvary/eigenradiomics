@@ -144,9 +144,11 @@ dropped unless `include_grey=True`.
 |-----------|---------|----------|
 | `network_type` | `"signed hybrid"` | How correlations are turned into adjacencies: `"signed hybrid"`, `"signed"`, or `"unsigned"`. Signed variants keep the direction of correlation. |
 | `tom_type` | `"signed"` | Topological Overlap Matrix type: `"signed"` or `"unsigned"`. |
+| `correlation_method` | `"pearson"` | `"pearson"` or `"spearman"`. Spearman rank-transforms features for network construction (robust to monotone non-linearities) while keeping eigengene loadings on the original scale, so `transform` of unseen data stays leakage-safe. |
 | `soft_power` | `"auto"` | Soft-thresholding power $\beta$ for the adjacency matrix. `"auto"` selects a value via scale-free topology fit; an integer fixes it for fully deterministic pipelines. |
 | `r_squared_cut` | `0.9` | Target R² for scale-free topology when `soft_power="auto"`. Lower it if automatic selection fails to reach the threshold. |
 | `mean_cut` | `100` | Mean-connectivity ceiling used during automatic soft-power selection. |
+| `power_min`, `power_max` | `1`, `30` | Inclusive range of candidate powers evaluated when `soft_power="auto"`. |
 | `min_module_size` | `50` | Minimum number of features per module. Smaller values yield more, finer modules; depends on the matrix width. |
 | `me_diss_threshold` | `0.2` | Module-eigengene dissimilarity threshold for merging similar modules (0–1). |
 | `deep_split` | `2` | `cutreeHybrid` sensitivity (0–4); higher splits the dendrogram more aggressively into smaller modules. |

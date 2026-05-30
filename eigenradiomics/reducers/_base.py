@@ -11,6 +11,7 @@ from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from eigenradiomics._utils import validate_estimator_input
+from eigenradiomics.artifacts import ReductionArtifacts
 
 
 class BaseReducer(ABC, TransformerMixin, BaseEstimator):
@@ -96,6 +97,50 @@ class BaseReducer(ABC, TransformerMixin, BaseEstimator):
             [f"{self._reducer_prefix}_{i}" for i in range(self.n_components_)],
             dtype=str,
         )
+
+    # ------------------------------------------------------------------
+    # structured reduction artifacts (for downstream plotting / analysis)
+    # ------------------------------------------------------------------
+
+    def get_reduction_artifacts(self) -> ReductionArtifacts:
+        """Return the reducer's standardized outputs as a :class:`ReductionArtifacts`.
+
+        Subclasses populate whichever elements they can produce by overriding the
+        ``_artifact_*`` hooks below; unsupported elements remain ``None``. This
+        gives downstream plotting and analysis a single, uniform interface
+        regardless of which reducer (or which features) produced the result.
+        """
+        from sklearn.utils.validation import check_is_fitted
+
+        check_is_fitted(self, "feature_names_in_")
+        return ReductionArtifacts(
+            feature_names=np.asarray(self.feature_names_in_),
+            similarity=self._artifact_similarity(),
+            linkage=self._artifact_linkage(),
+            cluster_labels=self._artifact_cluster_labels(),
+            feature_order=self._artifact_feature_order(),
+            feature_importances=self._artifact_feature_importances(),
+        )
+
+    def _artifact_similarity(self) -> pd.DataFrame | None:
+        """Override to expose a symmetric feature-by-feature similarity matrix."""
+        return None
+
+    def _artifact_linkage(self) -> NDArray | None:
+        """Override to expose a SciPy hierarchical-clustering linkage matrix."""
+        return None
+
+    def _artifact_cluster_labels(self) -> pd.Series | None:
+        """Override to expose per-feature cluster / module labels."""
+        return None
+
+    def _artifact_feature_order(self) -> NDArray | None:
+        """Override to expose a display ordering of features."""
+        return None
+
+    def _artifact_feature_importances(self) -> pd.DataFrame | None:
+        """Override to expose per-feature importances."""
+        return None
 
     # ------------------------------------------------------------------
     # shared helpers

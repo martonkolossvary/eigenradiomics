@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
-from scipy.cluster.hierarchy import cut_tree, linkage
+from scipy.cluster.hierarchy import cut_tree, leaves_list, linkage
 from scipy.spatial.distance import squareform
 from sklearn.utils.validation import check_is_fitted
 
@@ -65,12 +65,20 @@ class WGCNAReducer(BaseReducer):
         ``"signed hybrid"`` | ``"signed"`` | ``"unsigned"``.
     tom_type : str
         ``"signed"`` | ``"unsigned"``.
+    correlation_method : str
+        ``"pearson"`` (default) or ``"spearman"``.  Spearman rank-transforms the
+        features for network construction (adjacency, TOM, clustering, merging),
+        making the network robust to monotone non-linearities; the stored
+        eigengene loadings are computed on the original scale so ``transform``
+        of unseen data stays leakage-safe.
     soft_power : int or ``"auto"``
         Soft-thresholding power.  ``"auto"`` selects via scale-free topology.
     r_squared_cut : float
         R² threshold for automatic soft-power selection.
     mean_cut : float
         Mean connectivity threshold for soft-power selection.
+    power_min, power_max : int
+        Inclusive range of candidate powers evaluated when ``soft_power="auto"``.
     min_module_size : int
         Minimum number of features per module.
     me_diss_threshold : float
@@ -101,9 +109,12 @@ class WGCNAReducer(BaseReducer):
         self,
         network_type: str = "signed hybrid",
         tom_type: str = "signed",
+        correlation_method: str = "pearson",
         soft_power: int | str = "auto",
         r_squared_cut: float = 0.9,
         mean_cut: float = 100,
+        power_min: int = 1,
+        power_max: int = 30,
         min_module_size: int = 50,
         me_diss_threshold: float = 0.2,
         deep_split: int = 2,
@@ -117,9 +128,12 @@ class WGCNAReducer(BaseReducer):
     ) -> None:
         self.network_type = network_type
         self.tom_type = tom_type
+        self.correlation_method = correlation_method
         self.soft_power = soft_power
         self.r_squared_cut = r_squared_cut
         self.mean_cut = mean_cut
+        self.power_min = power_min
+        self.power_max = power_max
         self.min_module_size = min_module_size
         self.me_diss_threshold = me_diss_threshold
         self.deep_split = deep_split
@@ -171,6 +185,19 @@ class WGCNAReducer(BaseReducer):
         valid_tom_types = {"signed", "unsigned"}
         if self.tom_type not in valid_tom_types:
             raise ValueError(f"tom_type must be one of {valid_tom_types}, got {self.tom_type!r}.")
+        valid_correlation_methods = {"pearson", "spearman"}
+        if self.correlation_method not in valid_correlation_methods:
+            raise ValueError(
+                f"correlation_method must be one of {valid_correlation_methods}, "
+                f"got {self.correlation_method!r}."
+            )
+        if not isinstance(self.power_min, int) or self.power_min < 1:
+            raise ValueError(f"power_min must be a positive integer, got {self.power_min}.")
+        if not isinstance(self.power_max, int) or self.power_max < self.power_min:
+            raise ValueError(
+                f"power_max must be an integer >= power_min ({self.power_min}), "
+                f"got {self.power_max}."
+            )
 
     def _clear_fitted_attributes(self) -> None:
         """Remove all fitted attributes so a refit starts clean."""
@@ -220,8 +247,17 @@ class WGCNAReducer(BaseReducer):
                 f"got n_features = {n_features}."
             )
 
+        # Spearman WGCNA == Pearson correlation on per-feature ranks. Rank-transform
+        # only the matrix used to build the network (adjacency/TOM/clustering/merge);
+        # the eigengene loadings are computed on the original scale below so that
+        # ``transform`` of unseen data stays leakage-safe.
+        if self.correlation_method == "spearman":
+            X_net = pd.DataFrame(X_arr).rank(axis=0).to_numpy()
+        else:
+            X_net = X_arr
+
         # Build a DataFrame for PyWGCNA (samples × features)
-        df = pd.DataFrame(X_arr, columns=feature_names)
+        df = pd.DataFrame(X_net, columns=feature_names)
 
         with self._capture_output():
             # --- 1. Soft power selection ---
@@ -231,6 +267,7 @@ class WGCNAReducer(BaseReducer):
                     dataIsExpr=True,
                     RsquaredCut=self.r_squared_cut,
                     MeanCut=self.mean_cut,
+                    powerVector=list(range(self.power_min, self.power_max + 1)),
                     networkType=self.network_type,
                 )
                 if power_est is None:
@@ -306,8 +343,9 @@ class WGCNAReducer(BaseReducer):
         # --- 7. Merge close modules (own implementation) ---
         # PyWGCNA's mergeCloseModules has pandas compatibility issues, so we
         # merge using eigengene dissimilarity computed via SVD.  The unassigned
-        # ("grey") module is never merged into a real module.
-        merged_colors = self._merge_close_modules(X_arr, color_list, protect=grey_color)
+        # ("grey") module is never merged into a real module.  Merge on the same
+        # (possibly rank-transformed) matrix used to build the network.
+        merged_colors = self._merge_close_modules(X_net, color_list, protect=grey_color)
 
         # --- 8. Build module assignments ---
         unique_modules = sorted(set(merged_colors))
@@ -596,6 +634,43 @@ class WGCNAReducer(BaseReducer):
 
         fig.tight_layout()
         return fig
+
+    # ------------------------------------------------------------------
+    # reduction-artifact hooks (override BaseReducer defaults)
+    # ------------------------------------------------------------------
+
+    def _artifact_similarity(self) -> pd.DataFrame | None:
+        """Topological Overlap Matrix (only available when ``store_tom=True``)."""
+        if not hasattr(self, "tom_"):
+            return None
+        names = self.feature_names_in_
+        return pd.DataFrame(self.tom_, index=names, columns=names)
+
+    def _artifact_linkage(self) -> NDArray | None:
+        """Average-linkage hierarchical clustering on ``1 - TOM``."""
+        linkage_matrix: NDArray = self.dendrogram_
+        return linkage_matrix
+
+    def _artifact_cluster_labels(self) -> pd.Series | None:
+        """Per-feature merged module colour (includes any unassigned features)."""
+        return pd.Series(self.module_colors_, index=self.feature_names_in_, name="module")
+
+    def _artifact_feature_order(self) -> NDArray | None:
+        """Feature names in dendrogram-leaf order."""
+        order = leaves_list(self.dendrogram_)
+        ordered: NDArray = np.asarray(self.feature_names_in_)[order]
+        return ordered
+
+    def _artifact_feature_importances(self) -> pd.DataFrame | None:
+        """Per-module SVD-loading importances flattened into one table."""
+        frames = []
+        for module, frame in self.wgcna_get_feature_importances().items():
+            annotated = frame.copy()
+            annotated["module"] = module
+            frames.append(annotated)
+        if not frames:  # pragma: no cover - a fitted WGCNA always has >= 1 module here
+            return None
+        return pd.concat(frames, ignore_index=True)
 
     # ------------------------------------------------------------------
     # internal helpers

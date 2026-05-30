@@ -257,7 +257,7 @@ def permanova_euclidean(
         ss_between = 0.0
         for label in unique:
             group = x[current_labels == label]
-            if len(group) == 0:
+            if len(group) == 0:  # pragma: no cover - permutations preserve label counts
                 continue
             ss_between += len(group) * float(((group.mean(axis=0) - grand) ** 2).sum())
         ss_within = sst - ss_between

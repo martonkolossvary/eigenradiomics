@@ -54,8 +54,7 @@ def resolve_analysis_features(
         remover.fit(df)
         return np.asarray(remover.removed_feature_names_)
 
-    remover = RadiomicsFeatureRemover(metadata_columns="auto")
-    remover.fit(df)
-    return np.asarray(
-        [col for col in remover.kept_feature_names_ if pd.api.types.is_numeric_dtype(df[col])]
-    )
+    # No selectors: analyse every numeric column directly. Selecting by dtype
+    # (rather than by stringified catalog names) keeps int-labelled,
+    # ndarray-derived columns working too.
+    return np.asarray(df.select_dtypes(include="number").columns.tolist())

@@ -176,7 +176,7 @@ def _compute_global_diagnostics(
             silhouette = float(
                 silhouette_score(scores.iloc[:, : min(10, scores.shape[1])], batch_subset)
             )
-        except ValueError:
+        except ValueError:  # pragma: no cover - only on degenerate label sets QC prevents
             silhouette = np.nan
 
     diag_dict = {
@@ -478,7 +478,10 @@ def compute_batch_effects(
                     n_vals_replaced = int(nonfinite_mask.to_numpy().sum())
                     n_feats_replaced = int(nonfinite_mask.any(axis=0).sum())
                     corrected_df = corrected_df.mask(nonfinite_mask, X_global[combat_features])
-                    for f in corrected_df.columns[corrected_df.isna().any(axis=0)]:
+                    # Defensive median fill: unreachable in practice because the
+                    # complete matrix used for the mask has no missing values.
+                    residual_na = corrected_df.columns[corrected_df.isna().any(axis=0)]
+                    for f in residual_na:  # pragma: no cover
                         fill_value = corrected_df[f].median(skipna=True)
                         if not np.isfinite(fill_value):
                             fill_value = 0.0
@@ -649,7 +652,7 @@ def plot_batch_effects(
 
     n_cols = 1 + int(has_combat) + 1  # PCA panels + ANOVA q-value panel
     fig, axes = plt.subplots(1, n_cols, figsize=(4 * n_cols, 4), sharey=False)
-    if n_cols == 1:
+    if n_cols == 1:  # pragma: no cover - always >= 2 panels (PCA + histogram)
         axes = [axes]
 
     ax_idx = 0

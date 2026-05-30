@@ -65,6 +65,15 @@ class TestConstruction:
         assert isinstance(ds.catalog, FeatureCatalog)
         assert ds.feature_columns == ["orig__Energy", "orig__Entropy"]
 
+    def test_from_wide_catalog_from_csv(self, tmp_path, wide: pd.DataFrame) -> None:
+        cat_path = tmp_path / "catalog.csv"
+        pd.DataFrame(
+            {"config": ["orig", "orig"], "feature_key": ["Energy", "Entropy"]}
+        ).to_csv(cat_path, index=False)
+        ds = RadiomicsDataset.from_wide(wide, catalog=str(cat_path))
+        assert isinstance(ds.catalog, FeatureCatalog)
+        assert ds.feature_columns == ["orig__Energy", "orig__Entropy"]
+
     def test_non_dataframe_raises(self) -> None:
         with pytest.raises(TypeError, match="DataFrame"):
             RadiomicsDataset([[1, 2], [3, 4]])

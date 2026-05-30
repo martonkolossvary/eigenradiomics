@@ -75,6 +75,11 @@ class TestResolveDuplicates:
         with pytest.raises(ValueError, match="order_column"):
             resolve_duplicates(df, "k", policy="min")
 
+    def test_min_order_column_not_found_raises(self) -> None:
+        df = pd.DataFrame({"k": [1, 1], "v": [1, 2]})
+        with pytest.raises(ValueError, match="order_column 'ghost' not found"):
+            resolve_duplicates(df, "k", policy="min", order_column="ghost")
+
     def test_unknown_policy_raises(self) -> None:
         df = pd.DataFrame({"k": [1, 1]})
         with pytest.raises(ValueError, match="Unknown duplicate policy"):

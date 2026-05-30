@@ -557,3 +557,19 @@ class TestRadiomicsPrepTransformer:
         out = RadiomicsPrepTransformer().fit_transform(df)
         assert out["b"].isna().all()
         assert not out["a"].isna().any()
+
+    def test_skip_yeo_johnson(self) -> None:
+        df = pd.DataFrame({"a": [1.0, 2.0, 3.0, 100.0], "b": [4.0, 5.0, 6.0, 7.0]})
+        pt = RadiomicsPrepTransformer(skip_yeo_johnson=True).fit(df)
+        assert all(p is None for p in pt.power_transformers_)
+        assert pt.transform(df).shape == df.shape
+
+    def test_standardize_false(self) -> None:
+        df = pd.DataFrame({"a": [1.0, 2.0, 3.0, 4.0], "b": [4.0, 5.0, 6.0, 7.0]})
+        pt = RadiomicsPrepTransformer(standardize=False, skip_yeo_johnson=True).fit(df)
+        assert pt.scales_ == [(0.0, 1.0), (0.0, 1.0)]
+
+    def test_get_tags(self) -> None:
+        prep = RadiomicsPrepTransformer()
+        assert prep._get_tags()["allow_nan"] is True
+        assert prep.__sklearn_tags__().input_tags.allow_nan is True

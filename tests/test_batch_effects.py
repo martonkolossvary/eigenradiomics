@@ -22,6 +22,27 @@ from eigenradiomics.batch_effects import (
 )
 from eigenradiomics.preprocessing import RadiomicsPrepTransformer
 
+try:
+    import inmoose  # noqa: F401
+
+    _HAS_INMOOSE = True
+except ImportError:
+    _HAS_INMOOSE = False
+
+
+def _batch_df(n_feat: int = 6, per_batch: int = 12, seed: int = 0, with_effect: bool = True):
+    """Synthetic 3-center radiomics matrix with an optional batch shift."""
+    rng = np.random.default_rng(seed)
+    batches = np.repeat(["A", "B", "C"], per_batch)
+    n = len(batches)
+    X = rng.standard_normal((n, n_feat))
+    if with_effect:
+        shift = np.array([{"A": 0.0, "B": 1.5, "C": 3.0}[b] for b in batches])
+        X[:, : n_feat // 2] += shift[:, None]
+    cols = [f"original__f{i}" for i in range(n_feat)]
+    df = pd.DataFrame(X, columns=cols, index=[f"S{i}" for i in range(n)])
+    return df, pd.Series(batches, index=df.index)
+
 
 def test_radiomics_prep_transformer():
     """Verify that RadiomicsPrepTransformer clips, transforms, scales, and carries NaNs."""
@@ -177,9 +198,12 @@ def test_compute_batch_effects_selectors_and_combat():
     assert "original__Energy" in feature_stats["feature"].tolist()
     assert "original__Entropy" in feature_stats["feature"].tolist()
 
-    # ComBat sensitivity sheets should be present (inmoose is installed in the env)
-    assert "combat_feature_stats" in results
-    assert "combat_adjustment_notes" in results
+    # ComBat sensitivity sheets appear only when the optional inmoose extra is installed.
+    if _HAS_INMOOSE:
+        assert "combat_feature_stats" in results
+        assert "combat_adjustment_notes" in results
+    else:
+        assert "combat_feature_stats" not in results
 
 
 def test_excel_and_plot_batch_effects():
@@ -215,7 +239,8 @@ def test_excel_and_plot_batch_effects():
 
         assert fig_path.exists()
         assert isinstance(fig, plt.Figure)
-        assert len(fig.axes) == 3  # PCA, PCA ComBat, Histogram panels
+        # The ComBat PCA panel is only added when inmoose is installed.
+        assert len(fig.axes) == (3 if _HAS_INMOOSE else 2)
         plt.close(fig)
 
 
@@ -242,3 +267,122 @@ def test_batch_effects_skips_non_numeric_metadata_without_selectors():
     analyzed = results["feature_stats"]["feature"].tolist()
     assert "PatientID" not in analyzed
     assert set(analyzed) == {"original__Energy", "original__Entropy"}
+
+
+def test_array_input_runs():
+    df, batch = _batch_df(with_effect=False)
+    res = compute_batch_effects(df.to_numpy(), batch.to_numpy(), permutations=10, no_combat=True)
+    assert "feature_stats" in res
+
+
+def test_no_numeric_features_raises():
+    X = pd.DataFrame({"label": list("abcdef")})
+    batch = pd.Series(["A", "B", "C", "A", "B", "C"])
+    with pytest.raises(ValueError, match="No features selected"):
+        compute_batch_effects(X, batch)
+
+
+def test_pipeline_returning_ndarray():
+    from sklearn.preprocessing import StandardScaler
+
+    df, batch = _batch_df(with_effect=False)
+    res = compute_batch_effects(
+        df, batch, pipeline=StandardScaler(), permutations=10, no_combat=True
+    )
+    assert "feature_stats" in res
+
+
+def test_all_features_fail_qc_raises():
+    df, batch = _batch_df()
+    with pytest.raises(ValueError, match="No features passed QC"):
+        compute_batch_effects(df, batch, no_combat=True, min_valid_samples=10_000)
+
+
+def test_global_missing_complete_cases():
+    df, batch = _batch_df()
+    res = compute_batch_effects(
+        df, batch, global_missing_strategy="complete-cases", permutations=10, no_combat=True
+    )
+    assert "global_diagnostics" in res
+
+
+def test_global_missing_median_impute():
+    df, batch = _batch_df()
+    df.iloc[0, 0] = np.nan
+    res = compute_batch_effects(
+        df, batch, global_missing_strategy="median-impute", permutations=10, no_combat=True
+    )
+    assert "global_diagnostics" in res
+
+
+def test_invalid_global_missing_strategy():
+    df, batch = _batch_df()
+    with pytest.raises(ValueError, match="Unsupported global missing strategy"):
+        compute_batch_effects(df, batch, global_missing_strategy="bogus", no_combat=True)
+
+
+def test_global_matrix_too_small_fallback():
+    df, batch = _batch_df(n_feat=4)
+    for j in range(4):
+        df.iloc[j, j] = np.nan  # each feature gets a NaN -> complete-features drops all columns
+    res = compute_batch_effects(
+        df, batch, global_missing_strategy="complete-features", permutations=10, no_combat=True
+    )
+    assert int(res["global_diagnostics"]["pc_components_used"].iloc[0]) == 0
+
+
+def _install_fake_inmoose(monkeypatch, norm_fn):
+    """Inject a fake ``inmoose.pycombat`` so the ComBat path runs without the real library."""
+    import sys
+    import types
+
+    fake = types.ModuleType("inmoose")
+    fake_pc = types.ModuleType("inmoose.pycombat")
+    fake_pc.pycombat_norm = norm_fn
+    fake.pycombat = fake_pc
+    monkeypatch.setitem(sys.modules, "inmoose", fake)
+    monkeypatch.setitem(sys.modules, "inmoose.pycombat", fake_pc)
+
+
+def test_combat_path_mocked_dataframe(monkeypatch):
+    def norm(data, batch=None, covar_mod=None, par_prior=True, mean_only=False, ref_batch=None):
+        return data  # identity correction (features x samples DataFrame)
+
+    _install_fake_inmoose(monkeypatch, norm)
+    df, batch = _batch_df()
+    res = compute_batch_effects(df, batch, permutations=10, no_combat=False)
+    assert "combat_feature_stats" in res
+    assert "combat_adjustment_notes" in res
+
+
+def test_combat_path_mocked_ndarray_and_nonfinite(monkeypatch):
+    def norm(data, batch=None, covar_mod=None, par_prior=True, mean_only=False, ref_batch=None):
+        arr = np.asarray(data, dtype=float).copy()
+        arr[0, 0] = np.nan  # exercise the non-finite replacement branch
+        return arr  # ndarray (not DataFrame) -> exercises that branch
+
+    _install_fake_inmoose(monkeypatch, norm)
+    df, batch = _batch_df()
+    covars = pd.DataFrame({"sex": [["M", "F"][i % 2] for i in range(len(df))]}, index=df.index)
+    res = compute_batch_effects(
+        df, batch, permutations=10, no_combat=False, combat_covariates=covars
+    )
+    assert "combat_feature_stats" in res
+    assert int(res["combat_adjustment_notes"]["nonfinite_values_replaced"].iloc[0]) >= 1
+
+
+def test_combat_import_failure(monkeypatch):
+    import builtins
+
+    real_import = builtins.__import__
+
+    def block(name, *args, **kwargs):
+        if name.startswith("inmoose"):
+            raise ImportError("blocked for test")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", block)
+    df, batch = _batch_df()
+    with pytest.warns(UserWarning, match="ComBat sensitivity diagnostics skipped"):
+        res = compute_batch_effects(df, batch, permutations=10, no_combat=False)
+    assert "combat_feature_stats" not in res

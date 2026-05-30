@@ -332,3 +332,55 @@ def test_plot_handles_all_nan_sheet():
     fig = plot_reproducibility_histograms(results)
     assert len(fig.axes) == 3
     plt.close(fig)
+
+
+def test_positional_rangeindex_columns():
+    """DataFrames with a default RangeIndex columns take the positional path."""
+    arr = np.random.default_rng(0).standard_normal((12, 4))
+    results = compute_reproducibility(
+        [pd.DataFrame(arr), pd.DataFrame(arr.copy())], bootstrap_iterations=5
+    )
+    assert len(results["ICC"]) == 4
+
+
+def test_positional_non_string_columns():
+    """Non-string (but non-RangeIndex) column labels take the positional path."""
+    arr = np.random.default_rng(0).standard_normal((12, 3))
+    d1 = pd.DataFrame(arr, columns=[10, 20, 30])
+    results = compute_reproducibility([d1, d1.copy()], bootstrap_iterations=5)
+    assert len(results["ICC"]) == 3
+
+
+def test_no_numeric_features_raises():
+    d1 = pd.DataFrame({"label": ["a", "b", "c", "d"]}, index=["s1", "s2", "s3", "s4"])
+    with pytest.raises(ValueError, match="No features selected"):
+        compute_reproducibility([d1, d1.copy()])
+
+
+def test_multi_observer_insufficient_samples():
+    idx = [f"s{i}" for i in range(5)]
+    col = {"feat": [1.0, np.nan, np.nan, np.nan, np.nan]}  # only 1 valid sample
+    dfs = [pd.DataFrame(col, index=idx) for _ in range(3)]
+    results = compute_reproducibility(dfs, min_valid_samples=3, bootstrap_iterations=5)
+    assert "mean" in results["Spearman"].columns  # multi-observer schema
+    assert np.isnan(results["Spearman"].loc[0, "mean"])
+
+
+def test_multi_observer_constant_feature():
+    idx = [f"s{i}" for i in range(6)]
+    dfs = [pd.DataFrame({"feat": [2.0] * 6}, index=idx) for _ in range(3)]
+    results = compute_reproducibility(dfs, min_valid_samples=3, bootstrap_iterations=5)
+    # Constant feature -> all pairwise correlations NaN -> aggregate is NaN.
+    assert np.isnan(results["Spearman"].loc[0, "mean"])
+
+
+def test_plot_empty_results_raises():
+    with pytest.raises(ValueError, match="no plottable"):
+        plot_reproducibility_histograms({})
+
+
+def test_plot_single_sheet():
+    results = {"ICC": pd.DataFrame({"feature": ["f"], "icc_2_1": [0.9]})}
+    fig = plot_reproducibility_histograms(results)
+    assert len(fig.axes) == 1
+    plt.close(fig)

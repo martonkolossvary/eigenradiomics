@@ -4,7 +4,7 @@ This page is generated automatically by `dev/generate_docs.py`.
 
 ## Test Coverage
 
-**Status:** ✅ Pass (96% Coverage)
+**Status:** ✅ Pass (100.00% Coverage)
 
 ## Static Type Checking (Mypy)
 

@@ -27,6 +27,7 @@ from eigenradiomics import (  # noqa: E402
     compute_batch_effects,
     compute_reproducibility,
     plot_batch_effects,
+    plot_clustered_heatmap,
     plot_reproducibility_histograms,
 )
 
@@ -133,11 +134,31 @@ def preprocessing_figure() -> None:
     _save(fig, "preprocessing_before_after.png")
 
 
+def clustered_heatmap_figure() -> None:
+    """Clustered WGCNA TOM heatmap built from a fitted reducer's artifacts."""
+    X = _wgcna_matrix()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        reducer = WGCNAReducer(soft_power="auto", min_module_size=20, store_tom=True, verbose=0)
+        reducer.fit(X)
+    fig = plot_clustered_heatmap(
+        reducer.get_reduction_artifacts(),
+        cmap="magma",
+        vmin=0.0,
+        vmax=1.0,
+        below_cutoff_color="#050505",
+        colorbar_label="Topological overlap",
+        title="WGCNA TOM heatmap",
+    )
+    _save(fig, "clustered_heatmap.png")
+
+
 def main() -> None:
     reproducibility_figure()
     batch_effects_figure()
     wgcna_figures()
     preprocessing_figure()
+    clustered_heatmap_figure()
     print("done")
 
 

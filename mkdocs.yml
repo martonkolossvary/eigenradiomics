@@ -88,6 +88,7 @@ nav:
       - Radiomics Table Preprocessing: user_guide/radiomics_preprocessing.md
       - Reproducibility Analysis: user_guide/reproducibility.md
       - Batch Effect Diagnostics: user_guide/batch_effects.md
+      - Clustered Heatmap: user_guide/clustered_heatmap.md
       - Cookbook & Recipes: user_guide/recipes.md
       - Scalability Guide: user_guide/scalability.md
       - Troubleshooting: user_guide/troubleshooting.md
@@ -99,6 +100,7 @@ nav:
       - Package: api/package.md
       - Ingestion & Datasets: api/ingestion.md
       - Reducers: api/reducers.md
+      - Plotting: api/plotting.md
       - Preprocessing: api/preprocessing.md
       - Reproducibility: api/reproducibility.md
       - Batch Effects: api/batch_effects.md

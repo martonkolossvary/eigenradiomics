@@ -12,13 +12,13 @@
         <meta name="author" content="Márton Kolossváry">
       
       
-        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/downstream_analysis/">
+        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/feature_models/">
       
       
-        <link rel="prev" href="../clustered_heatmap/">
+        <link rel="prev" href="../downstream_analysis/">
       
       
-        <link rel="next" href="../feature_models/">
+        <link rel="next" href="../pipelines_and_grid_search/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Downstream statistical analysis - eigenradiomics</title>
+        <title>Feature–outcome models & volcano - eigenradiomics</title>
       
     
     
@@ -98,7 +98,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#downstream-statistical-analysis" class="md-skip">
+        <a href="#featureoutcome-models-volcano-plots" class="md-skip">
           Skip to content
         </a>
       
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Downstream statistical analysis
+              Feature–outcome models &amp; volcano
             
           </span>
         </div>
@@ -830,6 +830,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../downstream_analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Downstream statistical analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -849,7 +877,7 @@
   <span class="md-ellipsis">
     
   
-    Downstream statistical analysis
+    Feature–outcome models &amp; volcano
   
 
     
@@ -867,7 +895,7 @@
   <span class="md-ellipsis">
     
   
-    Downstream statistical analysis
+    Feature–outcome models &amp; volcano
   
 
     
@@ -893,10 +921,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#get-labeled-eigengenes" class="md-nav__link">
+  <a href="#fit-the-models" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Get labeled eigengenes
+        Fit the models
       
     </span>
   </a>
@@ -904,10 +932,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#moduletrait-relationships" class="md-nav__link">
+  <a href="#mixed-repeated-measures-models" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Module–trait relationships
+        Mixed / repeated-measures models
       
     </span>
   </a>
@@ -915,10 +943,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#qc-driven-feature-selection-in-a-pipeline" class="md-nav__link">
+  <a href="#volcano-plots-1-33" class="md-nav__link">
     <span class="md-ellipsis">
       
-        QC-driven feature selection in a Pipeline
+        Volcano plots (1 → 3×3)
       
     </span>
   </a>
@@ -926,10 +954,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#feeding-eigengenes-into-a-model-leakage-safe-cv" class="md-nav__link">
+  <a href="#feed-the-heatmap-export" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Feeding eigengenes into a model (leakage-safe CV)
+        Feed the heatmap &amp; export
       
     </span>
   </a>
@@ -940,34 +968,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../feature_models/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Feature–outcome models &amp; volcano
-  
-
-    
-  </span>
-  
-  
-
-      </a>
     </li>
   
 
@@ -1744,10 +1744,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#get-labeled-eigengenes" class="md-nav__link">
+  <a href="#fit-the-models" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Get labeled eigengenes
+        Fit the models
       
     </span>
   </a>
@@ -1755,10 +1755,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#moduletrait-relationships" class="md-nav__link">
+  <a href="#mixed-repeated-measures-models" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Module–trait relationships
+        Mixed / repeated-measures models
       
     </span>
   </a>
@@ -1766,10 +1766,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#qc-driven-feature-selection-in-a-pipeline" class="md-nav__link">
+  <a href="#volcano-plots-1-33" class="md-nav__link">
     <span class="md-ellipsis">
       
-        QC-driven feature selection in a Pipeline
+        Volcano plots (1 → 3×3)
       
     </span>
   </a>
@@ -1777,10 +1777,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#feeding-eigengenes-into-a-model-leakage-safe-cv" class="md-nav__link">
+  <a href="#feed-the-heatmap-export" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Feeding eigengenes into a model (leakage-safe CV)
+        Feed the heatmap &amp; export
       
     </span>
   </a>
@@ -1807,97 +1807,73 @@
   
 
 
-<h1 id="downstream-statistical-analysis">Downstream Statistical Analysis</h1>
-<p>The reducer turns a wide feature matrix into a handful of <strong>module eigengenes</strong>.
-This page shows how to take those eigengenes (and the reduction artifacts) into
-statistical analysis: module–trait associations, QC-driven feature selection,
-and leakage-safe modelling.</p>
-<pre class="mermaid"><code>flowchart LR
-    P[Pipeline&lt;br/&gt;prep · select · reduce] --&gt; Y[Module eigengenes&lt;br/&gt;n_samples × n_modules]
-    Y --&gt; MT[compute_module_trait_associations&lt;br/&gt;r · p · FDR]
-    Y --&gt; M[Your model&lt;br/&gt;GroupKFold via dataset.groups]
-    QC[(ICC / batch QC)] -.-&gt; S[FeatureScoreSelector] -.-&gt; P</code></pre>
-<h2 id="get-labeled-eigengenes">Get labeled eigengenes</h2>
-<p><code>WGCNAReducer.transform</code> returns a NumPy array. To carry the <strong>sample index</strong> and
-<strong>eigengene names</strong> (<code>wgcna_0</code>, <code>wgcna_1</code>, …) into downstream stats, opt into
-scikit-learn's pandas output:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">store_tom</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">reducer</span><span class="o">.</span><span class="n">set_output</span><span class="p">(</span><span class="n">transform</span><span class="o">=</span><span class="s2">&quot;pandas&quot;</span><span class="p">)</span>          <span class="c1"># eigengenes come back as a DataFrame</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">eigengenes</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>            <span class="c1"># index = samples, columns = wgcna_*</span>
-</code></pre></div>
-<p><code>set_output(transform="pandas")</code> works on the whole <code>Pipeline</code> too, so the final
-step's output keeps its labels.</p>
-<h2 id="moduletrait-relationships">Module–trait relationships</h2>
-<p><code>compute_module_trait_associations</code> correlates each module eigengene with each
-clinical trait and reports the coefficient, its p-value, and a
-Benjamini-Hochberg FDR across the table — the standard WGCNA <em>module–trait
-relationship</em>. Mixed-type traits are encoded automatically.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_module_trait_associations</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">mtr</span> <span class="o">=</span> <span class="n">compute_module_trait_associations</span><span class="p">(</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">eigengenes</span><span class="p">,</span>                      <span class="c1"># samples × modules</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">dataset</span><span class="p">,</span>                         <span class="c1"># a RadiomicsDataset (or a traits DataFrame)</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="p">[</span><span class="s2">&quot;Age&quot;</span><span class="p">,</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span> <span class="s2">&quot;Sex&quot;</span><span class="p">,</span> <span class="s2">&quot;Event&quot;</span><span class="p">],</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">method</span><span class="o">=</span><span class="s2">&quot;spearman&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">mtr</span><span class="p">[</span><span class="s2">&quot;r&quot;</span><span class="p">]</span>       <span class="c1"># modules × traits correlation matrix</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">mtr</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">]</span>       <span class="c1"># matching p-values</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">mtr</span><span class="p">[</span><span class="s2">&quot;p_fdr&quot;</span><span class="p">]</span>   <span class="c1"># Benjamini-Hochberg FDR</span>
-</code></pre></div>
-<p><code>mtr["r"]</code> (with <code>mtr["p_fdr"]</code> for significance) is a compact summary linking the
-reduced space to outcomes.</p>
-<div class="admonition tip">
-<p class="admonition-title">Per-feature outcome models</p>
-<p>To model individual <strong>features</strong> (not module eigengenes) against an outcome —
-survival, binary, or continuous, with clinical adjustment and repeated-measures
-handling — and render volcano plots, see
-<a href="../feature_models/">Feature–outcome models &amp; volcano plots</a>.</p>
-</div>
-<h2 id="qc-driven-feature-selection-in-a-pipeline">QC-driven feature selection in a Pipeline</h2>
-<p>Reproducibility and batch QC run <em>outside</em> a single-<code>X</code> fit (they need multiple
-readers / a batch label). Compute the scores once, then drop weak features inside
-the pipeline with <code>FeatureScoreSelector</code> — so selection is part of the fitted,
-leakage-safe transform:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_reproducibility</span><span class="p">,</span> <span class="n">FeatureScoreSelector</span><span class="p">,</span> <span class="n">WGCNAReducer</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">repro</span> <span class="o">=</span> <span class="n">compute_reproducibility</span><span class="p">([</span><span class="n">reader1</span><span class="p">,</span> <span class="n">reader2</span><span class="p">])</span>          <span class="c1"># per-feature ICC</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">icc</span> <span class="o">=</span> <span class="n">repro</span><span class="p">[</span><span class="s2">&quot;ICC&quot;</span><span class="p">]</span>                                            <span class="c1"># has &#39;feature&#39; + &#39;icc_2_1&#39;</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="p">(</span><span class="s2">&quot;prep&quot;</span><span class="p">,</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">()</span><span class="o">.</span><span class="n">set_output</span><span class="p">(</span><span class="n">transform</span><span class="o">=</span><span class="s2">&quot;pandas&quot;</span><span class="p">)),</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="p">(</span><span class="s2">&quot;reliable&quot;</span><span class="p">,</span> <span class="n">FeatureScoreSelector</span><span class="p">(</span><span class="n">icc</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.80</span><span class="p">,</span> <span class="n">score_column</span><span class="o">=</span><span class="s2">&quot;icc_2_1&quot;</span><span class="p">)),</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)),</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">])</span><span class="o">.</span><span class="n">set_output</span><span class="p">(</span><span class="n">transform</span><span class="o">=</span><span class="s2">&quot;pandas&quot;</span><span class="p">)</span>
-</code></pre></div>
-<p>The same selector drops <strong>batch-confounded</strong> features — pass a batch-effect size
-column with <code>keep="below"</code> (keep features whose effect is small).</p>
-<h2 id="feeding-eigengenes-into-a-model-leakage-safe-cv">Feeding eigengenes into a model (leakage-safe CV)</h2>
-<p>A <code>RadiomicsDataset</code> carries the target and the grouping needed for leakage-safe
-cross-validation. Use <code>dataset.groups</code> (e.g. <code>PatientID</code>) with <code>GroupKFold</code> so no
-patient appears in both train and test:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">cross_val_score</span><span class="p">,</span> <span class="n">GroupKFold</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogisticRegression</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_pipeline_input</span><span class="p">()</span>      <span class="c1"># X = features, y from the study design</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">cv</span> <span class="o">=</span> <span class="n">GroupKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">scores</span> <span class="o">=</span> <span class="n">cross_val_score</span><span class="p">(</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)),</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>              <span class="p">(</span><span class="s2">&quot;clf&quot;</span><span class="p">,</span> <span class="n">LogisticRegression</span><span class="p">())]),</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">,</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">)</span>
-</code></pre></div>
-<p>Because the reducer fits its mapping on the training fold only and applies it to
-the test fold, the reduction is part of the cross-validated estimate — not fit on
-the whole cohort.</p>
+<h1 id="featureoutcome-models-volcano-plots">Feature–Outcome Models &amp; Volcano Plots</h1>
+<p><code>compute_feature_associations</code> models <strong>each feature against an outcome</strong> — with
+optional clinical adjustment and repeated-measures handling — and returns a tidy
+table of effects, confidence intervals, p-values, and FDR. <code>plot_volcano</code>
+visualizes it, and the result feeds the <a href="../clustered_heatmap/">clustered heatmap</a>
+and an Excel report.</p>
 <div class="admonition note">
-<p class="admonition-title">Survival outcomes</p>
-<p>A survival <code>StudyDesign</code> (<code>time</code> + <code>event</code>) makes <code>dataset.y()</code> return a
-<code>[time, event]</code> frame. eigenradiomics does not ship a survival model; hand the
-eigengenes + that frame to a Cox model (e.g. <code>lifelines</code> or
-<code>scikit-survival</code>), grouping by <code>dataset.groups</code> for validation.</p>
+<p class="admonition-title">Optional dependencies</p>
+<p>Survival (Cox) needs <code>lifelines</code>; binary and mixed models need <code>statsmodels</code>.
+Install them with the extras: <code>pip install "eigenradiomics[survival,modeling]"</code>.
+Continuous OLS+HC3 needs neither.</p>
 </div>
-<p>See the <a href="../end_to_end/">End-to-End Workflow</a> for the full pipeline in one script.</p>
+<h2 id="fit-the-models">Fit the models</h2>
+<p>The outcome type is inferred (a <code>[time, event]</code> frame → survival, ≤2 unique values
+→ binary, else continuous) or set explicitly. Model <strong>tiers</strong> are fitted in
+parallel — typically a univariable tier and one or more clinically-adjusted tiers:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_feature_associations</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">result</span> <span class="o">=</span> <span class="n">compute_feature_associations</span><span class="p">(</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">X</span><span class="p">,</span>                                  <span class="c1"># samples × features (or a RadiomicsDataset)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">outcome</span><span class="p">,</span>                            <span class="c1"># Series / [time,event] frame / column name</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">model_tiers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Univariable&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;Adjusted&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;age&quot;</span><span class="p">,</span> <span class="s2">&quot;sex&quot;</span><span class="p">]},</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">covariate_data</span><span class="o">=</span><span class="n">clinical</span><span class="p">,</span>            <span class="c1"># where the covariate columns live</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span>                    <span class="c1"># adds family / family_group annotation</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">result</span><span class="o">.</span><span class="n">table</span>        <span class="c1"># one row per (tier, feature): effect, CI, p, p_fdr, n, status</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">result</span><span class="o">.</span><span class="n">top_hits</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">&quot;fdr&quot;</span><span class="p">)</span>            <span class="c1"># FDR-significant rows, per tier</span>
+</code></pre></div>
+<p>Effects are the <strong>HR</strong> (survival), <strong>OR</strong> (binary), or <strong>β</strong> (continuous), each
+with its confidence interval; survival rows also carry the <strong>c-index</strong>. The fit
+<code>status</code> records non-fits (<code>no_events</code>, <code>constant_feature</code>, <code>fit_failed</code>, …).</p>
+<h2 id="mixed-repeated-measures-models">Mixed / repeated-measures models</h2>
+<p>Pass <code>groups</code> (a cluster identifier — e.g. patient ID for per-lesion data) and the
+engine switches to a mixed/clustered variant: <strong>MixedLM</strong> (continuous), a
+random-intercept <strong>GLMM</strong> or cluster-robust <strong>GEE</strong> (binary, via <code>mixed_method=</code>),
+and <strong>cluster-robust Cox</strong> (survival).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">result</span> <span class="o">=</span> <span class="n">compute_feature_associations</span><span class="p">(</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">X</span><span class="p">,</span> <span class="n">outcome</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="n">covariate_data</span><span class="o">=</span><span class="n">clinical</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="p">)</span>
+</code></pre></div>
+<p>With a <code>RadiomicsDataset</code>, the outcome (<code>StudyDesign</code> time/event/target), <code>groups</code>
+(design group), and catalog are taken from the dataset automatically:
+<code>compute_feature_associations(dataset)</code>.</p>
+<h2 id="volcano-plots-1-33">Volcano plots (1 → 3×3)</h2>
+<p><code>plot_volcano</code> draws one panel per model tier; the grid is chosen from the panel
+count (1→1×1, 2→1×2, 3→1×3, 4→2×2, 5–9→3×3) or set with <code>layout=(rows, cols)</code>.
+FDR-significant points are coloured (Okabe-Ito) by a catalog column; an
+outlier-aware x-axis keeps one extreme effect from flattening a panel.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_volcano</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_volcano</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">color_by</span><span class="o">=</span><span class="s2">&quot;family_group&quot;</span><span class="p">,</span> <span class="n">marker_by</span><span class="o">=</span><span class="s2">&quot;family_group&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="Volcano plot" src="../../assets/figures/volcano.png" /></p>
+<h2 id="feed-the-heatmap-export">Feed the heatmap &amp; export</h2>
+<p>The per-feature statistics that drive the volcano also annotate the
+<a href="../clustered_heatmap/">cornerstone heatmap</a> and export to Excel:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># a -log10(p) bottom track for the clustered heatmap</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">bar</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">tier</span><span class="o">=</span><span class="s2">&quot;Adjusted&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;neg_log10_p&quot;</span><span class="p">,</span> <span class="n">reference</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mf">0.05</span><span class="p">))</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">plot_clustered_heatmap</span><span class="p">(</span><span class="n">artifacts</span><span class="p">,</span> <span class="n">bottom</span><span class="o">=</span><span class="p">[</span><span class="n">bar</span><span class="p">])</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># a feature × tier effect matrix for the right correlation panel</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">panel</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="s2">&quot;log2_effect&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1"># a styled workbook (all results + a top-hits sheet)</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">result</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="s2">&quot;feature_models.xlsx&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>See the <a href="../../api/feature_models/">API reference</a> for the full signatures.</p>
 
 
 

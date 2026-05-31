@@ -941,6 +941,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../feature_models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature–outcome models &amp; volcano
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../pipelines_and_grid_search/" class="md-nav__link">
         
   
@@ -1479,6 +1507,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/feature_models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/utils/" class="md-nav__link">
         
   
@@ -1747,17 +1803,23 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[combat]&#39;</span>
 </code></pre></div>
 <p>The <code>combat</code> extra installs <code>inmoose</code>, which powers the optional ComBat
-sensitivity diagnostic in <code>compute_batch_effects</code>. It requires Python &gt;= 3.11;
-on Python 3.10 the ComBat step is skipped with a warning. You can combine
-extras, e.g. <code>pip install 'eigenradiomics[wgcna,combat]'</code>.</p>
+sensitivity diagnostic in <code>compute_batch_effects</code> and the <code>ComBatHarmonizer</code>. It
+requires Python &gt;= 3.11; on Python 3.10 the ComBat step is skipped with a warning.</p>
+<p>For <a href="../feature_models/">feature–outcome models</a>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[survival,modeling]&#39;</span>
+</code></pre></div>
+<p>The <code>survival</code> extra installs <code>lifelines</code> (Cox models) and <code>modeling</code> installs
+<code>statsmodels</code> (logistic, GLMM/GEE, MixedLM). Continuous OLS+HC3 models need
+neither. You can combine extras, e.g.
+<code>pip install 'eigenradiomics[wgcna,combat,survival,modeling]'</code>.</p>
 <h2 id="install-from-source">Install from Source</h2>
 <p>Clone the repository and install locally:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pip<span class="w"> </span>install<span class="w"> </span>.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>pip<span class="w"> </span>install<span class="w"> </span>.
 </code></pre></div>
 <p>For editable development work:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>poetry<span class="w"> </span>install<span class="w"> </span>--with<span class="w"> </span>dev<span class="w"> </span>--extras<span class="w"> </span>wgcna
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>poetry<span class="w"> </span>install<span class="w"> </span>--with<span class="w"> </span>dev<span class="w"> </span>--extras<span class="w"> </span>wgcna
 </code></pre></div>
 
 

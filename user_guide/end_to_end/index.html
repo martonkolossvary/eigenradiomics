@@ -12,13 +12,13 @@
         <meta name="author" content="Márton Kolossváry">
       
       
-        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/recipes/">
+        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/end_to_end/">
       
       
-        <link rel="prev" href="../end_to_end/">
+        <link rel="prev" href="../clustered_heatmap/">
       
       
-        <link rel="next" href="../scalability/">
+        <link rel="next" href="../recipes/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Cookbook & Recipes - eigenradiomics</title>
+        <title>End-to-End Workflow - eigenradiomics</title>
       
     
     
@@ -98,7 +98,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#recipes" class="md-skip">
+        <a href="#end-to-end-workflow" class="md-skip">
           Skip to content
         </a>
       
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cookbook & Recipes
+              End-to-End Workflow
             
           </span>
         </div>
@@ -760,34 +760,6 @@
                 
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="../end_to_end/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    End-to-End Workflow
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
     
   
   
@@ -807,7 +779,7 @@
   <span class="md-ellipsis">
     
   
-    Cookbook & Recipes
+    End-to-End Workflow
   
 
     
@@ -825,7 +797,7 @@
   <span class="md-ellipsis">
     
   
-    Cookbook & Recipes
+    End-to-End Workflow
   
 
     
@@ -851,10 +823,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#reduce-a-pictologics-feature-table" class="md-nav__link">
+  <a href="#1-ingest-normalize-ids-drop-duplicates-merge" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reduce a Pictologics Feature Table
+        1. Ingest: normalize IDs, drop duplicates, merge
       
     </span>
   </a>
@@ -862,10 +834,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#prevent-data-leakage" class="md-nav__link">
+  <a href="#2-catalog-dataset" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Prevent data leakage
+        2. Catalog + dataset
       
     </span>
   </a>
@@ -873,10 +845,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#reconstruct-features-inverse-transform" class="md-nav__link">
+  <a href="#3-quality-control" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reconstruct features (inverse transform)
+        3. Quality control
       
     </span>
   </a>
@@ -884,10 +856,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#keep-the-diagnostics" class="md-nav__link">
+  <a href="#4-preprocess" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Keep the diagnostics
+        4. Preprocess
       
     </span>
   </a>
@@ -895,10 +867,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#work-with-numpy-arrays" class="md-nav__link">
+  <a href="#5-reduce-with-wgcna" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Work with numpy Arrays
+        5. Reduce with WGCNA
       
     </span>
   </a>
@@ -906,10 +878,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-a-custom-transformer-upstream" class="md-nav__link">
+  <a href="#6-clinical-correlations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use a Custom Transformer Upstream
+        6. Clinical correlations
       
     </span>
   </a>
@@ -917,10 +889,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#extracting-multiple-eigengenes-per-module" class="md-nav__link">
+  <a href="#7-the-cornerstone-heatmap" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Extracting Multiple Eigengenes per Module
+        7. The cornerstone heatmap
       
     </span>
   </a>
@@ -931,6 +903,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cookbook & Recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1533,10 +1533,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#reduce-a-pictologics-feature-table" class="md-nav__link">
+  <a href="#1-ingest-normalize-ids-drop-duplicates-merge" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reduce a Pictologics Feature Table
+        1. Ingest: normalize IDs, drop duplicates, merge
       
     </span>
   </a>
@@ -1544,10 +1544,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#prevent-data-leakage" class="md-nav__link">
+  <a href="#2-catalog-dataset" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Prevent data leakage
+        2. Catalog + dataset
       
     </span>
   </a>
@@ -1555,10 +1555,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#reconstruct-features-inverse-transform" class="md-nav__link">
+  <a href="#3-quality-control" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Reconstruct features (inverse transform)
+        3. Quality control
       
     </span>
   </a>
@@ -1566,10 +1566,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#keep-the-diagnostics" class="md-nav__link">
+  <a href="#4-preprocess" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Keep the diagnostics
+        4. Preprocess
       
     </span>
   </a>
@@ -1577,10 +1577,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#work-with-numpy-arrays" class="md-nav__link">
+  <a href="#5-reduce-with-wgcna" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Work with numpy Arrays
+        5. Reduce with WGCNA
       
     </span>
   </a>
@@ -1588,10 +1588,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#use-a-custom-transformer-upstream" class="md-nav__link">
+  <a href="#6-clinical-correlations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Use a Custom Transformer Upstream
+        6. Clinical correlations
       
     </span>
   </a>
@@ -1599,10 +1599,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#extracting-multiple-eigengenes-per-module" class="md-nav__link">
+  <a href="#7-the-cornerstone-heatmap" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Extracting Multiple Eigengenes per Module
+        7. The cornerstone heatmap
       
     </span>
   </a>
@@ -1629,116 +1629,125 @@
   
 
 
-<h1 id="recipes">Recipes</h1>
-<p>This page collects common usage patterns for eigenradiomics.</p>
-<h2 id="reduce-a-pictologics-feature-table">Reduce a <a href="https://github.com/martonkolossvary/pictologics">Pictologics</a> Feature Table</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.feature_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">VarianceThreshold</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.impute</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimpleImputer</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">WGCNAReducer</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">X</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;pictologics_features.csv&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="p">[</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="p">(</span><span class="s2">&quot;impute&quot;</span><span class="p">,</span> <span class="n">SimpleImputer</span><span class="p">(</span><span class="n">strategy</span><span class="o">=</span><span class="s2">&quot;median&quot;</span><span class="p">)),</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="p">(</span><span class="s2">&quot;var&quot;</span><span class="p">,</span> <span class="n">VarianceThreshold</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)),</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()),</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">30</span><span class="p">)),</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="p">]</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">)</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="n">X_reduced</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<h1 id="end-to-end-workflow">End-to-End Workflow</h1>
+<p>This page wires <strong>every eigenradiomics primitive into one pipeline</strong>, from raw
+tables to the cornerstone heatmap. Each step links to its dedicated guide for
+the details; here we show how they fit together.</p>
+<pre class="mermaid"><code>flowchart LR
+    A[Raw tables&lt;br/&gt;readers · clinical · catalog] --&gt; B[Ingest &amp;amp; merge]
+    B --&gt; C[FeatureCatalog&lt;br/&gt;+ RadiomicsDataset]
+    C --&gt; D[QC&lt;br/&gt;reproducibility · batch]
+    D --&gt; E[Preprocess&lt;br/&gt;winsor · Yeo-Johnson · z]
+    E --&gt; F[WGCNA reduction&lt;br/&gt;+ artifacts]
+    F --&gt; G[Clustered heatmap]
+    C -. clinical .-&gt; G
+    D -. ICC .-&gt; G</code></pre>
+<p>The complete, runnable version (with synthetic data generation) lives in
+<a href="https://github.com/martonkolossvary/eigenradiomics/blob/main/examples/end_to_end.py"><code>examples/end_to_end.py</code></a>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>poetry<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>examples/end_to_end.py
 </code></pre></div>
-<h2 id="prevent-data-leakage">Prevent data leakage</h2>
-<p>Fit on the training split only, then transform both splits with the <em>same</em>
-fitted pipeline. Reindex the test columns to the training order so feature
-identity is preserved.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">pipe</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">Y_train</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">Y_test</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">[</span><span class="n">X_train</span><span class="o">.</span><span class="n">columns</span><span class="p">])</span>
+<h2 id="1-ingest-normalize-ids-drop-duplicates-merge">1. Ingest: normalize IDs, drop duplicates, merge</h2>
+<p>Real clinical tables have stray whitespace in identifiers and the odd duplicate
+row. <a href="../data_ingestion/#aligning-radiomics-with-clinical-data">Normalize the key</a>,
+de-duplicate, then merge with a cardinality check that surfaces mismatches.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">merge_tables</span><span class="p">,</span> <span class="n">normalize_id_column</span><span class="p">,</span> <span class="n">resolve_duplicates</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">clinical</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_id_column</span><span class="p">(</span><span class="n">clinical_raw</span><span class="p">,</span> <span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">clinical</span><span class="p">,</span> <span class="n">dup_report</span> <span class="o">=</span> <span class="n">resolve_duplicates</span><span class="p">(</span><span class="n">clinical</span><span class="p">,</span> <span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="s2">&quot;first&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">merge</span> <span class="o">=</span> <span class="n">merge_tables</span><span class="p">(</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">radiomics</span><span class="p">,</span> <span class="n">clinical</span><span class="p">,</span> <span class="n">left_on</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="n">right_on</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="s2">&quot;1:1&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">)</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">table</span> <span class="o">=</span> <span class="n">merge</span><span class="o">.</span><span class="n">merged</span>          <span class="c1"># joined features + clinical</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="n">merge</span><span class="o">.</span><span class="n">right_only</span>              <span class="c1"># clinical rows with no matching scan (diagnostic)</span>
 </code></pre></div>
-<h2 id="reconstruct-features-inverse-transform">Reconstruct features (inverse transform)</h2>
-<p>Reducers that store loadings (e.g. <code>WGCNAReducer</code>) can approximately reconstruct
-the original feature space from the reduced representation — handy for
-reconstruction-error diagnostics.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">Y_test</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+<h2 id="2-catalog-dataset">2. Catalog + dataset</h2>
+<p>Wrap the sidecar catalog and carry features, metadata, and the
+<a href="../data_ingestion/#carrying-features-and-metadata-together">study design</a>
+together. The dataset hands a clean feature matrix to scikit-learn while keeping
+<code>group</code> / <code>batch</code> / outcome columns for splitters and QC.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureCatalog</span><span class="p">,</span> <span class="n">RadiomicsDataset</span><span class="p">,</span> <span class="n">StudyDesign</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Approximately reconstruct the original features:</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">X_test_reconstructed</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">&quot;reduce&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">inverse_transform</span><span class="p">(</span><span class="n">Y_test</span><span class="p">)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">catalog</span> <span class="o">=</span> <span class="n">FeatureCatalog</span><span class="p">(</span><span class="n">catalog_table</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">dataset</span> <span class="o">=</span> <span class="n">RadiomicsDataset</span><span class="p">(</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">table</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">feature_columns</span><span class="o">=</span><span class="n">feature_cols</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">design</span><span class="o">=</span><span class="n">StudyDesign</span><span class="p">(</span><span class="n">roles</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;group&quot;</span><span class="p">:</span> <span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="s2">&quot;batch&quot;</span><span class="p">:</span> <span class="s2">&quot;Center&quot;</span><span class="p">,</span> <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="s2">&quot;Event&quot;</span><span class="p">}),</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">)</span>
 </code></pre></div>
-<h2 id="keep-the-diagnostics">Keep the diagnostics</h2>
-<p>The reducer retains its fitted internals, so you can inspect or visualize the
-model after <code>.fit()</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">&quot;reduce&quot;</span><span class="p">]</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Tabular diagnostics:</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">module_sizes</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_get_module_sizes</span><span class="p">()</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">module_assignments</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_get_module_assignments</span><span class="p">()</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Soft-power diagnostic plot:</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">fig_sp</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_plot_soft_power</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">fig_sp</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;soft_power.png&quot;</span><span class="p">)</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># Feature dendrogram with module colours:</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">fig_dendro</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_plot_dendrogram</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">fig_dendro</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;dendrogram.png&quot;</span><span class="p">)</span>
+<h2 id="3-quality-control">3. Quality control</h2>
+<p><a href="../reproducibility/">Reproducibility</a> across two readers and
+<a href="../batch_effects/">batch effects</a> across centers — before any modelling.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">compute_reproducibility</span><span class="p">,</span> <span class="n">plot_reproducibility_histograms</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">compute_batch_effects</span><span class="p">,</span> <span class="n">plot_batch_effects</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">repro</span> <span class="o">=</span> <span class="n">compute_reproducibility</span><span class="p">([</span><span class="n">reader1</span><span class="p">[</span><span class="n">feature_cols</span><span class="p">],</span> <span class="n">reader2</span><span class="p">[</span><span class="n">feature_cols</span><span class="p">]])</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">plot_reproducibility_histograms</span><span class="p">(</span><span class="n">repro</span><span class="p">,</span> <span class="s2">&quot;01_reproducibility.png&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">batch</span> <span class="o">=</span> <span class="n">compute_batch_effects</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">features</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;Center&quot;</span><span class="p">])</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">plot_batch_effects</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="s2">&quot;02_batch_effects.png&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">icc</span> <span class="o">=</span> <span class="n">repro</span><span class="p">[</span><span class="s2">&quot;ICC&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;feature&quot;</span><span class="p">)[</span><span class="s2">&quot;icc_2_1&quot;</span><span class="p">]</span>   <span class="c1"># reused as a heatmap track below</span>
 </code></pre></div>
-<h2 id="work-with-numpy-arrays">Work with numpy Arrays</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<p><img alt="Two-reader reproducibility" src="../../assets/figures/reproducibility_histograms.png" /></p>
+<p><img alt="Multi-center batch effects" src="../../assets/figures/batch_effects.png" /></p>
+<h2 id="4-preprocess">4. Preprocess</h2>
+<p><a href="../radiomics_preprocessing/">Winsorize → Yeo-Johnson → z-score</a>, all behind the
+standard <code>fit_transform</code> so it drops into a <code>Pipeline</code> unchanged.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsPrepTransformer</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="mi">500</span><span class="p">))</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">Y</span> <span class="o">=</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">X</span> <span class="o">=</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">()</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">features</span><span class="p">)</span>
 </code></pre></div>
-<p>When using <code>numpy.ndarray</code>, synthetic feature names are generated internally, so later transforms must preserve the same column order even though no explicit names are attached.</p>
-<h2 id="use-a-custom-transformer-upstream">Use a Custom Transformer Upstream</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<h2 id="5-reduce-with-wgcna">5. Reduce with WGCNA</h2>
+<p>Group co-varying features into <a href="../../reducers/wgcna/">modules</a> and project to one
+eigengene each. <code>store_tom=True</code> keeps the similarity matrix so the heatmap can
+draw it; <code>get_reduction_artifacts()</code> returns the
+<a href="../../reducers/#reduction-artifacts">structured artifacts</a> (similarity,
+linkage, module labels, ordering) every plot consumes.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">WGCNAReducer</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">my_project.transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">CorrelationPruner</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">WGCNAReducer</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="p">[</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        <span class="p">(</span><span class="s2">&quot;corr&quot;</span><span class="p">,</span> <span class="n">CorrelationPruner</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;kendall&quot;</span><span class="p">)),</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>        <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)),</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="p">]</span>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="p">)</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">store_tom</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">eigengenes</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>            <span class="c1"># samples × modules</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">artifacts</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">get_reduction_artifacts</span><span class="p">()</span>
 </code></pre></div>
-<p>This is useful for domain-specific or project-local preprocessing.</p>
-<h2 id="extracting-multiple-eigengenes-per-module">Extracting Multiple Eigengenes per Module</h2>
-<p>If a single principal component (PC1) explains too little variance of a module's features, you can capture richer variations by extracting multiple principal components (eigengenes) using <code>n_module_components</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">WGCNAReducer</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">(</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="p">[</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>        <span class="p">(</span><span class="s2">&quot;scale&quot;</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()),</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>        <span class="c1"># Extract the top 2 principal components per module</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>        <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">n_module_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)),</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="p">]</span>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="p">)</span>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="c1"># Project training and testing data: the output dimensions will be sum(k_i) across modules</span>
-<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="n">Y_train</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
-<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="n">Y_test</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
-<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>
-<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="c1"># The total number of columns Y will be n_modules * n_module_components (capped by module sizes)</span>
-<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total reduced components: </span><span class="si">{</span><span class="n">Y_train</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<h2 id="6-clinical-correlations">6. Clinical correlations</h2>
+<p>Associate each feature with the clinical variables for the right-hand panel
+(mixed types are encoded and rank-correlated; see
+<a href="../clustered_heatmap/#right-correlation-panel">the heatmap guide</a>).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_clinical_correlations</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">corr</span> <span class="o">=</span> <span class="n">compute_clinical_correlations</span><span class="p">(</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">X</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">metadata</span><span class="p">[[</span><span class="s2">&quot;Age&quot;</span><span class="p">,</span> <span class="s2">&quot;Biomarker&quot;</span><span class="p">,</span> <span class="s2">&quot;Sex&quot;</span><span class="p">,</span> <span class="s2">&quot;Stage&quot;</span><span class="p">,</span> <span class="s2">&quot;Event&quot;</span><span class="p">]],</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">)</span>
 </code></pre></div>
-<p>When calling <code>wgcna_get_feature_importances()</code>, the framework automatically uses the <strong>L2 Euclidean Norm</strong> of the SVD loadings across the selected components to reflect each feature's overall contribution:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">named_steps</span><span class="p">[</span><span class="s2">&quot;reduce&quot;</span><span class="p">]</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">importances</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">wgcna_get_feature_importances</span><span class="p">()</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Dataframe schema: [&quot;feature&quot;, &quot;loading&quot;, &quot;importance&quot;]</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1"># &quot;loading&quot; corresponds to the primary (first) component,</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># while &quot;importance&quot; represents the combined weight across both components.</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">importances</span><span class="p">[</span><span class="s2">&quot;blue&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
+<h2 id="7-the-cornerstone-heatmap">7. The cornerstone heatmap</h2>
+<p>Everything converges here. The reducer's artifacts supply the similarity,
+dendrogram, modules, and ordering; the catalog supplies the family strip; QC
+supplies the reproducibility bar; and the clinical correlations supply the right
+panel.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">Bar</span><span class="p">,</span> <span class="n">plot_clustered_heatmap</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">families</span> <span class="o">=</span> <span class="n">catalog</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;feature&quot;</span><span class="p">)[</span><span class="s2">&quot;family_group&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">families</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Family&quot;</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_clustered_heatmap</span><span class="p">(</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">artifacts</span><span class="p">,</span>                                              <span class="c1"># similarity · linkage · modules</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>    <span class="n">top</span><span class="o">=</span><span class="p">[</span><span class="n">families</span><span class="p">],</span>                                         <span class="c1"># catalog family-group strip</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">bottom</span><span class="o">=</span><span class="p">[</span><span class="n">Bar</span><span class="p">(</span><span class="n">icc</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">names</span><span class="p">),</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;ICC&quot;</span><span class="p">,</span> <span class="n">reference</span><span class="o">=</span><span class="mf">0.80</span><span class="p">)],</span>  <span class="c1"># reproducibility</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="n">right</span><span class="o">=</span><span class="n">corr</span><span class="p">,</span>                                             <span class="c1"># feature × clinical correlations</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;magma&quot;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">below_cutoff_color</span><span class="o">=</span><span class="s2">&quot;#050505&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="n">colorbar_label</span><span class="o">=</span><span class="s2">&quot;Topological overlap&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="p">)</span>
 </code></pre></div>
+<p><img alt="Cornerstone heatmap tying every primitive together" src="../../assets/figures/clustered_heatmap.png" /></p>
+<p>Each side answers a question — <em>who?</em> (left dendrogram + modules), <em>what kind?</em>
+(top family strip), <em>how much?</em> (bottom reproducibility bar), <em>related to what?</em>
+(right clinical panel) — around the similarity itself. From here, the module
+eigengenes (<code>eigengenes</code>) feed any downstream model with the leakage-safe
+<code>dataset.groups</code> for cross-validation.</p>
 
 
 

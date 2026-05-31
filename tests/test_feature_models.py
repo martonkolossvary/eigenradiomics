@@ -288,9 +288,25 @@ def test_binary_glmm_clustered():
     assert row["model_family"] == "glmm" and row["status"] == "ok"
 
 
+def _mixed_continuous_outcome(X, meta):
+    """A continuous outcome with a genuine per-patient random intercept + residual
+    noise, so MixedLM estimates a non-singular random-effects variance (stable
+    across statsmodels versions)."""
+    rng = np.random.default_rng(5)
+    cluster = meta["patient"].to_numpy()
+    intercepts = rng.normal(0, 0.5, cluster.max() + 1)
+    y = (
+        1.0 * X["original__f0"].to_numpy()
+        + 0.02 * meta["age"].to_numpy()
+        + intercepts[cluster]
+        + rng.normal(0, 0.3, len(X))
+    )
+    return pd.Series(y, index=X.index)
+
+
 def test_continuous_mixedlm_via_groups_array():
     X, meta, _, _ = _survival_binary()
-    y = pd.Series(1.0 * X["original__f0"] + meta["age"] * 0.02, index=X.index)
+    y = _mixed_continuous_outcome(X, meta)
     # groups passed as an array (not a column name) -> exercises that resolution branch
     res = compute_feature_associations(
         X, y, groups=meta["patient"].to_numpy(), covariate_data=meta
@@ -303,7 +319,7 @@ def test_continuous_mixedlm_via_groups_array():
 
 def test_dataset_supplies_groups():
     X, meta, _, _ = _survival_binary()
-    y = pd.Series(X["original__f0"] + 0.02 * meta["age"], index=X.index)
+    y = _mixed_continuous_outcome(X, meta)
     data = pd.concat([X, meta, y.rename("y")], axis=1)
     ds = RadiomicsDataset(
         data,

@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 
 from eigenradiomics._stats import (
+    _bootstrap_icc_ci,
     _fisher_ci,
     _fisher_mean,
     _get_deterministic_seed,
@@ -68,6 +69,25 @@ def test_icc_fully_constant_is_nan():
     assert np.isnan(res["icc"])
     assert np.isnan(res["f_stat"])
     assert np.isnan(res["p_value"])
+
+
+def test_bootstrap_icc_matches_scalar_loop():
+    """The vectorized bootstrap CI is identical to a scalar _icc_2_1_estimate loop."""
+    rng = np.random.default_rng(7)
+    a = rng.standard_normal(12)
+    Y = np.column_stack([a + 0.1 * rng.standard_normal(12), a + 0.1 * rng.standard_normal(12)])
+
+    # Reference: replicate the exact resampling stream + scalar ICC.
+    seed = _get_deterministic_seed("feat", base_seed=42)
+    ref_rng = np.random.default_rng(seed)
+    ref = [
+        _icc_2_1_estimate(Y[ref_rng.choice(len(Y), size=len(Y), replace=True)])["icc"]
+        for _ in range(200)
+    ]
+    ref = [v for v in ref if not np.isnan(v)]
+    expected = (float(np.percentile(ref, 2.5)), float(np.percentile(ref, 97.5)))
+
+    assert np.allclose(_bootstrap_icc_ci(Y, "feat", iterations=200), expected)
 
 
 def test_icc_2_1_mathematical_correctness():

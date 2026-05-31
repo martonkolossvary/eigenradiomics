@@ -1,0 +1,1 @@
+The ICC bootstrap confidence interval is now computed by evaluating all resamples at once (a vectorized `_icc_2_1_batch`) instead of a per-iteration Python loop, typically tens of times faster on wide feature matrices. Results are unchanged: the resampling stream is identical and a regression test pins the output to the scalar implementation.

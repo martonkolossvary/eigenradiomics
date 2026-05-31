@@ -177,6 +177,34 @@ def _icc_2_1_estimate(Y: NDArray) -> dict[str, float]:
     }
 
 
+def _icc_2_1_batch(Yb: NDArray) -> NDArray:
+    """Vectorized ICC(2,1) over a stack of measurement matrices.
+
+    Mirrors :func:`_icc_2_1_estimate` (same SS decomposition, same ``MS_error``
+    clamp and ``denominator <= 0 -> NaN`` rule) but over ``Yb`` of shape
+    ``(batch, n_samples, n_observers)``, returning one ICC per batch element. Used
+    to evaluate all bootstrap resamples at once.
+    """
+    _, n, k = Yb.shape
+    grand = Yb.mean(axis=(1, 2))
+    ss_total = ((Yb - grand[:, None, None]) ** 2).sum(axis=(1, 2))
+    ss_between_subjects = k * ((Yb.mean(axis=2) - grand[:, None]) ** 2).sum(axis=1)
+    ss_between_observers = n * ((Yb.mean(axis=1) - grand[:, None]) ** 2).sum(axis=1)
+    ms_between_subjects = ss_between_subjects / (n - 1)
+    ms_between_observers = ss_between_observers / (k - 1)
+    ms_error = np.maximum(
+        (ss_total - ss_between_subjects - ss_between_observers) / ((n - 1) * (k - 1)), 0.0
+    )
+    denominator = (
+        ms_between_subjects + (k - 1) * ms_error + (k / n) * (ms_between_observers - ms_error)
+    )
+    with np.errstate(invalid="ignore", divide="ignore"):
+        icc: NDArray = np.where(
+            denominator > 0, (ms_between_subjects - ms_error) / denominator, np.nan
+        )
+    return icc
+
+
 def _bootstrap_icc_ci(
     Y: NDArray,
     feature_name: str,
@@ -196,18 +224,16 @@ def _bootstrap_icc_ci(
     seed = _get_deterministic_seed(feature_name, base_seed=base_seed)
     rng = np.random.default_rng(seed)
 
-    boot_estimates = []
-    for _ in range(iterations):
-        boot_indices = rng.choice(n, size=n, replace=True)
-        Y_boot = Y[boot_indices]
-        est = _icc_2_1_estimate(Y_boot)
-        if not np.isnan(est["icc"]):
-            boot_estimates.append(est["icc"])
+    # Same per-iteration resampling stream as a scalar loop, but the ICC is then
+    # evaluated for every resample at once (vectorized) — much faster on wide data.
+    indices = np.array([rng.choice(n, size=n, replace=True) for _ in range(iterations)])
+    estimates = _icc_2_1_batch(Y[indices])
+    boot_estimates = estimates[~np.isnan(estimates)]
 
     # Require at least half the resamples to yield a valid ICC; fewer means the
     # feature is degenerate and the percentile CI would be meaningless. (The old
     # min(10, iterations // 2) gate accepted as few as 10 successes out of 1000.)
-    if len(boot_estimates) < max(1, iterations // 2):
+    if boot_estimates.size < max(1, iterations // 2):
         return np.nan, np.nan
 
     ci_low = float(np.percentile(boot_estimates, 2.5))

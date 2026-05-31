@@ -18,7 +18,7 @@
         <link rel="prev" href="../reproducibility/">
       
       
-        <link rel="next" href="../radiomics_preprocessing/">
+        <link rel="next" href="../harmonization/">
       
       
         
@@ -850,6 +850,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Harmonize batch effects (ComBat)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1849,6 +1877,7 @@ transformer itself, see <a href="../radiomics_preprocessing/">Preprocess feature
 <hr />
 <h2 id="combat-correction-sensitivity-check">ComBat Correction Sensitivity Check</h2>
 <p>If the optional <code>inmoose</code> library (or <code>combat</code> extra) is installed, the framework automatically performs a <strong>ComBat sensitivity diagnostic</strong>. It runs parametric/non-parametric ComBat adjustment and re-evaluates all feature-level and global diagnostics to show exactly how much center-associated variance remains after correction.</p>
+<p>This is a <em>diagnostic</em>, not a correction. When it confirms a real batch effect, apply it leakage-safely with <a href="../harmonization/"><code>ComBatHarmonizer</code></a> (fit on train, transform test).</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># To install the optional ComBat dependency:</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pip<span class="w"> </span>install<span class="w"> </span>eigenradiomics<span class="o">[</span>combat<span class="o">]</span>
 </code></pre></div>

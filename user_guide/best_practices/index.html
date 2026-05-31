@@ -716,6 +716,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Harmonize batch effects (ComBat)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../radiomics_preprocessing/" class="md-nav__link">
         
   
@@ -1818,7 +1846,7 @@ common source of trouble.</p>
 <ul>
 <li><strong>ICC threshold.</strong> ≥ 0.80 is a common "good reliability" cut; judge from the ICC estimate <strong>and its CI vs the threshold</strong>, not the p-value (the ICC p-value only tests whether subjects differ). Drop weak features with <a href="../downstream_analysis/#qc-driven-feature-selection-in-a-pipeline"><code>FeatureScoreSelector</code></a>.</li>
 <li><strong>Bootstrap CIs need samples.</strong> ICC CIs from only a handful of subjects are unreliable regardless of iterations.</li>
-<li><strong>ComBat is a sensitivity check, not a default.</strong> <code>compute_batch_effects</code> reports how much a result <em>would</em> change under ComBat; only harmonize when a real, non-biological batch effect is shown — and do it leakage-safely (fit correction on train).</li>
+<li><strong>ComBat is a sensitivity check, not a default.</strong> <code>compute_batch_effects</code> reports how much a result <em>would</em> change under ComBat; only harmonize when a real, non-biological batch effect is shown — and do it leakage-safely with <a href="../harmonization/"><code>ComBatHarmonizer</code></a> (correction fit on train, applied to test).</li>
 </ul>
 <h2 id="reduction">Reduction</h2>
 <ul>

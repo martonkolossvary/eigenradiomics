@@ -12,29 +12,31 @@
         <meta name="author" content="Márton Kolossváry">
       
       
-        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/license/">
+        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/harmonization/">
       
       
-        <link rel="prev" href="../changelog/">
+        <link rel="prev" href="../batch_effects/">
       
+      
+        <link rel="next" href="../radiomics_preprocessing/">
       
       
         
       
       
-      <link rel="icon" href="../assets/favicon.svg">
+      <link rel="icon" href="../../assets/favicon.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>License - eigenradiomics</title>
+        <title>Harmonize batch effects (ComBat) - eigenradiomics</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -53,21 +55,21 @@
       
     
     
-      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
 
-<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
-<link rel="icon" type="image/png" href="../assets/favicon.png">
-<link rel="shortcut icon" href="../assets/favicon.ico">
-<link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<link rel="icon" type="image/png" href="../../assets/favicon.png">
+<link rel="shortcut icon" href="../../assets/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
 <meta property="og:image" content="https://martonkolossvary.github.io/eigenradiomics/assets/social-preview.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
@@ -96,7 +98,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#license" class="md-skip">
+        <a href="#harmonize-batch-effects-combat" class="md-skip">
           Skip to content
         </a>
       
@@ -110,9 +112,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="eigenradiomics" class="md-header__button md-logo" aria-label="eigenradiomics" data-md-component="logo">
+    <a href="../.." title="eigenradiomics" class="md-header__button md-logo" aria-label="eigenradiomics" data-md-component="logo">
       
-  <img src="../assets/logo.svg" alt="logo">
+  <img src="../../assets/logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -129,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              License
+              Harmonize batch effects (ComBat)
             
           </span>
         </div>
@@ -242,7 +244,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -263,7 +265,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../user_guide/installation/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -279,11 +281,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../user_guide/data_ingestion/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../data_ingestion/" class="md-tabs__link">
           
   
   
@@ -303,7 +307,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../user_guide/best_practices/" class="md-tabs__link">
+        <a href="../best_practices/" class="md-tabs__link">
           
   
   
@@ -323,7 +327,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../api/package/" class="md-tabs__link">
+        <a href="../../api/package/" class="md-tabs__link">
           
   
   
@@ -339,13 +343,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../quality/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../quality/" class="md-tabs__link">
           
   
   
@@ -379,9 +381,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="eigenradiomics" class="md-nav__button md-logo" aria-label="eigenradiomics" data-md-component="logo">
+    <a href="../.." title="eigenradiomics" class="md-nav__button md-logo" aria-label="eigenradiomics" data-md-component="logo">
       
-  <img src="../assets/logo.svg" alt="logo">
+  <img src="../../assets/logo.svg" alt="logo">
 
     </a>
     eigenradiomics
@@ -408,7 +410,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -487,7 +489,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/installation/" class="md-nav__link">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -515,7 +517,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/quick_start/" class="md-nav__link">
+      <a href="../quick_start/" class="md-nav__link">
         
   
   
@@ -543,7 +545,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/end_to_end/" class="md-nav__link">
+      <a href="../end_to_end/" class="md-nav__link">
         
   
   
@@ -575,26 +577,31 @@
       
   
   
+    
   
   
+  
     
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -612,7 +619,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -630,7 +637,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/data_ingestion/" class="md-nav__link">
+      <a href="../data_ingestion/" class="md-nav__link">
         
   
   
@@ -658,7 +665,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/reproducibility/" class="md-nav__link">
+      <a href="../reproducibility/" class="md-nav__link">
         
   
   
@@ -686,7 +693,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/batch_effects/" class="md-nav__link">
+      <a href="../batch_effects/" class="md-nav__link">
         
   
   
@@ -711,10 +718,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../user_guide/harmonization/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Harmonize batch effects (ComBat)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -730,6 +764,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic usage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preserving-biological-signal-covariates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preserving biological signal (covariates)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-a-leakage-safe-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In a leakage-safe Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnose-then-correct" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnose, then correct
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -742,7 +840,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/radiomics_preprocessing/" class="md-nav__link">
+      <a href="../radiomics_preprocessing/" class="md-nav__link">
         
   
   
@@ -770,7 +868,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reducers/wgcna/" class="md-nav__link">
+      <a href="../../reducers/wgcna/" class="md-nav__link">
         
   
   
@@ -798,7 +896,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/clustered_heatmap/" class="md-nav__link">
+      <a href="../clustered_heatmap/" class="md-nav__link">
         
   
   
@@ -826,7 +924,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/downstream_analysis/" class="md-nav__link">
+      <a href="../downstream_analysis/" class="md-nav__link">
         
   
   
@@ -854,7 +952,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/pipelines_and_grid_search/" class="md-nav__link">
+      <a href="../pipelines_and_grid_search/" class="md-nav__link">
         
   
   
@@ -882,7 +980,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/recipes/" class="md-nav__link">
+      <a href="../recipes/" class="md-nav__link">
         
   
   
@@ -969,7 +1067,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/best_practices/" class="md-nav__link">
+      <a href="../best_practices/" class="md-nav__link">
         
   
   
@@ -997,7 +1095,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/input_data_model/" class="md-nav__link">
+      <a href="../input_data_model/" class="md-nav__link">
         
   
   
@@ -1025,7 +1123,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reducers/" class="md-nav__link">
+      <a href="../../reducers/" class="md-nav__link">
         
   
   
@@ -1053,7 +1151,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/scalability/" class="md-nav__link">
+      <a href="../scalability/" class="md-nav__link">
         
   
   
@@ -1081,7 +1179,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/troubleshooting/" class="md-nav__link">
+      <a href="../troubleshooting/" class="md-nav__link">
         
   
   
@@ -1168,7 +1266,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/package/" class="md-nav__link">
+      <a href="../../api/package/" class="md-nav__link">
         
   
   
@@ -1196,7 +1294,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/ingestion/" class="md-nav__link">
+      <a href="../../api/ingestion/" class="md-nav__link">
         
   
   
@@ -1224,7 +1322,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/preprocessing/" class="md-nav__link">
+      <a href="../../api/preprocessing/" class="md-nav__link">
         
   
   
@@ -1252,7 +1350,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/reducers/" class="md-nav__link">
+      <a href="../../api/reducers/" class="md-nav__link">
         
   
   
@@ -1280,7 +1378,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/reproducibility/" class="md-nav__link">
+      <a href="../../api/reproducibility/" class="md-nav__link">
         
   
   
@@ -1308,7 +1406,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/batch_effects/" class="md-nav__link">
+      <a href="../../api/batch_effects/" class="md-nav__link">
         
   
   
@@ -1336,7 +1434,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/plotting/" class="md-nav__link">
+      <a href="../../api/plotting/" class="md-nav__link">
         
   
   
@@ -1364,7 +1462,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/clinical/" class="md-nav__link">
+      <a href="../../api/clinical/" class="md-nav__link">
         
   
   
@@ -1392,7 +1490,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/utils/" class="md-nav__link">
+      <a href="../../api/utils/" class="md-nav__link">
         
   
   
@@ -1424,31 +1522,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
@@ -1466,7 +1559,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1484,7 +1577,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../quality/" class="md-nav__link">
+      <a href="../../quality/" class="md-nav__link">
         
   
   
@@ -1512,7 +1605,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -1537,19 +1630,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../license/" class="md-nav__link">
         
   
   
@@ -1565,7 +1649,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1598,6 +1681,58 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic usage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#preserving-biological-signal-covariates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preserving biological signal (covariates)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-a-leakage-safe-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In a leakage-safe Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnose-then-correct" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnose, then correct
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1616,11 +1751,67 @@
   
 
 
-<h1 id="license">License</h1>
-<p>eigenradiomics is distributed under the
-<a href="https://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
-<p>See the <a href="https://github.com/martonkolossvary/eigenradiomics/blob/main/LICENSE">LICENSE</a>
-file in the repository root for the full text.</p>
+<h1 id="harmonize-batch-effects-combat">Harmonize Batch Effects (ComBat)</h1>
+<p>Once <a href="../batch_effects/">batch-effect diagnostics</a> show a real, non-biological
+center/scanner effect, <code>ComBatHarmonizer</code> removes it. Unlike running ComBat on a
+whole cohort, the harmonizer estimates the correction on the <strong>training</strong> data and
+replays it on new data, so it is <strong>leakage-safe</strong> inside a <code>Pipeline</code> and
+cross-validation.</p>
+<div class="admonition note">
+<p class="admonition-title">Optional dependency</p>
+<p><code>ComBatHarmonizer</code> builds on <a href="https://inmoose.readthedocs.io/"><code>inmoose</code></a>.
+Install it with the <code>combat</code> extra: <code>pip install "eigenradiomics[combat]"</code>.</p>
+</div>
+<h2 id="basic-usage">Basic usage</h2>
+<p><code>batch</code> is per-sample batch labels (e.g. scanner/center); features that are
+constant in the training data are passed through unchanged.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComBatHarmonizer</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">harmonizer</span> <span class="o">=</span> <span class="n">ComBatHarmonizer</span><span class="p">()</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">X_train_h</span> <span class="o">=</span> <span class="n">harmonizer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">batch</span><span class="o">=</span><span class="n">batch_train</span><span class="p">)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">X_test_h</span> <span class="o">=</span> <span class="n">harmonizer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">,</span> <span class="n">batch</span><span class="o">=</span><span class="n">batch_test</span><span class="p">)</span>   <span class="c1"># corrected with train parameters</span>
+</code></pre></div>
+<p>Samples whose batch was <strong>seen during <code>fit</code></strong> are corrected with the stored
+per-batch parameters. A batch unseen at fit is, by default, passed through with a
+warning (<code>on_unseen_batch="error"</code> to raise instead). A <code>reference_batch</code> is left
+unchanged.</p>
+<h2 id="preserving-biological-signal-covariates">Preserving biological signal (covariates)</h2>
+<p>Pass <code>covariates</code> — a <strong>numeric</strong> model matrix (encode categoricals first, e.g.
+with <a href="../downstream_analysis/"><code>encode_clinical_series</code></a>) — to protect biological
+variation from being removed along with the batch effect:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">covariates</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;is_tumour&quot;</span><span class="p">:</span> <span class="n">tumour_flag</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)})</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">harmonizer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">batch</span><span class="o">=</span><span class="n">batch_train</span><span class="p">,</span> <span class="n">covariates</span><span class="o">=</span><span class="n">covariates_train</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="in-a-leakage-safe-pipeline">In a leakage-safe Pipeline</h2>
+<p><code>batch</code> (and <code>covariates</code>) are sample-aligned metadata, not features. Use
+scikit-learn <a href="https://scikit-learn.org/stable/metadata_routing.html">metadata routing</a>
+so they flow through a <code>Pipeline</code> and cross-validation, with the correction fit
+per training fold:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sklearn</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComBatHarmonizer</span><span class="p">,</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">,</span> <span class="n">WGCNAReducer</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">sklearn</span><span class="o">.</span><span class="n">set_config</span><span class="p">(</span><span class="n">enable_metadata_routing</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">harmonizer</span> <span class="o">=</span> <span class="n">ComBatHarmonizer</span><span class="p">()</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">harmonizer</span><span class="o">.</span><span class="n">set_fit_request</span><span class="p">(</span><span class="n">batch</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">set_transform_request</span><span class="p">(</span><span class="n">batch</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="p">(</span><span class="s2">&quot;prep&quot;</span><span class="p">,</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">()</span><span class="o">.</span><span class="n">set_output</span><span class="p">(</span><span class="n">transform</span><span class="o">=</span><span class="s2">&quot;pandas&quot;</span><span class="p">)),</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="p">(</span><span class="s2">&quot;harmonize&quot;</span><span class="p">,</span> <span class="n">harmonizer</span><span class="p">),</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)),</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="p">])</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">pipe</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">batch</span><span class="o">=</span><span class="n">batch_train</span><span class="p">)</span>        <span class="c1"># batch routed to the harmonizer&#39;s fit</span>
+</code></pre></div>
+<h2 id="diagnose-then-correct">Diagnose, then correct</h2>
+<p>ComBat correction should follow evidence, not be applied by default — see the
+<a href="../best_practices/#qc-choices">Best Practices</a>. The typical loop is:</p>
+<pre class="mermaid"><code>flowchart LR
+    D[compute_batch_effects&lt;br/&gt;diagnose] --&gt; Q{real, non-biological&lt;br/&gt;batch effect?}
+    Q -- yes --&gt; H[ComBatHarmonizer&lt;br/&gt;correct leakage-safely]
+    Q -- no --&gt; K[leave features as-is]</code></pre>
 
 
 
@@ -1682,12 +1873,12 @@ file in the repository root for the full text.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       

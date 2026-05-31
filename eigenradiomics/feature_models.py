@@ -5,10 +5,12 @@ clinical covariates) and collects the effect, confidence interval, p-value, and
 Benjamini-Hochberg FDR into a tidy table — the input to a volcano plot and to the
 clustered-heatmap annotation tracks.
 
-This module is built in phases. The continuous outcome engine (OLS with HC3
-robust standard errors) is dependency-free; survival (Cox) and binary (logistic),
-their mixed/clustered variants, the volcano plot, and the heatmap/Excel bridges
-are layered on in later phases.
+Supported outcomes: continuous (OLS + HC3 robust SE, dependency-free), survival
+(Cox PH, ``lifelines``), and binary (logistic, ``statsmodels``). When a cluster /
+repeated-measures identifier is given, each switches to a mixed/clustered variant
+(MixedLM, GLMM or GEE, cluster-robust Cox). :func:`plot_volcano` renders the
+results, and :class:`FeatureAssociationResult` bridges to the clustered heatmap
+and to Excel.
 """
 
 from __future__ import annotations

@@ -92,6 +92,7 @@ nav:
       - Reduce with WGCNA: reducers/wgcna.md
       - Visualize the clustered heatmap: user_guide/clustered_heatmap.md
       - Downstream statistical analysis: user_guide/downstream_analysis.md
+      - Feature–outcome models &amp; volcano: user_guide/feature_models.md
       - Tune in a Pipeline / GridSearchCV: user_guide/pipelines_and_grid_search.md
       - Cookbook & recipes: user_guide/recipes.md
   - Explanation:
@@ -109,6 +110,7 @@ nav:
       - Batch Effects: api/batch_effects.md
       - Plotting: api/plotting.md
       - Clinical & Module-Trait: api/clinical.md
+      - Feature Models: api/feature_models.md
       - Validation Utilities (internal): api/utils.md
   - Project:
       - Quality Report: quality.md

@@ -52,6 +52,12 @@ mtr["p_fdr"]   # Benjamini-Hochberg FDR
 `mtr["r"]` (with `mtr["p_fdr"]` for significance) is a compact summary linking the
 reduced space to outcomes.
 
+!!! tip "Per-feature outcome models"
+    To model individual **features** (not module eigengenes) against an outcome —
+    survival, binary, or continuous, with clinical adjustment and repeated-measures
+    handling — and render volcano plots, see
+    [Feature–outcome models & volcano plots](feature_models.md).
+
 ## QC-driven feature selection in a Pipeline
 
 Reproducibility and batch QC run *outside* a single-`X` fit (they need multiple

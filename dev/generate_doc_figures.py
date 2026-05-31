@@ -23,14 +23,17 @@ import pandas as pd  # noqa: E402
 
 from eigenradiomics import (  # noqa: E402
     Bar,
+    FeatureCatalog,
     RadiomicsPrepTransformer,
     WGCNAReducer,
     compute_batch_effects,
     compute_clinical_correlations,
+    compute_feature_associations,
     compute_reproducibility,
     plot_batch_effects,
     plot_clustered_heatmap,
     plot_reproducibility_histograms,
+    plot_volcano,
 )
 
 FIG_DIR = Path(__file__).resolve().parent.parent / "docs" / "assets" / "figures"
@@ -180,12 +183,45 @@ def clustered_heatmap_figure() -> None:
     _save(fig, "clustered_heatmap.png")
 
 
+def volcano_figure() -> None:
+    """Two-panel volcano (univariable + adjusted) of feature-outcome associations."""
+    n, n_feat = 200, 60
+    rng = np.random.default_rng(11)
+    cols = [f"original__feat_{i}" for i in range(n_feat)]
+    families = ["Intensity", "Texture", "Morphology"]
+    signal = rng.standard_normal((n, n_feat))
+    age = rng.normal(60, 9, n)
+    # the first features carry real association with the outcome; the rest are noise
+    beta = np.r_[rng.normal(1.0, 0.2, 12), np.zeros(n_feat - 12)]
+    outcome = signal @ beta + 0.03 * age + rng.normal(0, 1, n)
+    X = pd.DataFrame(signal, columns=cols, index=[f"S{i}" for i in range(n)])
+    clinical = pd.DataFrame({"age": age}, index=X.index)
+    catalog = FeatureCatalog(
+        pd.DataFrame(
+            {
+                "config": ["original"] * n_feat,
+                "feature_key": [f"feat_{i}" for i in range(n_feat)],
+                "family": ["firstorder"] * n_feat,
+                "family_group": [families[i % 3] for i in range(n_feat)],
+            }
+        )
+    )
+    result = compute_feature_associations(
+        X, pd.Series(outcome, index=X.index),
+        model_tiers={"Univariable": [], "Adjusted for age": ["age"]},
+        covariate_data=clinical, catalog=catalog,
+    )
+    fig = plot_volcano(result, color_by="family_group", marker_by="family_group", title="")
+    _save(fig, "volcano.png")
+
+
 def main() -> None:
     reproducibility_figure()
     batch_effects_figure()
     wgcna_figures()
     preprocessing_figure()
     clustered_heatmap_figure()
+    volcano_figure()
     print("done")
 
 

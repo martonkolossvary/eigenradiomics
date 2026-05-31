@@ -14,6 +14,7 @@ docstrings live on the per-area API pages linked in each row.
 | Dimensionality reduction | `BaseReducer`, `WGCNAReducer`, `ReductionArtifacts` | [Reducers](reducers.md) |
 | Visualization | `plot_clustered_heatmap`, `Strip`, `Bar`, `CorrPanel` | [Plotting](plotting.md) |
 | Downstream stats | `compute_clinical_correlations`, `compute_module_trait_associations`, `encode_clinical_series` | [Clinical & Module-Trait](clinical.md) |
+| Feature models | `compute_feature_associations`, `FeatureAssociationResult`, `plot_volcano` | [Feature Models](feature_models.md) |
 | Version | `__version__` | package version string |
 
 ```python
@@ -31,6 +32,8 @@ from eigenradiomics import (
     plot_clustered_heatmap, Strip, Bar, CorrPanel,
     # downstream statistical analysis
     compute_clinical_correlations, compute_module_trait_associations,
+    # feature-outcome models + volcano
+    compute_feature_associations, plot_volcano,
 )
 ```
 

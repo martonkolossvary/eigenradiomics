@@ -62,6 +62,7 @@ a small utility, so you can use one piece in isolation or chain the whole thing.
 | Reduce | [`WGCNAReducer`](reducers/wgcna.md) | Co-expression module eigengenes with leakage-safe transform of new data |
 | Visualize | [`plot_clustered_heatmap`](user_guide/clustered_heatmap.md) | The cornerstone clustered heatmap with annotation tracks + correlation panel |
 | Downstream stats | [`compute_module_trait_associations`](user_guide/downstream_analysis.md) | Module-eigengene ↔ trait correlations with p-values and FDR |
+| Model & volcano | [`compute_feature_associations`, `plot_volcano`](user_guide/feature_models.md) | Per-feature survival/binary/continuous (+mixed) models → volcano plots |
 
 ## Why eigenradiomics?
 

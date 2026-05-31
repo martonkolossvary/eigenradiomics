@@ -655,6 +655,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#loading-a-pictologics-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading a Pictologics export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#the-feature-catalog" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1506,6 +1517,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#loading-a-pictologics-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading a Pictologics export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#the-feature-catalog" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1593,52 +1615,78 @@ scikit-learn pipelines.</p>
     DS --&gt;|to_pipeline_input| P([X, y, groups&lt;br/&gt;→ sklearn Pipeline])</code></pre>
 <p>Every box below is a single function or class; you can use them piecemeal or
 chain them into the flow above.</p>
+<h2 id="loading-a-pictologics-export">Loading a Pictologics export</h2>
+<p>Features extracted with <a href="https://github.com/martonkolossvary/pictologics">Pictologics</a>
+arrive as a wide table with <code>{config}__{feature_key}</code> columns and a sidecar
+<code>features_catalog.csv</code>. <code>RadiomicsDataset.from_pictologics</code> loads them in one call
+— it auto-discovers the sidecar catalog next to the table, drops the <code>subject_id</code>
+columns Pictologics emits, detects the feature columns, validates them against the
+catalog (warning on any mismatch), and splits features from metadata:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsDataset</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># `features.csv` + `features_catalog.csv` produced by Pictologics, in the same folder</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">dataset</span> <span class="o">=</span> <span class="n">RadiomicsDataset</span><span class="o">.</span><span class="n">from_pictologics</span><span class="p">(</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="s2">&quot;features.csv&quot;</span><span class="p">,</span>                 <span class="c1"># a DataFrame works too</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">group</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="n">batch</span><span class="o">=</span><span class="s2">&quot;Center&quot;</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;outcome&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+</code></pre></div>
+<p><strong>Reproducibility (observer-paired) tables.</strong> Two-reader studies pivot the table
+into <code>{observer}_{config}__{feature_key}</code> columns (e.g. <code>O1_…</code>, <code>O2_…</code>).
+<code>split_observer_tables</code> reshapes that into one feature matrix per observer, ready
+for <a href="../reproducibility/"><code>compute_reproducibility</code></a>; and <code>RadiomicsFeatureRemover</code>
+takes <code>observer_prefixes</code> so <code>families=</code>/<code>configs=</code> selectors and catalog joins
+still resolve on the base feature name:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">split_observer_tables</span><span class="p">,</span> <span class="n">compute_reproducibility</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">readers</span> <span class="o">=</span> <span class="n">split_observer_tables</span><span class="p">(</span><span class="n">paired_table</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;O1_&quot;</span><span class="p">,</span> <span class="s2">&quot;O2_&quot;</span><span class="p">),</span> <span class="n">id_columns</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">results</span> <span class="o">=</span> <span class="n">compute_reproducibility</span><span class="p">(</span><span class="n">readers</span><span class="p">)</span>
+</code></pre></div>
 <h2 id="the-feature-catalog">The feature catalog</h2>
 <p>Pictologics-style tables name feature columns <code>{config}__{feature_key}</code> and ship
 a sidecar catalog with one row per feature. <code>FeatureCatalog</code> turns that table
 into a first-class object used for annotation, validation, and grouping:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureCatalog</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">catalog</span> <span class="o">=</span> <span class="n">FeatureCatalog</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="s2">&quot;features_catalog.csv&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">catalog</span><span class="o">.</span><span class="n">feature_names</span>        <span class="c1"># [&#39;original__Energy&#39;, &#39;original__Entropy&#39;, ...]</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">catalog</span><span class="o">.</span><span class="n">families</span><span class="p">()</span>           <span class="c1"># [&#39;firstorder&#39;, &#39;glcm&#39;, ...]</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Check that a table&#39;s feature columns are all known (raises if not)</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">catalog</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">feature_columns</span><span class="p">)</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Left-join catalog metadata onto a results table keyed by feature name</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">annotated</span> <span class="o">=</span> <span class="n">catalog</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">results_df</span><span class="p">)</span>   <span class="c1"># adds config/feature_key/family/...</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureCatalog</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">catalog</span> <span class="o">=</span> <span class="n">FeatureCatalog</span><span class="o">.</span><span class="n">from_csv</span><span class="p">(</span><span class="s2">&quot;features_catalog.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">catalog</span><span class="o">.</span><span class="n">feature_names</span>        <span class="c1"># [&#39;original__Energy&#39;, &#39;original__Entropy&#39;, ...]</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">catalog</span><span class="o">.</span><span class="n">families</span><span class="p">()</span>           <span class="c1"># [&#39;firstorder&#39;, &#39;glcm&#39;, ...]</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Check that a table&#39;s feature columns are all known (raises if not)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="n">catalog</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">feature_columns</span><span class="p">)</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># Left-join catalog metadata onto a results table keyed by feature name</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="n">annotated</span> <span class="o">=</span> <span class="n">catalog</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">results_df</span><span class="p">)</span>   <span class="c1"># adds config/feature_key/family/...</span>
 </code></pre></div>
 <p>A legacy single <code>feature</code> column containing <code>config__feature_key</code> values is also
 accepted.</p>
 <h2 id="aligning-radiomics-with-clinical-data">Aligning radiomics with clinical data</h2>
 <p>The three ingestion primitives make the join explicit and auditable, so silent
 misalignment cannot occur.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize_id_column</span><span class="p">,</span> <span class="n">resolve_duplicates</span><span class="p">,</span> <span class="n">merge_tables</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">radiomics</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;radiomics_features.csv&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">clinical</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;clinical.csv&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># 1. Normalize identifiers (strip/collapse whitespace, blank-like -&gt; missing)</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">clinical</span><span class="p">,</span> <span class="n">changes</span> <span class="o">=</span> <span class="n">normalize_id_column</span><span class="p">(</span><span class="n">clinical</span><span class="p">,</span> <span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="n">radiomics</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_id_column</span><span class="p">(</span><span class="n">radiomics</span><span class="p">,</span> <span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># 2. Resolve duplicate clinical rows (e.g. keep the earliest procedure)</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">clinical</span><span class="p">,</span> <span class="n">dropped</span> <span class="o">=</span> <span class="n">resolve_duplicates</span><span class="p">(</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="n">clinical</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">,</span> <span class="n">order_column</span><span class="o">=</span><span class="s2">&quot;procedure_date&quot;</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">)</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="c1"># 3. Merge with cardinality validation and mismatch diagnostics</span>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="n">result</span> <span class="o">=</span> <span class="n">merge_tables</span><span class="p">(</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    <span class="n">radiomics</span><span class="p">,</span> <span class="n">clinical</span><span class="p">,</span>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="n">left_on</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="n">right_on</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>    <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="s2">&quot;one_to_one&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="p">)</span>
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="n">merged</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">merged</span>
-<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="n">result</span><span class="o">.</span><span class="n">left_only</span>     <span class="c1"># radiomics rows with no clinical match</span>
-<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="n">result</span><span class="o">.</span><span class="n">right_only</span>    <span class="c1"># clinical rows with no radiomics match</span>
-<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="n">result</span><span class="o">.</span><span class="n">n_matched</span>     <span class="c1"># number of matched keys</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">normalize_id_column</span><span class="p">,</span> <span class="n">resolve_duplicates</span><span class="p">,</span> <span class="n">merge_tables</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">radiomics</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;radiomics_features.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">clinical</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;clinical.csv&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># 1. Normalize identifiers (strip/collapse whitespace, blank-like -&gt; missing)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">clinical</span><span class="p">,</span> <span class="n">changes</span> <span class="o">=</span> <span class="n">normalize_id_column</span><span class="p">(</span><span class="n">clinical</span><span class="p">,</span> <span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">radiomics</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_id_column</span><span class="p">(</span><span class="n">radiomics</span><span class="p">,</span> <span class="s2">&quot;PatientID&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># 2. Resolve duplicate clinical rows (e.g. keep the earliest procedure)</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">clinical</span><span class="p">,</span> <span class="n">dropped</span> <span class="o">=</span> <span class="n">resolve_duplicates</span><span class="p">(</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="n">clinical</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">,</span> <span class="n">order_column</span><span class="o">=</span><span class="s2">&quot;procedure_date&quot;</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="p">)</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># 3. Merge with cardinality validation and mismatch diagnostics</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="n">result</span> <span class="o">=</span> <span class="n">merge_tables</span><span class="p">(</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>    <span class="n">radiomics</span><span class="p">,</span> <span class="n">clinical</span><span class="p">,</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="n">left_on</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span> <span class="n">right_on</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>    <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">validate</span><span class="o">=</span><span class="s2">&quot;one_to_one&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="p">)</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="n">merged</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">merged</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="n">result</span><span class="o">.</span><span class="n">left_only</span>     <span class="c1"># radiomics rows with no clinical match</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="n">result</span><span class="o">.</span><span class="n">right_only</span>    <span class="c1"># clinical rows with no radiomics match</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="n">result</span><span class="o">.</span><span class="n">n_matched</span>     <span class="c1"># number of matched keys</span>
 </code></pre></div>
 <p><code>resolve_duplicates</code> supports <code>policy</code> values <code>"error"</code> (default), <code>"first"</code>,
 <code>"last"</code>, <code>"most_complete"</code> (most non-missing values), and <code>"min"</code> / <code>"max"</code>
@@ -1652,21 +1700,21 @@ metadata and recording <strong>study-design roles</strong> (which column is the 
 group, the batch, the survival endpoint, etc.). It then hands a clean feature
 matrix to a pipeline while keeping groups and targets available for splitters
 and models.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsDataset</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">RadiomicsDataset</span><span class="o">.</span><span class="n">from_wide</span><span class="p">(</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">merged</span><span class="p">,</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span>        <span class="c1"># used to identify feature columns (or auto-detect &quot;__&quot;)</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">group</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span>      <span class="c1"># for leakage-safe grouped cross-validation</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">batch</span><span class="o">=</span><span class="s2">&quot;Center&quot;</span><span class="p">,</span>         <span class="c1"># for batch-effect analysis</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">time</span><span class="o">=</span><span class="s2">&quot;fu_years&quot;</span><span class="p">,</span>        <span class="c1"># survival duration</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">event</span><span class="o">=</span><span class="s2">&quot;death&quot;</span><span class="p">,</span>          <span class="c1"># survival event</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">ds</span><span class="o">.</span><span class="n">features</span>        <span class="c1"># DataFrame of feature columns only (the X for sklearn)</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">ds</span><span class="o">.</span><span class="n">metadata</span>        <span class="c1"># the non-feature columns</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="n">ds</span><span class="o">.</span><span class="n">groups</span>          <span class="c1"># patient-id array for GroupKFold</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_pipeline_input</span><span class="p">()</span>   <span class="c1"># y is [time, event] here</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsDataset</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">RadiomicsDataset</span><span class="o">.</span><span class="n">from_wide</span><span class="p">(</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">merged</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span>        <span class="c1"># used to identify feature columns (or auto-detect &quot;__&quot;)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">group</span><span class="o">=</span><span class="s2">&quot;PatientID&quot;</span><span class="p">,</span>      <span class="c1"># for leakage-safe grouped cross-validation</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">batch</span><span class="o">=</span><span class="s2">&quot;Center&quot;</span><span class="p">,</span>         <span class="c1"># for batch-effect analysis</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">time</span><span class="o">=</span><span class="s2">&quot;fu_years&quot;</span><span class="p">,</span>        <span class="c1"># survival duration</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">event</span><span class="o">=</span><span class="s2">&quot;death&quot;</span><span class="p">,</span>          <span class="c1"># survival event</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">)</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">ds</span><span class="o">.</span><span class="n">features</span>        <span class="c1"># DataFrame of feature columns only (the X for sklearn)</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="n">ds</span><span class="o">.</span><span class="n">metadata</span>        <span class="c1"># the non-feature columns</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="n">ds</span><span class="o">.</span><span class="n">groups</span>          <span class="c1"># patient-id array for GroupKFold</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">to_pipeline_input</span><span class="p">()</span>   <span class="c1"># y is [time, event] here</span>
 </code></pre></div>
 <p>Feature columns are inferred from the catalog when given, otherwise from the
 <code>__</code> naming convention; you can also pass <code>feature_columns</code> explicitly. Extra

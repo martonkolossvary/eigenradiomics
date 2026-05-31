@@ -365,6 +365,13 @@ class TestRadiomicsFeatureRemover:
         with pytest.raises(ValueError, match="requires a pandas DataFrame"):
             RadiomicsFeatureRemover(features="volume_RNU0").fit(X)
 
+    def test_dataframe_fit_array_transform_ok(self, pictologics_table: pd.DataFrame) -> None:
+        # Fit on the named table (learns column positions), transform a bare array
+        # of the same width — positional selection must not raise.
+        remover = RadiomicsFeatureRemover(configs="standard_fbn_8").fit(pictologics_table)
+        out = remover.transform(pictologics_table.to_numpy())
+        assert out.shape[1] == len(remover.kept_feature_names_)
+
     def test_sparse_fit_raises(self) -> None:
         with pytest.raises(TypeError, match="Sparse matrices are not supported"):
             RadiomicsFeatureRemover().fit(scipy.sparse.csr_matrix(np.eye(3)))
@@ -568,6 +575,25 @@ class TestRadiomicsPrepTransformer:
         df = pd.DataFrame({"a": [1.0, 2.0, 3.0, 4.0], "b": [4.0, 5.0, 6.0, 7.0]})
         pt = RadiomicsPrepTransformer(standardize=False, skip_yeo_johnson=True).fit(df)
         assert pt.scales_ == [(0.0, 1.0), (0.0, 1.0)]
+        out = pt.transform(df)  # standardize=False -> winsorized values, unscaled
+        assert out.shape == df.shape
+        assert not out.isna().any().any()
+
+    def test_dataframe_fit_array_transform_ok(self) -> None:
+        # Fitting on a named table then transforming the equivalent array (a common
+        # Pipeline / GridSearchCV pattern) must warn, not raise.
+        df = pd.DataFrame({"a": [1.0, 2.0, 3.0, 4.0], "b": [4.0, 5.0, 6.0, 7.0]})
+        pt = RadiomicsPrepTransformer().fit(df)
+        out = pt.transform(df.to_numpy())
+        assert isinstance(out, np.ndarray)
+        assert out.shape == df.shape
+
+    def test_constant_column_centered_to_zero(self) -> None:
+        # A constant column has no spread; with standardize it must center to 0
+        # (like StandardScaler), not pass through at its raw magnitude.
+        df = pd.DataFrame({"x": [1.0, 2.0, 3.0, 4.0, 5.0], "const": [5.0] * 5})
+        out = RadiomicsPrepTransformer().fit_transform(df)
+        assert np.allclose(out["const"].to_numpy(), 0.0)
 
     def test_get_tags(self) -> None:
         prep = RadiomicsPrepTransformer()

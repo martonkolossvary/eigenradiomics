@@ -1,0 +1,1 @@
+The reproducibility ICC sheet now exposes a single `primary_icc_pass` flag (ICC >= `primary_threshold`). The duplicated, hardcoded `retained_ge_0_80` column has been removed — its name was misleading whenever `primary_threshold` was not 0.80.

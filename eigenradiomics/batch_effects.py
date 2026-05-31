@@ -447,6 +447,12 @@ def compute_batch_effects(
             if combat_features:
                 covar_mod = None
                 if combat_covariates is not None:
+                    missing = X_global.index.difference(combat_covariates.index)
+                    if len(missing) > 0:
+                        raise ValueError(
+                            f"combat_covariates is missing {len(missing)} sample(s) present "
+                            f"in X (e.g. {list(missing[:3])}); its index must cover X's index."
+                        )
                     covar_mod = combat_covariates.loc[X_global.index].astype("category")
 
                 # Transpose complete matrix for inmoose (features x samples)
@@ -533,12 +539,10 @@ def compute_batch_effects(
         ]
     )
 
-    batch_counts = (
-        batch_series.value_counts()
-        .sort_index()
-        .reset_index(name="n_samples")
-        .rename(columns={"index": "Batch"})
-    )
+    batch_counts = batch_series.value_counts().sort_index().reset_index(name="n_samples")
+    # Rename positionally: reset_index names the label column after the Series
+    # (not "index") whenever the batch Series carries a name, which is the norm.
+    batch_counts.columns = ["Batch", "n_samples"]
     global_summary = pd.DataFrame(global_rows)
 
     feature_summaries = []

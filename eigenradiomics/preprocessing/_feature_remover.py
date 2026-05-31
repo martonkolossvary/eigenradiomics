@@ -524,11 +524,15 @@ class RadiomicsFeatureRemover(TransformerMixin, BaseEstimator):
 
     def _take_columns(self, X: TableLike, indices: NDArray) -> TableLike:
         names = _validate_transform_names(X, self)
-        _check_feature_names(
-            self.feature_names_in_,
-            np.asarray(names, dtype=str),
-            type(self).__name__,
-        )
+        # Strict same-order check only when transforming a named DataFrame; a bare
+        # array of the same width (positional selection) is supported and must not
+        # raise, matching scikit-learn's cross-type behaviour.
+        if isinstance(X, pd.DataFrame):
+            _check_feature_names(
+                self.feature_names_in_,
+                np.asarray(names, dtype=str),
+                type(self).__name__,
+            )
         if isinstance(X, pd.DataFrame):
             return X.iloc[:, indices].copy()
         X_arr = np.asarray(X)

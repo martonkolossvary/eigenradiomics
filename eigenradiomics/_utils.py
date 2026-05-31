@@ -140,11 +140,16 @@ def validate_estimator_input(
         return cast(NDArray, X_arr)
 
     check_is_fitted(estimator, "feature_names_in_")
-    _check_feature_names(
-        feature_name_estimator.feature_names_in_,
-        names,
-        type(estimator).__name__,
-    )
+    # Enforce the strict same-order check only when the transform input itself
+    # carries real feature names (a DataFrame). Transforming a bare array of the
+    # same width after fitting on a DataFrame is a supported scikit-learn pattern
+    # (e.g. inside a Pipeline) and must not raise.
+    if has_dataframe_names:
+        _check_feature_names(
+            feature_name_estimator.feature_names_in_,
+            names,
+            type(estimator).__name__,
+        )
     return cast(NDArray, X_arr)
 
 

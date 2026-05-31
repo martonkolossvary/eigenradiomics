@@ -313,9 +313,10 @@ def compute_reproducibility(
             if "p_value" in df.columns:
                 df["p_fdr"] = _fdr_correct(df["p_value"].to_numpy())
 
-    # Add retention flags to ICC sheet
-    icc_df["retained_ge_0_80"] = icc_df["icc_2_1"] >= primary_threshold
-    icc_df["primary_icc_pass"] = icc_df["retained_ge_0_80"]
+    # Flag features whose ICC reaches the primary threshold (a single, honestly
+    # named column — the threshold is a parameter, so a hardcoded "_0_80" name
+    # would lie when primary_threshold != 0.80).
+    icc_df["primary_icc_pass"] = icc_df["icc_2_1"] >= primary_threshold
 
     return {
         "Spearman": spearman_df,

@@ -175,9 +175,11 @@ class RadiomicsPrepTransformer(OneToOneFeatureMixin, TransformerMixin, BaseEstim
             else:
                 transformed = clipped
 
-            # 3. Apply standard scaling
-            if self.standardize and std > 1e-12:
-                scaled = (transformed - mean) / std
+            # 3. Apply standard scaling. A (near-)constant column has no spread to
+            # divide by, so it is centered to zero (matching StandardScaler) rather
+            # than passed through at its raw magnitude.
+            if self.standardize:
+                scaled = (transformed - mean) / std if std > 1e-12 else transformed - mean
             else:
                 scaled = transformed
 

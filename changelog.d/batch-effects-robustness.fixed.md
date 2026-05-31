@@ -1,0 +1,1 @@
+`compute_batch_effects` now labels the batch-count summary column "Batch" reliably (previously a no-op when the batch Series carried a name) and raises a clear error when `combat_covariates` does not cover every sample in `X`, instead of a raw pandas `KeyError`.

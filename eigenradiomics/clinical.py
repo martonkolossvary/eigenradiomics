@@ -42,7 +42,11 @@ def encode_clinical_series(series: pd.Series) -> pd.Series:
         Float-valued Series aligned to ``series.index`` (unmappable entries NaN).
     """
     numeric = pd.to_numeric(series, errors="coerce")
-    if numeric.notna().any():
+    n_present = int(series.notna().sum())
+    # Treat the column as numeric only when most non-missing values parse as
+    # numbers; a lone numeric token in an otherwise categorical column must not
+    # blank out the rest (which would silently drop it later).
+    if n_present and numeric.notna().sum() >= 0.5 * n_present:
         return numeric
     cleaned = series.astype("string").str.strip().str.lower()
     mapped = cleaned.map(_BINARY_MAP)
@@ -107,6 +111,11 @@ def compute_clinical_correlations(
     if method not in {"spearman", "pearson", "kendall"}:
         raise ValueError(f"method must be 'spearman', 'pearson', or 'kendall', got {method!r}.")
     feature_matrix, clinical_frame = _resolve_inputs(features, clinical)
+    if feature_matrix.index.intersection(clinical_frame.index).empty:
+        raise ValueError(
+            "features and clinical share no common index labels; align their indexes "
+            "before correlating (or pass a RadiomicsDataset so they stay aligned)."
+        )
     encoded = pd.DataFrame(
         {column: encode_clinical_series(clinical_frame[column]) for column in clinical_frame},
         index=clinical_frame.index,

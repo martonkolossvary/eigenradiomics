@@ -76,8 +76,8 @@ def test_radiomics_prep_transformer():
     assert np.isnan(df_trans.loc[2, "feat_1"])  # NaN must be preserved!
     assert df_trans.loc[4, "feat_1"] < 2.0  # Clipped/winsorized outlier should be small
 
-    # Constant column should be returned as raw or zero-centered safely
-    assert np.allclose(df_trans["feat_2"].dropna(), 10.0)
+    # Constant column has no spread, so it is centered to zero (like StandardScaler).
+    assert np.allclose(df_trans["feat_2"].dropna(), 0.0)
 
 
 def test_batch_effects_anova_kruskal_levene():
@@ -374,6 +374,22 @@ def test_combat_path_mocked_ndarray_and_nonfinite(monkeypatch):
     )
     assert "combat_feature_stats" in res
     assert int(res["combat_adjustment_notes"]["nonfinite_values_replaced"].iloc[0]) >= 1
+
+
+def test_combat_covariates_misaligned_index_raises(monkeypatch):
+    def norm(data, batch=None, covar_mod=None, par_prior=True, mean_only=False, ref_batch=None):
+        return np.asarray(data, dtype=float)
+
+    _install_fake_inmoose(monkeypatch, norm)
+    df, batch = _batch_df()
+    covars = pd.DataFrame(
+        {"sex": [["M", "F"][i % 2] for i in range(len(df))]},
+        index=[f"OTHER{i}" for i in range(len(df))],  # does not cover X's index
+    )
+    with pytest.raises(ValueError, match="combat_covariates is missing"):
+        compute_batch_effects(
+            df, batch, permutations=10, no_combat=False, combat_covariates=covars
+        )
 
 
 def test_combat_import_failure(monkeypatch):

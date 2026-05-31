@@ -38,6 +38,14 @@ def test_encode_unknown_categories_ordinal_alphabetical():
     assert out.tolist() == [2.0, 1.0, 3.0, 1.0]
 
 
+def test_encode_mostly_categorical_with_one_numeric_token():
+    # A lone parseable token must not flip the column to (mostly-NaN) numeric;
+    # it should ordinal-encode every value instead.
+    out = encode_clinical_series(pd.Series(["mild", "moderate", "3", "severe"]))
+    assert out.notna().all()
+    assert out.nunique() == 4
+
+
 # ---- compute_clinical_correlations ---------------------------------------
 
 
@@ -109,3 +117,12 @@ def test_invalid_method_raises():
     X, clinical = _toy()
     with pytest.raises(ValueError, match="spearman.*pearson.*kendall"):
         compute_clinical_correlations(X, clinical, method="cosine")
+
+
+def test_disjoint_index_raises_distinct_error():
+    # A pure index mismatch must report itself, not masquerade as "not enough data".
+    X, clinical = _toy()
+    clinical = clinical.copy()
+    clinical.index = [f"OTHER{i}" for i in range(len(clinical))]
+    with pytest.raises(ValueError, match="no common index"):
+        compute_clinical_correlations(X, clinical, min_pairs=20)

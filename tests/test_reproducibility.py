@@ -81,13 +81,12 @@ def test_perfect_reproducibility():
     assert "ci95_high" in icc.columns
     assert "p_value" in icc.columns
     assert "p_fdr" in icc.columns
-    assert "retained_ge_0_80" in icc.columns
+    assert "primary_icc_pass" in icc.columns
 
     # Perfect identical rater results
     assert np.allclose(spearman["estimate"], 1.0)
     assert np.allclose(pearson["estimate"], 1.0)
     assert np.allclose(icc["icc_2_1"], 1.0)
-    assert all(icc["retained_ge_0_80"])
     assert all(icc["primary_icc_pass"])
 
 

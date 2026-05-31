@@ -79,34 +79,37 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - User Guide:
+  - Tutorials:
       - Installation: user_guide/installation.md
       - Quick Start: user_guide/quick_start.md
-      - Data Loading & Validation: user_guide/input_data_model.md
-      - Data Ingestion & Datasets: user_guide/data_ingestion.md
-      - Pipelines & Preprocessing: user_guide/pipelines_and_grid_search.md
-      - Radiomics Table Preprocessing: user_guide/radiomics_preprocessing.md
-      - Reproducibility Analysis: user_guide/reproducibility.md
-      - Batch Effect Diagnostics: user_guide/batch_effects.md
-      - Clustered Heatmap: user_guide/clustered_heatmap.md
       - End-to-End Workflow: user_guide/end_to_end.md
-      - Cookbook & Recipes: user_guide/recipes.md
-      - Scalability Guide: user_guide/scalability.md
+  - How-to Guides:
+      - Load & align data: user_guide/data_ingestion.md
+      - Screen reproducibility: user_guide/reproducibility.md
+      - Diagnose batch effects: user_guide/batch_effects.md
+      - Preprocess feature tables: user_guide/radiomics_preprocessing.md
+      - Reduce with WGCNA: reducers/wgcna.md
+      - Visualize the clustered heatmap: user_guide/clustered_heatmap.md
+      - Downstream statistical analysis: user_guide/downstream_analysis.md
+      - Tune in a Pipeline / GridSearchCV: user_guide/pipelines_and_grid_search.md
+      - Cookbook & recipes: user_guide/recipes.md
+  - Explanation:
+      - Best practices & pitfalls: user_guide/best_practices.md
+      - Input data model & leakage-safe transforms: user_guide/input_data_model.md
+      - The reducer contract & artifacts: reducers/index.md
+      - Scalability & performance: user_guide/scalability.md
       - Troubleshooting: user_guide/troubleshooting.md
-
-  - Reducers (Algorithms):
-      - Overview: reducers/index.md
-      - WGCNA: reducers/wgcna.md
   - API Reference:
       - Package: api/package.md
       - Ingestion & Datasets: api/ingestion.md
-      - Reducers: api/reducers.md
-      - Plotting: api/plotting.md
-      - Clinical Correlations: api/clinical.md
       - Preprocessing: api/preprocessing.md
+      - Reducers: api/reducers.md
       - Reproducibility: api/reproducibility.md
       - Batch Effects: api/batch_effects.md
-      - Interoperability Utilities: api/utils.md
-  - Quality Report: quality.md
-  - Changelog: changelog.md
-  - License: license.md
+      - Plotting: api/plotting.md
+      - Clinical & Module-Trait: api/clinical.md
+      - Validation Utilities (internal): api/utils.md
+  - Project:
+      - Quality Report: quality.md
+      - Changelog: changelog.md
+      - License: license.md

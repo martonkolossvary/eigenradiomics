@@ -60,8 +60,8 @@ same downstream code (clustered heatmaps, exports, analysis).
 | `feature_importances` | per-feature contribution to the reduction |
 
 `WGCNAReducer` populates all of these (`similarity`/TOM requires
-`store_tom=True`). The forthcoming clustered-heatmap utility consumes a
-`ReductionArtifacts` directly.
+`store_tom=True`). [`plot_clustered_heatmap`](../user_guide/clustered_heatmap.md)
+consumes a `ReductionArtifacts` directly.
 
 ## Currently Implemented Reducers
 

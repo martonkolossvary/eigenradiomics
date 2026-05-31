@@ -99,6 +99,27 @@ pipe = Pipeline(
 Like the reducers, the transformer validates that DataFrame columns at
 `transform` time match the columns seen during `fit`.
 
+For observer-paired reproducibility tables (`O1_…`, `O2_…` columns), pass
+`observer_prefixes=("O1_", "O2_")` so the `configs`/`families`/catalog selectors
+resolve on the base `config__feature_key` name.
+
+## Selecting features by a QC score
+
+`FeatureScoreSelector` drops features that fail a **precomputed** quality
+threshold — e.g. low reproducibility ICC or a large batch-effect size — inside a
+`Pipeline`. Compute the scores once, pass the table and a threshold, and the
+selector becomes part of the fitted, leakage-safe transform:
+
+```python
+from eigenradiomics import FeatureScoreSelector
+
+# keep features with ICC >= 0.80 (icc is the "ICC" sheet from compute_reproducibility)
+reliable = FeatureScoreSelector(icc, threshold=0.80, score_column="icc_2_1")
+```
+
+See [Downstream Statistical Analysis](downstream_analysis.md#qc-driven-feature-selection-in-a-pipeline)
+for using it together with the QC functions.
+
 ## Per-Feature Cleaning with `RadiomicsPrepTransformer`
 
 `RadiomicsPrepTransformer` is a scikit-learn-compatible transformer that

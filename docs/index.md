@@ -57,8 +57,10 @@ a small utility, so you can use one piece in isolation or chain the whole thing.
 | Reproducibility | [`compute_reproducibility`](user_guide/reproducibility.md) | ICC(2,1) and Spearman/Pearson test–retest reliability, with reports & plots |
 | Batch effects | [`compute_batch_effects`](user_guide/batch_effects.md) | Center/scanner effect diagnostics (ANOVA, PERMANOVA) + ComBat sensitivity |
 | Preprocess | [`RadiomicsPrepTransformer`](user_guide/radiomics_preprocessing.md) | NaN-aware winsorize → Yeo-Johnson → z-score, per feature |
-| Feature removal | [`RadiomicsFeatureRemover`](user_guide/radiomics_preprocessing.md) | Drop columns by exact key, config, or catalog family |
+| Select | [`RadiomicsFeatureRemover`, `FeatureScoreSelector`](user_guide/radiomics_preprocessing.md) | Drop columns by name/config/family, or by a QC score (e.g. low ICC) |
 | Reduce | [`WGCNAReducer`](reducers/wgcna.md) | Co-expression module eigengenes with leakage-safe transform of new data |
+| Visualize | [`plot_clustered_heatmap`](user_guide/clustered_heatmap.md) | The cornerstone clustered heatmap with annotation tracks + correlation panel |
+| Downstream stats | [`compute_module_trait_associations`](user_guide/downstream_analysis.md) | Module-eigengene ↔ trait correlations with p-values and FDR |
 
 ## Why eigenradiomics?
 
@@ -94,10 +96,15 @@ print(Y.shape)                   # (n_samples, n_modules), columns wgcna_0, wgcn
 
 ## Documentation Map
 
-1. [Quick Start](user_guide/quick_start.md) — the shortest path from a table to a reduced representation.
-2. [Data Ingestion & Datasets](user_guide/data_ingestion.md) — load, align, and package radiomics + clinical data.
-3. [Input Data Model](user_guide/input_data_model.md) — feature-identity guarantees and transform semantics.
-4. [Reproducibility](user_guide/reproducibility.md) · [Batch Effects](user_guide/batch_effects.md) · [Preprocessing](user_guide/radiomics_preprocessing.md) — the pre-analysis statistics.
-5. [Pipelines & Grid Search](user_guide/pipelines_and_grid_search.md) — sklearn integration patterns.
-6. [WGCNA Reducer](reducers/wgcna.md) — the current reduction backend.
-7. [API Reference](api/package.md) — full object and method documentation.
+The docs follow a [Diátaxis](https://diataxis.fr/) layout:
+
+- **Tutorials** — learn by doing: [Quick Start](user_guide/quick_start.md) and the
+  full [End-to-End Workflow](user_guide/end_to_end.md) (every primitive wired into one pipeline).
+- **How-to Guides** — task recipes: [load & align](user_guide/data_ingestion.md),
+  [reproducibility](user_guide/reproducibility.md), [batch effects](user_guide/batch_effects.md),
+  [preprocess](user_guide/radiomics_preprocessing.md), [reduce](reducers/wgcna.md),
+  [visualize](user_guide/clustered_heatmap.md), [downstream statistics](user_guide/downstream_analysis.md),
+  and [pipelines & tuning](user_guide/pipelines_and_grid_search.md).
+- **Explanation** — understand the design: [best practices & pitfalls](user_guide/best_practices.md),
+  the [input data model](user_guide/input_data_model.md), and the [reducer contract](reducers/index.md).
+- **Reference** — look it up: the [API reference](api/package.md).

@@ -3,16 +3,50 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.colors import to_rgba
+from matplotlib.patches import Patch
 from numpy.typing import NDArray
 from scipy.cluster.hierarchy import dendrogram, leaves_list
 
 from eigenradiomics.artifacts import ReductionArtifacts
+
+#: Okabe-Ito colourblind-safe qualitative palette (default for categorical strips).
+OKABE_ITO: list[str] = [
+    "#E69F00",  # orange
+    "#56B4E9",  # sky blue
+    "#009E73",  # bluish green
+    "#F0E442",  # yellow
+    "#0072B2",  # blue
+    "#D55E00",  # vermillion
+    "#CC79A7",  # reddish purple
+    "#000000",  # black
+]
+
+
+@dataclass
+class Strip:
+    """A categorical annotation strip drawn above the heatmap (a top track).
+
+    Parameters
+    ----------
+    data : pandas.Series
+        Per-feature category, indexed by feature name.
+    title : str, optional
+        Strip name shown at its left edge and as the legend title (defaults to
+        the Series name).
+    colors : mapping, optional
+        ``{category: colour}``; otherwise a colourblind-safe palette is assigned.
+    """
+
+    data: pd.Series
+    title: str | None = None
+    colors: Mapping[Any, Any] | None = None
 
 
 def _as_similarity_frame(similarity: NDArray | pd.DataFrame) -> pd.DataFrame:
@@ -28,6 +62,30 @@ def _as_similarity_frame(similarity: NDArray | pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(arr, index=names, columns=names)
 
 
+def _assign_colors(
+    categories: Sequence[Any],
+    explicit: Mapping[Any, Any] | None,
+) -> dict[Any, Any]:
+    """Map each category to a colour (explicit overrides; else a palette)."""
+    if explicit is not None:
+        return {category: explicit.get(category, "lightgrey") for category in categories}
+    if len(categories) <= len(OKABE_ITO):
+        palette: list[Any] = list(OKABE_ITO)
+    else:
+        tab = plt.get_cmap("tab20")
+        palette = [tab(i % 20) for i in range(len(categories))]
+    return {category: palette[i] for i, category in enumerate(categories)}
+
+
+def _as_strip(item: pd.Series | Strip) -> Strip:
+    """Normalize a top-track input to a :class:`Strip`."""
+    if isinstance(item, Strip):
+        return item
+    if isinstance(item, pd.Series):
+        return Strip(data=item, title=item.name)
+    raise TypeError(f"top tracks must be a pandas Series or Strip, got {type(item).__name__}.")
+
+
 def plot_clustered_heatmap(
     similarity: NDArray | pd.DataFrame | ReductionArtifacts,
     *,
@@ -35,12 +93,14 @@ def plot_clustered_heatmap(
     linkage: NDArray | None = None,
     order: Sequence[Any] | NDArray | None = None,
     cluster_colors: Mapping[Any, Any] | None = None,
+    top: Sequence[pd.Series | Strip] | None = None,
     cmap: str = "magma",
     vmin: float | None = None,
     vmax: float | None = None,
     below_cutoff_color: str | None = None,
     show_dendrogram: bool = True,
     show_cluster_strip: bool = True,
+    show_legend: bool = True,
     labels: Any = "auto",
     colorbar_label: str = "Similarity",
     figsize: tuple[float, float] | None = None,
@@ -50,37 +110,35 @@ def plot_clustered_heatmap(
 
     "Bring your own" inputs: pass any symmetric ``similarity`` matrix plus,
     optionally, a per-feature ``cluster_labels`` assignment, a SciPy ``linkage``
-    matrix (for the left dendrogram), and/or an explicit feature ``order``. A
+    matrix (left dendrogram), an explicit feature ``order``, and categorical
+    annotation strips via ``top``. A
     :class:`~eigenradiomics.ReductionArtifacts` may be passed directly as
-    ``similarity``; its ``similarity`` / ``cluster_labels`` / ``linkage`` /
-    ``feature_order`` fill any argument left unset.
+    ``similarity``; its fields fill any argument left unset.
 
     Parameters
     ----------
     similarity : ndarray, DataFrame, or ReductionArtifacts
-        A symmetric ``(n_features, n_features)`` similarity (e.g. WGCNA TOM), or
-        a fitted reducer's artifacts.
+        Symmetric ``(n_features, n_features)`` similarity, or a reducer's artifacts.
     cluster_labels : Series or sequence, optional
         Per-feature cluster / module label; drives the left colour strip and the
         default ordering when no ``linkage``/``order`` is given.
     linkage : ndarray, optional
-        SciPy linkage matrix; drives the left dendrogram and the leaf ordering.
+        SciPy linkage matrix; drives the left dendrogram and leaf ordering.
     order : sequence, optional
-        Explicit feature ordering (feature names); overrides the linkage leaves.
+        Explicit feature ordering (overrides the linkage leaves).
     cluster_colors : mapping, optional
-        ``{label: colour}``; otherwise a categorical palette is assigned.
-    cmap : str
-        Colormap for the similarity heatmap.
-    vmin, vmax : float, optional
-        Colour limits; default to the data range.
-    below_cutoff_color : str, optional
-        Colour for values below ``vmin`` (``set_under``).
-    show_dendrogram, show_cluster_strip : bool
-        Toggle the left dendrogram / cluster colour strip.
+        ``{label: colour}`` for the module strip/legend; otherwise a palette.
+    top : sequence of Series or Strip, optional
+        Categorical annotation strips drawn above the heatmap (e.g. feature
+        family). A plain Series becomes a :class:`Strip` (its name as title).
+    cmap, vmin, vmax, below_cutoff_color :
+        Similarity colour scaling (``below_cutoff_color`` is ``set_under``).
+    show_dendrogram, show_cluster_strip, show_legend : bool
+        Toggle the left dendrogram, the left cluster strip, and the legend column.
     labels : "auto", sequence, None, or False
-        Tick labels. ``"auto"`` shows feature names only for small matrices.
+        Heatmap tick labels. ``"auto"`` shows names only for small matrices.
     colorbar_label : str
-        Label for the similarity colorbar.
+        Label for the similarity colourbar.
     figsize : tuple, optional
         Figure size; auto-sized from the feature count otherwise.
     title : str, optional
@@ -118,6 +176,8 @@ def plot_clustered_heatmap(
         else:
             labels_series = pd.Series(list(cluster_labels), index=feature_names)
 
+    strips = [_as_strip(item) for item in top] if top is not None else []
+
     # 2. Determine the display order (feature names).
     if order is not None:
         order_names = list(order)
@@ -141,13 +201,34 @@ def plot_clustered_heatmap(
     else:
         tick_labels = list(labels)
 
-    # 3. Lay out the panels.
+    # 3. Resolve colours for categorical tracks + collect legend blocks.
     draw_dendro = show_dendrogram and linkage is not None
     draw_strip = show_cluster_strip and labels_series is not None
+    n_top = len(strips)
 
+    legend_blocks: list[tuple[str, dict[Any, Any]]] = []
+    if draw_strip:
+        assert labels_series is not None
+        module_cats = list(dict.fromkeys(labels_series.loc[order_names].dropna()))
+        module_color_map = _assign_colors(module_cats, cluster_colors)
+        legend_blocks.append(("Module", module_color_map))
+    strip_color_maps: list[dict[Any, Any]] = []
+    for index, strip in enumerate(strips):
+        ordered_cats = strip.data.reindex(order_names)
+        unique_cats = list(dict.fromkeys(ordered_cats.dropna()))
+        color_map = _assign_colors(unique_cats, strip.colors)
+        strip_color_maps.append(color_map)
+        legend_blocks.append((strip.title or f"strip {index + 1}", color_map))
+
+    has_legend = show_legend and bool(legend_blocks)
+
+    # 4. Lay out the panels (rows: top strips, heatmap, colorbar; cols: dendro,
+    #    cluster strip, heatmap, legend).
     if figsize is None:
         side = float(np.clip(n / 12.0, 6.0, 14.0))
-        figsize = (side + 2.0, side)
+        width = side + 2.0 + (2.6 if has_legend else 0.0)
+        height = side + 1.0 + 0.4 * n_top
+        figsize = (width, height)
     fig = plt.figure(figsize=figsize)
 
     width_ratios: list[float] = []
@@ -160,18 +241,25 @@ def plot_clustered_heatmap(
         width_ratios.append(0.30)
     col["heat"] = len(width_ratios)
     width_ratios.append(10.0)
+    if has_legend:
+        col["legend"] = len(width_ratios)
+        width_ratios.append(2.6)
+
+    height_ratios = [0.32] * n_top + [10.0, 1.0]
+    heat_row = n_top
+    cbar_row = n_top + 1
 
     grid = fig.add_gridspec(
-        2,
+        len(height_ratios),
         len(width_ratios),
         width_ratios=width_ratios,
-        height_ratios=[20.0, 1.0],
+        height_ratios=height_ratios,
         wspace=0.02,
         hspace=0.05,
     )
 
-    # 4. Main heatmap (+ colorbar below it).
-    ax_heat = fig.add_subplot(grid[0, col["heat"]])
+    # 5. Main heatmap (+ colorbar below it).
+    ax_heat = fig.add_subplot(grid[heat_row, col["heat"]])
     cmap_obj = plt.get_cmap(cmap).copy()
     if below_cutoff_color is not None:
         cmap_obj.set_under(below_cutoff_color)
@@ -188,40 +276,66 @@ def plot_clustered_heatmap(
         ax_heat.set_xticks([])
         ax_heat.set_yticks([])
     if title is not None:
-        ax_heat.set_title(title, weight="bold")
+        # suptitle sits above the top strips (set_title would collide with them).
+        fig.suptitle(title, weight="bold")
 
-    ax_cbar = fig.add_subplot(grid[1, col["heat"]])
+    ax_cbar = fig.add_subplot(grid[cbar_row, col["heat"]])
     fig.colorbar(image, cax=ax_cbar, orientation="horizontal", label=colorbar_label)
 
-    # 5. Left dendrogram, aligned row-for-row with the heatmap.
+    # 6. Top categorical strips (aligned with the heatmap columns).
+    for index, strip in enumerate(strips):
+        ordered_cats = strip.data.reindex(order_names)
+        color_map = strip_color_maps[index]
+        rgba = np.array(
+            [to_rgba(color_map.get(category, "lightgrey")) for category in ordered_cats]
+        ).reshape(1, n, 4)
+        ax_top = fig.add_subplot(grid[index, col["heat"]])
+        ax_top.imshow(rgba, aspect="auto", interpolation="nearest")
+        ax_top.set_xticks([])
+        ax_top.set_yticks([0])
+        ax_top.set_yticklabels([strip.title or f"strip {index + 1}"], fontsize=7)
+
+    # 7. Left dendrogram, aligned row-for-row with the heatmap.
     if draw_dendro:
-        ax_dendro = fig.add_subplot(grid[0, col["dendro"]])
+        ax_dendro = fig.add_subplot(grid[heat_row, col["dendro"]])
         dendrogram(
             np.asarray(linkage), orientation="left", no_labels=True,
             ax=ax_dendro, color_threshold=0, above_threshold_color="#555555",
         )
-        # imshow uses origin="upper" (row 0 at top); force the dendrogram's leaf
-        # axis to span [0, 10n] inverted so leaf position j lands on heatmap row j.
         ax_dendro.set_ylim(10.0 * n, 0.0)
         ax_dendro.set_xticks([])
         ax_dendro.set_yticks([])
         for spine in ax_dendro.spines.values():
             spine.set_visible(False)
 
-    # 6. Left cluster colour strip.
+    # 8. Left cluster colour strip.
     if draw_strip:
-        assert labels_series is not None  # draw_strip implies labels_series is set
+        assert labels_series is not None
         ordered_labels = labels_series.loc[order_names]
-        unique_labels = list(dict.fromkeys(ordered_labels))
-        if cluster_colors is None:
-            palette = plt.get_cmap("tab20")
-            color_map = {label: palette(i % 20) for i, label in enumerate(unique_labels)}
-        else:
-            color_map = {label: cluster_colors.get(label, "lightgrey") for label in unique_labels}
-        strip = np.array([to_rgba(color_map[label]) for label in ordered_labels]).reshape(n, 1, 4)
-        ax_strip = fig.add_subplot(grid[0, col["strip"]])
-        ax_strip.imshow(strip, aspect="auto", interpolation="nearest")
+        module_map = legend_blocks[0][1]
+        strip_rgba = np.array(
+            [to_rgba(module_map.get(label, "lightgrey")) for label in ordered_labels]
+        ).reshape(n, 1, 4)
+        ax_strip = fig.add_subplot(grid[heat_row, col["strip"]])
+        ax_strip.imshow(strip_rgba, aspect="auto", interpolation="nearest")
         ax_strip.set_xticks([])
         ax_strip.set_yticks([])
+
+    # 9. Right-edge stacked legend column (one titled block per categorical track).
+    if has_legend:
+        legend_gs = grid[:, col["legend"]].subgridspec(
+            len(legend_blocks), 1, height_ratios=[len(cmap) + 1.5 for _, cmap in legend_blocks]
+        )
+        for block_index, (block_title, color_map) in enumerate(legend_blocks):
+            ax_legend = fig.add_subplot(legend_gs[block_index])
+            handles = [
+                Patch(facecolor=color, edgecolor="0.3", label=str(category))
+                for category, color in color_map.items()
+            ]
+            ax_legend.legend(
+                handles=handles, title=block_title, loc="center left",
+                frameon=False, fontsize=7, title_fontsize=8, handlelength=1.0,
+            )
+            ax_legend.axis("off")
 
     return fig

@@ -1,10 +1,16 @@
 # Clustered Heatmap
 
 `plot_clustered_heatmap` renders a feature-by-feature **similarity heatmap**
-ordered by hierarchical clustering, with an aligned left dendrogram and a
-per-feature cluster colour strip. It is deliberately generic — bring your own
-similarity matrix and, optionally, a cluster assignment, linkage, and ordering —
-so it works for a WGCNA TOM or any other symmetric similarity.
+ordered by hierarchical clustering, with an aligned left dendrogram, a
+per-feature cluster colour strip, and optional **categorical annotation strips**
+above it. It is deliberately generic — bring your own similarity matrix and,
+optionally, a cluster assignment, linkage, ordering, and annotation strips — so
+it works for a WGCNA TOM or any other symmetric similarity.
+
+The figure has a memorable, fixed grammar — **each side answers a question**:
+the **left** is *who?* (dendrogram + module strip), the **top** is *what kind?*
+(categorical strips), and the **centre** is the similarity itself. (Numeric
+bottom bars and a right correlation panel are planned.)
 
 ## From a fitted reducer
 
@@ -53,11 +59,33 @@ fig = plot_clustered_heatmap(
 If you omit `linkage`, rows are ordered by `cluster_labels` (or left as given);
 omit `cluster_labels` and the colour strip is dropped.
 
+## Top annotation strips
+
+Pass up to a few categorical strips via `top`. Each is a per-feature `pandas`
+Series (its name becomes the strip title), or a `Strip` for explicit control of
+the title and colours. Each strip gets a colourblind-safe **Okabe-Ito** palette
+(override with `colors=`) and a titled block in the stacked right-edge legend:
+
+```python
+from eigenradiomics import plot_clustered_heatmap, Strip
+
+fig = plot_clustered_heatmap(
+    reducer.get_reduction_artifacts(),
+    top=[
+        family,                                   # a named Series -> auto Strip
+        Strip(region, title="Region",            # explicit control
+              colors={"total": "#0072B2", "calcium": "#D55E00"}),
+    ],
+)
+```
+
+The cluster (module) strip on the left also gets a "Module" legend. Set
+`show_legend=False` to drop the legend column.
+
 !!! note "What's next"
-    This is the core of the heatmap. Planned additions layer optional annotation
-    tracks — a feature-family strip, a clinical-correlation panel, and a
-    significance bar — onto the same figure, sourced from a `FeatureCatalog` and
-    `RadiomicsDataset`.
+    Numeric **bottom bars** (e.g. −log10 p, coloured by module) and a **right
+    correlation panel** (features × clinical variables) are planned, sourced
+    conveniently from a `FeatureCatalog` and `RadiomicsDataset`.
 
 ## Key options
 
@@ -67,9 +95,10 @@ omit `cluster_labels` and the colour strip is dropped.
 | `cluster_labels` | per-feature label → colour strip and default ordering |
 | `linkage` | SciPy linkage → dendrogram and leaf ordering |
 | `order` | explicit feature ordering (overrides the linkage leaves) |
-| `cluster_colors` | `{label: colour}` (otherwise an automatic palette) |
+| `cluster_colors` | `{label: colour}` (otherwise a colourblind-safe palette) |
+| `top` | categorical strips above the heatmap (Series or `Strip`) |
 | `cmap`, `vmin`, `vmax`, `below_cutoff_color` | similarity colour scaling |
-| `show_dendrogram`, `show_cluster_strip` | toggle the side panels |
+| `show_dendrogram`, `show_cluster_strip`, `show_legend` | toggle the side panels / legend |
 | `labels` | `"auto"`, an explicit list, or `None` |
 
 See the [API reference](../api/plotting.md) for the full signature.

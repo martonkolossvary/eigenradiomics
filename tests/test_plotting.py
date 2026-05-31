@@ -12,7 +12,7 @@ import pytest  # noqa: E402
 from scipy.cluster.hierarchy import leaves_list, linkage  # noqa: E402
 from scipy.spatial.distance import squareform  # noqa: E402
 
-from eigenradiomics import ReductionArtifacts, plot_clustered_heatmap  # noqa: E402
+from eigenradiomics import ReductionArtifacts, Strip, plot_clustered_heatmap  # noqa: E402
 
 
 def _blocks(n_per: int = 10, n_blocks: int = 3):
@@ -32,9 +32,12 @@ def _blocks(n_per: int = 10, n_blocks: int = 3):
     return df, z, pd.Series(labels, index=names)
 
 
+# ---- core (MVP) behaviour ------------------------------------------------
+
+
 def test_raw_array_minimal():
     df, _, _ = _blocks()
-    fig = plot_clustered_heatmap(df.to_numpy())  # identity order, no dendro/strip
+    fig = plot_clustered_heatmap(df.to_numpy())  # identity order, no dendro/strip/legend
     assert len(fig.axes) == 2  # heatmap + colorbar
     plt.close(fig)
 
@@ -52,7 +55,7 @@ def test_dataframe_with_linkage_and_labels():
         labels=list(df.index),
         title="t",
     )
-    assert len(fig.axes) == 4  # heatmap + colorbar + dendrogram + strip
+    assert len(fig.axes) == 5  # heat + cbar + dendro + cluster strip + Module legend
     plt.close(fig)
 
 
@@ -67,14 +70,14 @@ def test_from_artifacts():
         feature_order=np.asarray(order),
     )
     fig = plot_clustered_heatmap(art)  # everything filled from the artifacts
-    assert len(fig.axes) == 4
+    assert len(fig.axes) == 5
     plt.close(fig)
 
 
 def test_order_from_cluster_labels_only():
     df, _, lab = _blocks()
     fig = plot_clustered_heatmap(df, cluster_labels=lab)  # Series, no linkage/order
-    assert len(fig.axes) == 3  # heatmap + colorbar + strip (no dendrogram)
+    assert len(fig.axes) == 4  # heat + cbar + cluster strip + Module legend
     plt.close(fig)
 
 
@@ -83,7 +86,7 @@ def test_labels_none_and_dendrogram_disabled():
     fig = plot_clustered_heatmap(
         df, linkage=z, cluster_labels=lab, labels=None, show_dendrogram=False
     )
-    assert len(fig.axes) == 3  # heatmap + colorbar + strip
+    assert len(fig.axes) == 4  # heat + cbar + cluster strip + Module legend
     plt.close(fig)
 
 
@@ -98,3 +101,71 @@ def test_non_square_raises():
         plot_clustered_heatmap(np.zeros((3, 4)))
     with pytest.raises(ValueError, match="square"):
         plot_clustered_heatmap(pd.DataFrame(np.zeros((3, 4))))
+
+
+# ---- top annotation strips + legends -------------------------------------
+
+
+def test_top_strips_and_legends():
+    df, z, lab = _blocks(n_per=10, n_blocks=3)
+    names = list(df.index)
+    families = ["Intensity", "Texture", "Morphology"]
+    family = pd.Series([families[i % 3] for i in range(len(names))], index=names, name="Family")
+    region = pd.Series(["total" if i % 2 else "calcium" for i in range(len(names))], index=names)
+    fig = plot_clustered_heatmap(
+        df,
+        linkage=z,
+        cluster_labels=lab,
+        top=[family, Strip(region, title="Region")],  # Series (auto) + Strip (spec)
+        title="cornerstone",
+    )
+    # heat + cbar + dendro + cluster strip + 2 top strips + 3 legend blocks
+    assert len(fig.axes) == 9
+    plt.close(fig)
+
+
+def test_show_legend_false():
+    df, _, lab = _blocks()
+    names = list(df.index)
+    family = pd.Series(["a", "b"] * (len(names) // 2), index=names, name="Family")
+    fig = plot_clustered_heatmap(df, cluster_labels=lab, top=[family], show_legend=False)
+    assert len(fig.axes) == 4  # heat + cbar + cluster strip + 1 top strip (no legends)
+    plt.close(fig)
+
+
+def test_strip_explicit_colors_and_missing_features():
+    df, _, lab = _blocks(n_per=10, n_blocks=3)
+    names = list(df.index)
+    subset = names[:20]  # strip covers only some features -> rest get the fallback colour
+    region = pd.Series(["total" if i % 2 else "calcium" for i in range(20)], index=subset)
+    fig = plot_clustered_heatmap(
+        df,
+        cluster_labels=lab,
+        top=[Strip(region, title="Region", colors={"total": "#0072B2", "calcium": "#D55E00"})],
+    )
+    assert len(fig.axes) == 6  # heat + cbar + cluster strip + 1 top + Module + Region legends
+    plt.close(fig)
+
+
+def test_many_categories_use_extended_palette():
+    df, _, lab = _blocks(n_per=10, n_blocks=3)
+    names = list(df.index)
+    many = pd.Series([f"c{i % 9}" for i in range(len(names))], index=names, name="Many")  # > 8
+    fig = plot_clustered_heatmap(df, cluster_labels=lab, top=[many])
+    assert len(fig.axes) == 6
+    plt.close(fig)
+
+
+def test_strip_title_fallback():
+    df, _, lab = _blocks()
+    names = list(df.index)
+    unnamed = pd.Series(["x", "y"] * (len(names) // 2), index=names)  # name is None
+    fig = plot_clustered_heatmap(df, cluster_labels=lab, top=[unnamed])
+    assert len(fig.axes) == 6
+    plt.close(fig)
+
+
+def test_invalid_top_type_raises():
+    df, _, _ = _blocks()
+    with pytest.raises(TypeError, match="Series or Strip"):
+        plot_clustered_heatmap(df, top=[123])

@@ -135,14 +135,19 @@ def preprocessing_figure() -> None:
 
 
 def clustered_heatmap_figure() -> None:
-    """Clustered WGCNA TOM heatmap built from a fitted reducer's artifacts."""
+    """Clustered WGCNA TOM heatmap with a top family strip and stacked legends."""
     X = _wgcna_matrix()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         reducer = WGCNAReducer(soft_power="auto", min_module_size=20, store_tom=True, verbose=0)
         reducer.fit(X)
+    artifacts = reducer.get_reduction_artifacts()
+    names = list(artifacts.feature_names)
+    families = ["Intensity", "Texture", "Morphology"]
+    family = pd.Series([families[i % 3] for i in range(len(names))], index=names, name="Family")
     fig = plot_clustered_heatmap(
-        reducer.get_reduction_artifacts(),
+        artifacts,
+        top=[family],
         cmap="magma",
         vmin=0.0,
         vmax=1.0,

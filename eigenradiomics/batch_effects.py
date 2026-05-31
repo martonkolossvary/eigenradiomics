@@ -25,6 +25,7 @@ from eigenradiomics._stats import (
     levene_test,
     permanova_euclidean,
 )
+from eigenradiomics.preprocessing._feature_remover import _load_catalog
 from eigenradiomics.preprocessing._prep import RadiomicsPrepTransformer
 
 
@@ -331,10 +332,9 @@ def compute_batch_effects(
             )
         batch_series.index = X_df.index
 
-    # Load catalog if path provided
-    catalog_df = None
-    if catalog is not None:
-        catalog_df = catalog if isinstance(catalog, pd.DataFrame) else pd.read_csv(Path(catalog))
+    # Load catalog (DataFrame, FeatureCatalog, or CSV path) — same handling as
+    # compute_reproducibility, so dataset.catalog can be passed to either.
+    catalog_df = _load_catalog(catalog)
 
     # 2. Resolve features to analyze (selectors, else every numeric column).
     features_to_analyze = resolve_analysis_features(

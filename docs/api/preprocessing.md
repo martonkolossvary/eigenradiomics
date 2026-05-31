@@ -13,3 +13,5 @@ Utilities for Pictologics-style radiomics feature table preprocessing.
 ::: eigenradiomics.preprocessing.split_radiomics_file
 
 ::: eigenradiomics.preprocessing.RadiomicsPrepTransformer
+
+::: eigenradiomics.preprocessing.FeatureScoreSelector

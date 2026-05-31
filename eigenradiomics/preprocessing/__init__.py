@@ -8,6 +8,7 @@ from eigenradiomics.preprocessing._feature_remover import (
     split_radiomics_table,
 )
 from eigenradiomics.preprocessing._prep import RadiomicsPrepTransformer
+from eigenradiomics.preprocessing._score_selector import FeatureScoreSelector
 
 __all__ = [
     "RadiomicsFeatureRemover",
@@ -16,4 +17,5 @@ __all__ = [
     "split_radiomics_file",
     "split_radiomics_table",
     "RadiomicsPrepTransformer",
+    "FeatureScoreSelector",
 ]

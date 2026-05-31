@@ -376,6 +376,25 @@ def test_combat_path_mocked_ndarray_and_nonfinite(monkeypatch):
     assert int(res["combat_adjustment_notes"]["nonfinite_values_replaced"].iloc[0]) >= 1
 
 
+def test_accepts_feature_catalog_object():
+    """compute_batch_effects accepts a FeatureCatalog (parity with compute_reproducibility)."""
+    from eigenradiomics import FeatureCatalog
+
+    df, batch = _batch_df()
+    catalog = FeatureCatalog(
+        pd.DataFrame(
+            {
+                "config": ["original"] * 6,
+                "feature_key": [f"f{i}" for i in range(6)],
+                "family": ["intensity"] * 3 + ["glcm"] * 3,
+                "family_group": ["Intensity"] * 3 + ["Texture"] * 3,
+            }
+        )
+    )
+    res = compute_batch_effects(df, batch, catalog=catalog, families="intensity", permutations=20)
+    assert len(res["feature_stats"]) == 3  # only the intensity features were analyzed
+
+
 def test_combat_covariates_misaligned_index_raises(monkeypatch):
     def norm(data, batch=None, covar_mod=None, par_prior=True, mean_only=False, ref_batch=None):
         return np.asarray(data, dtype=float)

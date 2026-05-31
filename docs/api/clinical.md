@@ -6,4 +6,6 @@ See the [Clustered Heatmap guide](../user_guide/clustered_heatmap.md#right-corre
 
 ::: eigenradiomics.clinical.compute_clinical_correlations
 
+::: eigenradiomics.clinical.compute_module_trait_associations
+
 ::: eigenradiomics.clinical.encode_clinical_series

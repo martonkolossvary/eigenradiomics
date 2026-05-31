@@ -9,8 +9,30 @@ import pytest
 from eigenradiomics import (
     RadiomicsDataset,
     compute_clinical_correlations,
+    compute_module_trait_associations,
     encode_clinical_series,
 )
+
+
+def _eig_traits(n: int = 60):
+    """Eigengenes (one tied to a marker) + mixed-type traits, shared index."""
+    rng = np.random.default_rng(3)
+    idx = [f"S{i}" for i in range(n)]
+    m0 = rng.standard_normal(n)
+    eig = pd.DataFrame(
+        {"wgcna_0": m0, "wgcna_1": rng.standard_normal(n), "wgcna_2": np.full(n, 1.0)},
+        index=idx,  # wgcna_2 is constant -> exercises the degenerate-pair skip
+    )
+    traits = pd.DataFrame(
+        {
+            "age": 60 + 5 * rng.standard_normal(n),
+            "marker": m0 * 1.5 + rng.standard_normal(n),  # tied to wgcna_0
+            "sex": rng.choice(["male", "female"], n),
+            "flat": ["x"] * n,  # no variance -> dropped
+        },
+        index=idx,
+    )
+    return eig, traits
 
 # ---- encode_clinical_series ----------------------------------------------
 
@@ -117,6 +139,61 @@ def test_invalid_method_raises():
     X, clinical = _toy()
     with pytest.raises(ValueError, match="spearman.*pearson.*kendall"):
         compute_clinical_correlations(X, clinical, method="cosine")
+
+
+# ---- compute_module_trait_associations -----------------------------------
+
+
+def test_module_trait_basic_r_p_fdr():
+    eig, traits = _eig_traits()
+    mtr = compute_module_trait_associations(eig, traits, min_pairs=20)
+    assert set(mtr) == {"r", "p", "p_fdr"}
+    assert "flat" not in mtr["r"].columns  # constant trait dropped
+    assert list(mtr["r"].index) == ["wgcna_0", "wgcna_1", "wgcna_2"]
+    # the tied module/trait pair is strong and significant...
+    assert mtr["r"].loc["wgcna_0", "marker"] > 0.5
+    assert mtr["p"].loc["wgcna_0", "marker"] < 0.05
+    assert (mtr["p_fdr"] >= mtr["p"]).to_numpy()[~np.isnan(mtr["p"].to_numpy())].all()
+    # ...and the constant module stays NaN (degenerate pair skipped)
+    assert np.isnan(mtr["r"].loc["wgcna_2", "marker"])
+
+
+def test_module_trait_from_dataset_columns():
+    eig, traits = _eig_traits()
+    data = pd.concat([eig.rename(columns=lambda c: f"orig__{c}"), traits], axis=1)
+    feature_cols = [c for c in data.columns if c.startswith("orig__")]
+    ds = RadiomicsDataset(data, feature_columns=feature_cols)
+    mtr = compute_module_trait_associations(eig, ds, ["marker", "age"], min_pairs=20)
+    assert list(mtr["r"].columns) == ["marker", "age"]
+
+
+def test_module_trait_from_dataset_metadata():
+    eig, traits = _eig_traits()
+    data = pd.concat([eig.rename(columns=lambda c: f"orig__{c}"), traits], axis=1)
+    ds = RadiomicsDataset(data, feature_columns=[f"orig__{c}" for c in eig.columns])
+    mtr = compute_module_trait_associations(eig, ds, min_pairs=20)  # uses ds.metadata
+    assert "marker" in mtr["r"].columns
+
+
+def test_module_trait_index_mismatch_raises():
+    eig, traits = _eig_traits()
+    traits = traits.copy()
+    traits.index = [f"OTHER{i}" for i in range(len(traits))]
+    with pytest.raises(ValueError, match="no common index"):
+        compute_module_trait_associations(eig, traits, min_pairs=20)
+
+
+def test_module_trait_no_usable_raises():
+    eig, _ = _eig_traits()
+    traits = pd.DataFrame({"flat": ["x"] * len(eig)}, index=eig.index)
+    with pytest.raises(ValueError, match="non-missing, varying"):
+        compute_module_trait_associations(eig, traits, min_pairs=20)
+
+
+def test_module_trait_invalid_method_raises():
+    eig, traits = _eig_traits()
+    with pytest.raises(ValueError, match="spearman.*pearson.*kendall"):
+        compute_module_trait_associations(eig, traits, method="cosine")
 
 
 def test_disjoint_index_raises_distinct_error():

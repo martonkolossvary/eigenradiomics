@@ -1,0 +1,1 @@
+`compute_batch_effects` now accepts a `FeatureCatalog` object for its `catalog` argument (in addition to a DataFrame or CSV path), matching `compute_reproducibility` — so `dataset.catalog` can be passed to either QC function. Previously it raised `TypeError` on a `FeatureCatalog`.

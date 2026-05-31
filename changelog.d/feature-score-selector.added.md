@@ -1,0 +1,1 @@
+Added `FeatureScoreSelector`, a scikit-learn transformer that drops features failing a precomputed QC threshold (e.g. low reproducibility ICC, or large batch-effect size) inside a `Pipeline`. Pass a score table/Series/mapping plus a threshold and direction; it bridges `compute_reproducibility` / `compute_batch_effects` outputs into feature selection.

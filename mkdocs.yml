@@ -87,6 +87,7 @@ nav:
       - Load & align data: user_guide/data_ingestion.md
       - Screen reproducibility: user_guide/reproducibility.md
       - Diagnose batch effects: user_guide/batch_effects.md
+      - Harmonize batch effects (ComBat): user_guide/harmonization.md
       - Preprocess feature tables: user_guide/radiomics_preprocessing.md
       - Reduce with WGCNA: reducers/wgcna.md
       - Visualize the clustered heatmap: user_guide/clustered_heatmap.md

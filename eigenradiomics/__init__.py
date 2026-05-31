@@ -21,6 +21,7 @@ from eigenradiomics.ingest import (
 from eigenradiomics.pictologics import split_observer_tables
 from eigenradiomics.plotting import Bar, CorrPanel, Strip, plot_clustered_heatmap
 from eigenradiomics.preprocessing import (
+    ComBatHarmonizer,
     FeatureScoreSelector,
     RadiomicsFeatureRemover,
     RadiomicsPrepTransformer,
@@ -38,6 +39,7 @@ __all__ = [
     "ReductionArtifacts",
     "RadiomicsFeatureRemover",
     "FeatureScoreSelector",
+    "ComBatHarmonizer",
     "WGCNAReducer",
     "RadiomicsPrepTransformer",
     "FeatureCatalog",

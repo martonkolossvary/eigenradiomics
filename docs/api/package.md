@@ -8,7 +8,7 @@ docstrings live on the per-area API pages linked in each row.
 | Area | Objects | Reference |
 |------|---------|-----------|
 | Ingestion & datasets | `FeatureCatalog`, `RadiomicsDataset`, `StudyDesign`, `MergeResult`, `normalize_id_column`, `resolve_duplicates`, `merge_tables`, `split_observer_tables` | [Ingestion & Datasets](ingestion.md) |
-| Preprocessing & selection | `RadiomicsPrepTransformer`, `RadiomicsFeatureRemover`, `FeatureScoreSelector` | [Preprocessing](preprocessing.md) |
+| Preprocessing & selection | `RadiomicsPrepTransformer`, `RadiomicsFeatureRemover`, `FeatureScoreSelector`, `ComBatHarmonizer` | [Preprocessing](preprocessing.md) |
 | Reproducibility QC | `compute_reproducibility`, `plot_reproducibility_histograms`, `write_reproducibility_excel` | [Reproducibility](reproducibility.md) |
 | Batch-effect QC | `compute_batch_effects`, `plot_batch_effects`, `write_batch_effects_excel` | [Batch Effects](batch_effects.md) |
 | Dimensionality reduction | `BaseReducer`, `WGCNAReducer`, `ReductionArtifacts` | [Reducers](reducers.md) |
@@ -22,7 +22,7 @@ from eigenradiomics import (
     FeatureCatalog, RadiomicsDataset, StudyDesign,
     normalize_id_column, resolve_duplicates, merge_tables, split_observer_tables,
     # preprocessing & selection
-    RadiomicsPrepTransformer, RadiomicsFeatureRemover, FeatureScoreSelector,
+    RadiomicsPrepTransformer, RadiomicsFeatureRemover, FeatureScoreSelector, ComBatHarmonizer,
     # pre-analysis QC
     compute_reproducibility, compute_batch_effects,
     # dimensionality reduction

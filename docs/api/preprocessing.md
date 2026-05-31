@@ -15,3 +15,5 @@ Utilities for Pictologics-style radiomics feature table preprocessing.
 ::: eigenradiomics.preprocessing.RadiomicsPrepTransformer
 
 ::: eigenradiomics.preprocessing.FeatureScoreSelector
+
+::: eigenradiomics.preprocessing.ComBatHarmonizer

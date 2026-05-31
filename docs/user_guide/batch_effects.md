@@ -37,6 +37,8 @@ To understand the global impact of batch effects across the entire radiomics fea
 
 If the optional `inmoose` library (or `combat` extra) is installed, the framework automatically performs a **ComBat sensitivity diagnostic**. It runs parametric/non-parametric ComBat adjustment and re-evaluates all feature-level and global diagnostics to show exactly how much center-associated variance remains after correction.
 
+This is a *diagnostic*, not a correction. When it confirms a real batch effect, apply it leakage-safely with [`ComBatHarmonizer`](harmonization.md) (fit on train, transform test).
+
 ```bash
 # To install the optional ComBat dependency:
 pip install eigenradiomics[combat]

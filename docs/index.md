@@ -58,6 +58,7 @@ a small utility, so you can use one piece in isolation or chain the whole thing.
 | Batch effects | [`compute_batch_effects`](user_guide/batch_effects.md) | Center/scanner effect diagnostics (ANOVA, PERMANOVA) + ComBat sensitivity |
 | Preprocess | [`RadiomicsPrepTransformer`](user_guide/radiomics_preprocessing.md) | NaN-aware winsorize → Yeo-Johnson → z-score, per feature |
 | Select | [`RadiomicsFeatureRemover`, `FeatureScoreSelector`](user_guide/radiomics_preprocessing.md) | Drop columns by name/config/family, or by a QC score (e.g. low ICC) |
+| Harmonize | [`ComBatHarmonizer`](user_guide/harmonization.md) | Leakage-safe ComBat batch correction (fit on train, apply to test) |
 | Reduce | [`WGCNAReducer`](reducers/wgcna.md) | Co-expression module eigengenes with leakage-safe transform of new data |
 | Visualize | [`plot_clustered_heatmap`](user_guide/clustered_heatmap.md) | The cornerstone clustered heatmap with annotation tracks + correlation panel |
 | Downstream stats | [`compute_module_trait_associations`](user_guide/downstream_analysis.md) | Module-eigengene ↔ trait correlations with p-values and FDR |

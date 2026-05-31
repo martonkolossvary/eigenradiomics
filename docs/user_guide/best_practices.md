@@ -33,7 +33,7 @@ flowchart LR
 
 - **ICC threshold.** ≥ 0.80 is a common "good reliability" cut; judge from the ICC estimate **and its CI vs the threshold**, not the p-value (the ICC p-value only tests whether subjects differ). Drop weak features with [`FeatureScoreSelector`](downstream_analysis.md#qc-driven-feature-selection-in-a-pipeline).
 - **Bootstrap CIs need samples.** ICC CIs from only a handful of subjects are unreliable regardless of iterations.
-- **ComBat is a sensitivity check, not a default.** `compute_batch_effects` reports how much a result *would* change under ComBat; only harmonize when a real, non-biological batch effect is shown — and do it leakage-safely (fit correction on train).
+- **ComBat is a sensitivity check, not a default.** `compute_batch_effects` reports how much a result *would* change under ComBat; only harmonize when a real, non-biological batch effect is shown — and do it leakage-safely with [`ComBatHarmonizer`](harmonization.md) (correction fit on train, applied to test).
 
 ## Reduction
 

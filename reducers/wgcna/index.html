@@ -730,6 +730,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../user_guide/clustered_heatmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clustered Heatmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../user_guide/recipes/" class="md-nav__link">
         
   
@@ -1263,6 +1291,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plotting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/clinical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clinical Correlations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/preprocessing/" class="md-nav__link">
         
   
@@ -1758,6 +1842,11 @@ dropped unless <code>include_grey=True</code>.</p>
 <td>Topological Overlap Matrix type: <code>"signed"</code> or <code>"unsigned"</code>.</td>
 </tr>
 <tr>
+<td><code>correlation_method</code></td>
+<td><code>"pearson"</code></td>
+<td><code>"pearson"</code> or <code>"spearman"</code>. Spearman rank-transforms features for network construction (robust to monotone non-linearities) while keeping eigengene loadings on the original scale, so <code>transform</code> of unseen data stays leakage-safe.</td>
+</tr>
+<tr>
 <td><code>soft_power</code></td>
 <td><code>"auto"</code></td>
 <td>Soft-thresholding power <span class="arithmatex">\(\beta\)</span> for the adjacency matrix. <code>"auto"</code> selects a value via scale-free topology fit; an integer fixes it for fully deterministic pipelines.</td>
@@ -1771,6 +1860,11 @@ dropped unless <code>include_grey=True</code>.</p>
 <td><code>mean_cut</code></td>
 <td><code>100</code></td>
 <td>Mean-connectivity ceiling used during automatic soft-power selection.</td>
+</tr>
+<tr>
+<td><code>power_min</code>, <code>power_max</code></td>
+<td><code>1</code>, <code>30</code></td>
+<td>Inclusive range of candidate powers evaluated when <code>soft_power="auto"</code>.</td>
 </tr>
 <tr>
 <td><code>min_module_size</code></td>

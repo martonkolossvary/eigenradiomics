@@ -2,98 +2,110 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/changelog/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/license/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/quality/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/api/batch_effects/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
+    </url>
+    <url>
+         <loc>https://martonkolossvary.github.io/eigenradiomics/api/clinical/</loc>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/api/ingestion/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/api/package/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
+    </url>
+    <url>
+         <loc>https://martonkolossvary.github.io/eigenradiomics/api/plotting/</loc>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/api/preprocessing/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/api/reducers/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/api/reproducibility/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/api/utils/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/reducers/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/reducers/wgcna/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/batch_effects/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
+    </url>
+    <url>
+         <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/clustered_heatmap/</loc>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/data_ingestion/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/input_data_model/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/installation/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/pipelines_and_grid_search/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/quick_start/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/radiomics_preprocessing/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/recipes/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/reproducibility/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/scalability/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
     <url>
          <loc>https://martonkolossvary.github.io/eigenradiomics/user_guide/troubleshooting/</loc>
-         <lastmod>2026-05-30</lastmod>
+         <lastmod>2026-05-31</lastmod>
     </url>
 </urlset>

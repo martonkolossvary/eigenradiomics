@@ -730,6 +730,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../user_guide/clustered_heatmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clustered Heatmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../user_guide/recipes/" class="md-nav__link">
         
   
@@ -971,6 +999,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reduction-artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reduction Artifacts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#currently-implemented-reducers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1148,6 +1187,62 @@
     
   
     Reducers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plotting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/clinical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clinical Correlations
   
 
     
@@ -1421,6 +1516,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#reduction-artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reduction Artifacts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#currently-implemented-reducers" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1478,6 +1584,55 @@
 <li>Future reducers → <code>pca_0</code>, <code>nmf_0</code>, etc.</li>
 </ul>
 <p>These names are returned by <code>get_feature_names_out()</code> and are propagated through scikit-learn pipelines automatically.</p>
+<h2 id="reduction-artifacts">Reduction Artifacts</h2>
+<p>Beyond the transformed matrix, a reducer can expose <strong>structured intermediate
+outputs</strong> for downstream plotting and analysis through one uniform interface:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">artifacts</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">get_reduction_artifacts</span><span class="p">()</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">artifacts</span><span class="o">.</span><span class="n">available</span><span class="p">()</span>    <span class="c1"># e.g. [&#39;similarity&#39;, &#39;linkage&#39;, &#39;cluster_labels&#39;,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                         <span class="c1">#       &#39;feature_order&#39;, &#39;feature_importances&#39;]</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">artifacts</span><span class="o">.</span><span class="n">similarity</span>     <span class="c1"># feature × feature DataFrame, or None</span>
+</code></pre></div>
+<p>Each reducer populates whichever elements it can produce and leaves the rest as
+<code>None</code>, so a method that only estimates a similarity matrix and one that also
+assigns clusters both feed the same <code>ReductionArtifacts</code> container — and the
+same downstream code (clustered heatmaps, exports, analysis).</p>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>feature_names</code></td>
+<td>input feature names (always present)</td>
+</tr>
+<tr>
+<td><code>similarity</code></td>
+<td>symmetric feature × feature similarity (e.g. WGCNA TOM)</td>
+</tr>
+<tr>
+<td><code>linkage</code></td>
+<td>SciPy hierarchical-clustering linkage matrix</td>
+</tr>
+<tr>
+<td><code>cluster_labels</code></td>
+<td>per-feature cluster / module label</td>
+</tr>
+<tr>
+<td><code>feature_order</code></td>
+<td>features in a meaningful display order (e.g. dendrogram leaves)</td>
+</tr>
+<tr>
+<td><code>feature_importances</code></td>
+<td>per-feature contribution to the reduction</td>
+</tr>
+</tbody>
+</table>
+<p><code>WGCNAReducer</code> populates all of these (<code>similarity</code>/TOM requires
+<code>store_tom=True</code>). The forthcoming clustered-heatmap utility consumes a
+<code>ReductionArtifacts</code> directly.</p>
 <h2 id="currently-implemented-reducers">Currently Implemented Reducers</h2>
 <table>
 <thead>

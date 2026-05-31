@@ -12,13 +12,13 @@
         <meta name="author" content="Márton Kolossváry">
       
       
-        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/installation/">
+        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/clustered_heatmap/">
       
       
-        <link rel="prev" href="../..">
+        <link rel="prev" href="../batch_effects/">
       
       
-        <link rel="next" href="../quick_start/">
+        <link rel="next" href="../recipes/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Installation - eigenradiomics</title>
+        <title>Clustered Heatmap - eigenradiomics</title>
       
     
     
@@ -98,7 +98,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#installation" class="md-skip">
+        <a href="#clustered-heatmap" class="md-skip">
           Skip to content
         </a>
       
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Installation
+              Clustered Heatmap
             
           </span>
         </div>
@@ -267,7 +267,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -508,37 +508,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Installation
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -554,59 +527,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Prerequisites
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-pypi" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install from PyPI
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Install from Source
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -812,10 +732,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../clustered_heatmap/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clustered Heatmap
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -831,6 +778,103 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#from-a-fitted-reducer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        From a fitted reducer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bring-your-own-inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bring your own inputs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#top-annotation-strips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top annotation strips
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottom-annotation-bars" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bottom annotation bars
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#right-correlation-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Right correlation panel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accessibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key options
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1461,10 +1505,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#prerequisites" class="md-nav__link">
+  <a href="#from-a-fitted-reducer" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Prerequisites
+        From a fitted reducer
       
     </span>
   </a>
@@ -1472,10 +1516,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-pypi" class="md-nav__link">
+  <a href="#bring-your-own-inputs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from PyPI
+        Bring your own inputs
       
     </span>
   </a>
@@ -1483,10 +1527,54 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
+  <a href="#top-annotation-strips" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from Source
+        Top annotation strips
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottom-annotation-bars" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bottom annotation bars
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#right-correlation-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Right correlation panel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#accessibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key options
       
     </span>
   </a>
@@ -1513,36 +1601,205 @@
   
 
 
-<h1 id="installation">Installation</h1>
-<h2 id="prerequisites">Prerequisites</h2>
+<h1 id="clustered-heatmap">Clustered Heatmap</h1>
+<p><code>plot_clustered_heatmap</code> renders a feature-by-feature <strong>similarity heatmap</strong>
+ordered by hierarchical clustering, with an aligned left dendrogram, a
+per-feature cluster colour strip, optional <strong>categorical annotation strips</strong>
+above it, optional <strong>numeric annotation bars</strong> below it, and an optional
+<strong>correlation panel</strong> to its right. It is deliberately generic — bring your own
+similarity matrix and, optionally, a cluster assignment, linkage, ordering, and
+annotation tracks — so it works for a WGCNA TOM or any other symmetric
+similarity.</p>
+<p>The figure has a memorable, fixed grammar — <strong>each side answers a question</strong>:
+the <strong>left</strong> is <em>who?</em> (dendrogram + module strip), the <strong>top</strong> is <em>what kind?</em>
+(categorical strips), the <strong>bottom</strong> is <em>how much?</em> (numeric bars), the
+<strong>right</strong> is <em>related to what?</em> (feature × clinical correlations), and the
+<strong>centre</strong> is the similarity itself.</p>
+<h2 id="from-a-fitted-reducer">From a fitted reducer</h2>
+<p>Any reducer that produces <a href="../../reducers/#reduction-artifacts">reduction artifacts</a>
+feeds the heatmap directly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">WGCNAReducer</span><span class="p">,</span> <span class="n">plot_clustered_heatmap</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">store_tom</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_clustered_heatmap</span><span class="p">(</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">reducer</span><span class="o">.</span><span class="n">get_reduction_artifacts</span><span class="p">(),</span>   <span class="c1"># similarity (TOM), linkage, cluster labels, order</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;magma&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">vmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">vmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">below_cutoff_color</span><span class="o">=</span><span class="s2">&quot;#050505&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">colorbar_label</span><span class="o">=</span><span class="s2">&quot;Topological overlap&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;wgcna_tom.png&quot;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+</code></pre></div>
+<p><img alt="WGCNA TOM heatmap with dendrogram and module colour strip" src="../../assets/figures/clustered_heatmap.png" /></p>
+<p><code>store_tom=True</code> is required so the TOM similarity is available in the artifacts.</p>
+<h2 id="bring-your-own-inputs">Bring your own inputs</h2>
+<p>You don't need a reducer — pass any symmetric matrix and, optionally, a
+per-feature cluster assignment, a SciPy linkage, and/or an explicit order:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.cluster.hierarchy</span><span class="w"> </span><span class="kn">import</span> <span class="n">linkage</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.spatial.distance</span><span class="w"> </span><span class="kn">import</span> <span class="n">squareform</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_clustered_heatmap</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="c1"># `sim` is an (n, n) DataFrame of |correlation|, TOM, kernel similarity, ...</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">z</span> <span class="o">=</span> <span class="n">linkage</span><span class="p">(</span><span class="n">squareform</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">sim</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="n">checks</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;average&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_clustered_heatmap</span><span class="p">(</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">sim</span><span class="p">,</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">linkage</span><span class="o">=</span><span class="n">z</span><span class="p">,</span>                <span class="c1"># left dendrogram + leaf ordering</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="n">cluster_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>    <span class="c1"># per-feature module/cluster -&gt; left colour strip</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">)</span>
+</code></pre></div>
+<p>If you omit <code>linkage</code>, rows are ordered by <code>cluster_labels</code> (or left as given);
+omit <code>cluster_labels</code> and the colour strip is dropped.</p>
+<h2 id="top-annotation-strips">Top annotation strips</h2>
+<p>Pass up to a few categorical strips via <code>top</code>. Each is a per-feature <code>pandas</code>
+Series (its name becomes the strip title), or a <code>Strip</code> for explicit control of
+the title and colours. Each strip gets a colourblind-safe <strong>Okabe-Ito</strong> palette
+(override with <code>colors=</code>) and a titled block in the stacked right-edge legend:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_clustered_heatmap</span><span class="p">,</span> <span class="n">Strip</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_clustered_heatmap</span><span class="p">(</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">reducer</span><span class="o">.</span><span class="n">get_reduction_artifacts</span><span class="p">(),</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">top</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">family</span><span class="p">,</span>                                   <span class="c1"># a named Series -&gt; auto Strip</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">Strip</span><span class="p">(</span><span class="n">region</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Region&quot;</span><span class="p">,</span>            <span class="c1"># explicit control</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>              <span class="n">colors</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;total&quot;</span><span class="p">:</span> <span class="s2">&quot;#0072B2&quot;</span><span class="p">,</span> <span class="s2">&quot;calcium&quot;</span><span class="p">:</span> <span class="s2">&quot;#D55E00&quot;</span><span class="p">}),</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="p">],</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
+</code></pre></div>
+<p>The cluster (module) strip on the left also gets a "Module" legend. Set
+<code>show_legend=False</code> to drop the legend column.</p>
+<h2 id="bottom-annotation-bars">Bottom annotation bars</h2>
+<p>Pass numeric per-feature tracks via <code>bottom</code> — a <code>pandas</code> Series (its name
+becomes the track title) or a <code>Bar</code> for explicit control. Each bar is aligned to
+the heatmap columns; by default bars are <strong>coloured by module</strong> (matching the
+left cluster strip), and you can draw a dashed <code>reference</code> line (e.g. the
+significance threshold −log10(0.05)). The shared feature tick labels move to the
+bottom-most bar:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_clustered_heatmap</span><span class="p">,</span> <span class="n">Bar</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_clustered_heatmap</span><span class="p">(</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">reducer</span><span class="o">.</span><span class="n">get_reduction_artifacts</span><span class="p">(),</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">bottom</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">neglog_p</span><span class="p">,</span>                                       <span class="c1"># a named Series -&gt; auto Bar</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="n">Bar</span><span class="p">(</span><span class="n">effect_size</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Effect&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;0.3&quot;</span><span class="p">),</span> <span class="c1"># explicit title / fixed colour</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="n">Bar</span><span class="p">(</span><span class="n">neglog_p</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;-log10 p&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>            <span class="n">reference</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mf">0.05</span><span class="p">))),</span>          <span class="c1"># dashed significance line</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="p">],</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="p">)</span>
+</code></pre></div>
+<p>Set <code>color="by_module"</code> (the default) to tint each bar by its feature's module,
+or pass any Matplotlib colour to use a single fixed colour for the whole track.</p>
+<h2 id="right-correlation-panel">Right correlation panel</h2>
+<p>Pass a features × variables correlation matrix via <code>right</code> to add a panel on the
+right — typically <em>features vs clinical variables</em> — with its own <strong>diverging</strong>
+colourbar (<code>RdBu_r</code>, centred at 0). Each row aligns with the heatmap's features;
+the columns are the variables.</p>
+<p><code>compute_clinical_correlations</code> sources this matrix for you. Clinical variables
+are mixed types, so each is numerically encoded (<code>encode_clinical_series</code>:
+numeric → binary/ordinal tokens → alphabetical ordinal) and then correlated by
+rank (Spearman by default):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_clinical_correlations</span><span class="p">,</span> <span class="n">plot_clustered_heatmap</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">corr</span> <span class="o">=</span> <span class="n">compute_clinical_correlations</span><span class="p">(</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">X</span><span class="p">,</span>                                  <span class="c1"># samples × features (or a RadiomicsDataset)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">clinical</span><span class="p">,</span>                           <span class="c1"># samples × variables (str/binary/continuous)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">method</span><span class="o">=</span><span class="s2">&quot;spearman&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">min_pairs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>                       <span class="c1"># drop variables with too few / no-variance values</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">)</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_clustered_heatmap</span><span class="p">(</span><span class="n">reducer</span><span class="o">.</span><span class="n">get_reduction_artifacts</span><span class="p">(),</span> <span class="n">right</span><span class="o">=</span><span class="n">corr</span><span class="p">)</span>
+</code></pre></div>
+<p>With a <code>RadiomicsDataset</code>, name the metadata columns to pull directly from it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">corr</span> <span class="o">=</span> <span class="n">compute_clinical_correlations</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;age&quot;</span><span class="p">,</span> <span class="s2">&quot;ldl&quot;</span><span class="p">,</span> <span class="s2">&quot;sex&quot;</span><span class="p">,</span> <span class="s2">&quot;stage&quot;</span><span class="p">])</span>
+</code></pre></div>
+<p>For explicit control of the colourmap, limits, or colourbar label, wrap it in a
+<code>CorrPanel</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">CorrPanel</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_clustered_heatmap</span><span class="p">(</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">artifacts</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">right</span><span class="o">=</span><span class="n">CorrPanel</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;RdBu_r&quot;</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Spearman r&quot;</span><span class="p">),</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">)</span>
+</code></pre></div>
+<h2 id="accessibility">Accessibility</h2>
+<p>The defaults are chosen to stay legible for colourblind readers and in greyscale,
+and were verified under a deuteranopia simulation:</p>
 <ul>
-<li>Python &gt;= 3.10</li>
-<li><code>pip</code> for installation or Poetry for local development</li>
+<li><strong>Similarity (<code>magma</code>)</strong> — a perceptually-uniform sequential map whose
+  luminance increases monotonically, so magnitude reads correctly even in
+  greyscale.</li>
+<li><strong>Correlation (<code>RdBu_r</code>)</strong> — a diverging map centred on a near-neutral grey at
+  zero, using red↔blue (not red↔green); the two ends remain clearly separable
+  under deuteranopia, so the <em>sign</em> of a correlation is never lost.</li>
+<li><strong>Categories (modules / strips)</strong> — the colourblind-safe <strong>Okabe-Ito</strong> palette
+  for up to eight categories; all eight stay mutually distinct under
+  deuteranopia.</li>
 </ul>
-<h2 id="install-from-pypi">Install from PyPI</h2>
-<p>Base package:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>eigenradiomics
-</code></pre></div>
-<p>With WGCNA support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[wgcna]&#39;</span>
-</code></pre></div>
-<p><code>PyWGCNA</code> is optional because only <code>WGCNAReducer</code> requires it.</p>
-<p>With ComBat batch-effect harmonization support:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">&#39;eigenradiomics[combat]&#39;</span>
-</code></pre></div>
-<p>The <code>combat</code> extra installs <code>inmoose</code>, which powers the optional ComBat
-sensitivity diagnostic in <code>compute_batch_effects</code>. It requires Python &gt;= 3.11;
-on Python 3.10 the ComBat step is skipped with a warning. You can combine
-extras, e.g. <code>pip install 'eigenradiomics[wgcna,combat]'</code>.</p>
-<h2 id="install-from-source">Install from Source</h2>
-<p>Clone the repository and install locally:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>pip<span class="w"> </span>install<span class="w"> </span>.
-</code></pre></div>
-<p>For editable development work:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>&lt;repo-dir&gt;
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>poetry<span class="w"> </span>install<span class="w"> </span>--with<span class="w"> </span>dev<span class="w"> </span>--extras<span class="w"> </span>wgcna
-</code></pre></div>
+<p>Two compact colourbars sit in the bottom corners (similarity bottom-left,
+correlation bottom-right) to keep the central matrix uncluttered.</p>
+<div class="admonition warning">
+<p class="admonition-title">Beyond eight categories</p>
+<p>With more than eight categories a strip falls back to Matplotlib's <code>tab20</code>,
+which is <strong>not</strong> colourblind-safe. Prefer ≤ 8 categories, or pass explicit
+<code>colors=</code> / <code>cluster_colors=</code>.</p>
+</div>
+<h2 id="key-options">Key options</h2>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>similarity</code></td>
+<td>symmetric matrix / DataFrame, or a <code>ReductionArtifacts</code></td>
+</tr>
+<tr>
+<td><code>cluster_labels</code></td>
+<td>per-feature label → colour strip and default ordering</td>
+</tr>
+<tr>
+<td><code>linkage</code></td>
+<td>SciPy linkage → dendrogram and leaf ordering</td>
+</tr>
+<tr>
+<td><code>order</code></td>
+<td>explicit feature ordering (overrides the linkage leaves)</td>
+</tr>
+<tr>
+<td><code>cluster_colors</code></td>
+<td><code>{label: colour}</code> (otherwise a colourblind-safe palette)</td>
+</tr>
+<tr>
+<td><code>top</code></td>
+<td>categorical strips above the heatmap (Series or <code>Strip</code>)</td>
+</tr>
+<tr>
+<td><code>bottom</code></td>
+<td>numeric bars below the heatmap (Series or <code>Bar</code>)</td>
+</tr>
+<tr>
+<td><code>right</code></td>
+<td>feature × variable correlation panel (DataFrame or <code>CorrPanel</code>)</td>
+</tr>
+<tr>
+<td><code>cmap</code>, <code>vmin</code>, <code>vmax</code>, <code>below_cutoff_color</code></td>
+<td>similarity colour scaling</td>
+</tr>
+<tr>
+<td><code>show_dendrogram</code>, <code>show_cluster_strip</code>, <code>show_legend</code></td>
+<td>toggle the side panels / legend</td>
+</tr>
+<tr>
+<td><code>labels</code></td>
+<td><code>"auto"</code>, an explicit list, or <code>None</code></td>
+</tr>
+</tbody>
+</table>
+<p>See the <a href="../../api/plotting/">API reference</a> for the full signature.</p>
 
 
 

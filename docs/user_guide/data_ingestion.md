@@ -22,6 +22,39 @@ flowchart LR
 Every box below is a single function or class; you can use them piecemeal or
 chain them into the flow above.
 
+## Loading a Pictologics export
+
+Features extracted with [Pictologics](https://github.com/martonkolossvary/pictologics)
+arrive as a wide table with `{config}__{feature_key}` columns and a sidecar
+`features_catalog.csv`. `RadiomicsDataset.from_pictologics` loads them in one call
+— it auto-discovers the sidecar catalog next to the table, drops the `subject_id`
+columns Pictologics emits, detects the feature columns, validates them against the
+catalog (warning on any mismatch), and splits features from metadata:
+
+```python
+from eigenradiomics import RadiomicsDataset
+
+# `features.csv` + `features_catalog.csv` produced by Pictologics, in the same folder
+dataset = RadiomicsDataset.from_pictologics(
+    "features.csv",                 # a DataFrame works too
+    group="PatientID", batch="Center", target="outcome",
+)
+```
+
+**Reproducibility (observer-paired) tables.** Two-reader studies pivot the table
+into `{observer}_{config}__{feature_key}` columns (e.g. `O1_…`, `O2_…`).
+`split_observer_tables` reshapes that into one feature matrix per observer, ready
+for [`compute_reproducibility`](reproducibility.md); and `RadiomicsFeatureRemover`
+takes `observer_prefixes` so `families=`/`configs=` selectors and catalog joins
+still resolve on the base feature name:
+
+```python
+from eigenradiomics import split_observer_tables, compute_reproducibility
+
+readers = split_observer_tables(paired_table, ("O1_", "O2_"), id_columns="PatientID")
+results = compute_reproducibility(readers)
+```
+
 ## The feature catalog
 
 Pictologics-style tables name feature columns `{config}__{feature_key}` and ship

@@ -21,3 +21,7 @@ Primitives for loading, aligning, and packaging radiomics data before analysis.
 ::: eigenradiomics.dataset.RadiomicsDataset
 
 ::: eigenradiomics.dataset.StudyDesign
+
+## Pictologics helpers
+
+::: eigenradiomics.pictologics.split_observer_tables

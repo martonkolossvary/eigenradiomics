@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from fnmatch import fnmatchcase
 from pathlib import Path
-from typing import Any, Literal, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias, cast
 
 import numpy as np
 import pandas as pd
@@ -14,9 +15,13 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils.validation import check_is_fitted, validate_data
 
 from eigenradiomics._utils import _assert_dense_matrix, _check_feature_names
+from eigenradiomics.pictologics import _split_pictologics_name
+
+if TYPE_CHECKING:
+    from eigenradiomics.catalog import FeatureCatalog
 
 SelectorInput: TypeAlias = str | list[str] | tuple[str, ...] | set[str] | None
-CatalogInput: TypeAlias = pd.DataFrame | str | Path | None
+CatalogInput: TypeAlias = "pd.DataFrame | str | Path | FeatureCatalog | None"
 MetadataColumns: TypeAlias = Literal["auto"] | list[str] | tuple[str, ...] | None
 TableLike: TypeAlias = pd.DataFrame | NDArray
 
@@ -58,6 +63,7 @@ class _ParsedColumn:
     index: int
     config: str | None
     feature_key: str | None
+    observer: str | None = None
 
     @property
     def is_feature(self) -> bool:
@@ -80,15 +86,14 @@ def _normalize_selectors(values: SelectorInput) -> tuple[str, ...]:
     return tuple(str(value) for value in values)
 
 
-def _parse_columns(names: list[str]) -> list[_ParsedColumn]:
+def _parse_columns(
+    names: list[str],
+    observer_prefixes: tuple[str, ...] = (),
+) -> list[_ParsedColumn]:
     parsed: list[_ParsedColumn] = []
     for idx, name in enumerate(names):
-        if "__" in name:
-            config, feature_key = name.split("__", 1)
-            if config and feature_key:
-                parsed.append(_ParsedColumn(name, idx, config, feature_key))
-                continue
-        parsed.append(_ParsedColumn(name, idx, None, None))
+        observer, config, feature_key = _split_pictologics_name(name, observer_prefixes)
+        parsed.append(_ParsedColumn(name, idx, config, feature_key, observer))
     return parsed
 
 
@@ -113,6 +118,10 @@ def _config_matches(column: _ParsedColumn, config_selectors: tuple[str, ...]) ->
 def _load_catalog(catalog: CatalogInput) -> pd.DataFrame | None:
     if catalog is None:
         return None
+    from eigenradiomics.catalog import FeatureCatalog  # local import avoids an import cycle
+
+    if isinstance(catalog, FeatureCatalog):
+        return catalog.frame
     if isinstance(catalog, pd.DataFrame):
         return catalog.copy()
     return pd.read_csv(Path(catalog), encoding=ENCODING)
@@ -223,7 +232,14 @@ def _catalog_selector_has_match(
     for column in parsed:
         if not _config_matches(column, config_selectors):
             continue
-        if column.name in candidate_columns:
+        # Match on the base config__feature_key (observer prefix already stripped),
+        # not the full column name.
+        base = (
+            f"{column.config}__{column.feature_key}"
+            if column.config is not None and column.feature_key is not None
+            else column.name
+        )
+        if base in candidate_columns:
             return True
         if column.feature_key in candidate_features and not candidate_columns:
             return True
@@ -240,8 +256,9 @@ def _resolve_selection(
     catalog: pd.DataFrame | None,
     metadata_columns: MetadataColumns,
     allow_missing: bool,
+    observer_prefixes: tuple[str, ...] = (),
 ) -> _SelectionResult:
-    parsed = _parse_columns(names)
+    parsed = _parse_columns(names, observer_prefixes)
     has_name_based_selectors = bool(features or configs or families or family_groups)
     if has_name_based_selectors and all(not column.is_feature for column in parsed):
         raise ValueError(
@@ -411,6 +428,10 @@ class RadiomicsFeatureRemover(TransformerMixin, BaseEstimator):
         Metadata columns to keep beside removed features in ``split`` output.
     allow_missing : bool
         If False, unmatched selectors raise during ``fit``.
+    observer_prefixes : sequence of str
+        Leading observer tokens to strip before parsing ``config__feature_key``
+        (e.g. ``("O1_", "O2_")``), so selectors and catalog joins work on
+        observer-paired Pictologics reproducibility tables.
     """
 
     def __init__(
@@ -422,6 +443,7 @@ class RadiomicsFeatureRemover(TransformerMixin, BaseEstimator):
         catalog: CatalogInput = None,
         metadata_columns: MetadataColumns = "auto",
         allow_missing: bool = False,
+        observer_prefixes: Sequence[str] = (),
     ) -> None:
         self.features = features
         self.configs = configs
@@ -430,6 +452,7 @@ class RadiomicsFeatureRemover(TransformerMixin, BaseEstimator):
         self.catalog = catalog
         self.metadata_columns = metadata_columns
         self.allow_missing = allow_missing
+        self.observer_prefixes = observer_prefixes
 
     def _get_tags(self) -> dict[str, Any]:
         """Return scikit-learn tags for estimator checks (sklearn < 1.6)."""
@@ -473,6 +496,7 @@ class RadiomicsFeatureRemover(TransformerMixin, BaseEstimator):
             catalog=catalog,
             metadata_columns=self.metadata_columns,
             allow_missing=bool(self.allow_missing),
+            observer_prefixes=tuple(self.observer_prefixes),
         )
 
         self.catalog_ = catalog

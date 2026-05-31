@@ -14,6 +14,7 @@ from eigenradiomics.ingest import (
     normalize_id_column,
     resolve_duplicates,
 )
+from eigenradiomics.pictologics import split_observer_tables
 from eigenradiomics.plotting import Bar, CorrPanel, Strip, plot_clustered_heatmap
 from eigenradiomics.preprocessing import RadiomicsFeatureRemover, RadiomicsPrepTransformer
 from eigenradiomics.reducers import BaseReducer, WGCNAReducer
@@ -37,6 +38,7 @@ __all__ = [
     "merge_tables",
     "normalize_id_column",
     "resolve_duplicates",
+    "split_observer_tables",
     "compute_reproducibility",
     "plot_reproducibility_histograms",
     "write_reproducibility_excel",

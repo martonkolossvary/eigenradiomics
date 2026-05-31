@@ -18,6 +18,18 @@ import pandas as pd
 from numpy.typing import NDArray
 
 from eigenradiomics.catalog import FeatureCatalog
+from eigenradiomics.pictologics import _split_pictologics_name
+
+
+def _resolve_catalog(
+    catalog: FeatureCatalog | pd.DataFrame | str | Path | None,
+) -> FeatureCatalog | None:
+    """Coerce a catalog argument (object / DataFrame / CSV path) to a FeatureCatalog."""
+    if catalog is None or isinstance(catalog, FeatureCatalog):
+        return catalog
+    if isinstance(catalog, pd.DataFrame):
+        return FeatureCatalog(catalog)
+    return FeatureCatalog.from_csv(catalog)
 
 
 @dataclass(frozen=True)
@@ -168,13 +180,89 @@ class RadiomicsDataset:
             if column is not None:
                 merged_roles[name] = column
 
-        resolved_catalog: FeatureCatalog | None
-        if catalog is None or isinstance(catalog, FeatureCatalog):
-            resolved_catalog = catalog
-        elif isinstance(catalog, pd.DataFrame):
-            resolved_catalog = FeatureCatalog(catalog)
+        return cls(
+            data,
+            feature_columns=feature_columns,
+            catalog=_resolve_catalog(catalog),
+            design=StudyDesign(roles=merged_roles),
+        )
+
+    @classmethod
+    def from_pictologics(
+        cls,
+        table: pd.DataFrame | str | Path,
+        catalog: FeatureCatalog | pd.DataFrame | str | Path | None = None,
+        *,
+        drop_subject_id: bool = True,
+        group: str | None = None,
+        batch: str | None = None,
+        time: str | None = None,
+        event: str | None = None,
+        target: str | None = None,
+        roles: Mapping[str, str] | None = None,
+    ) -> RadiomicsDataset:
+        """Build a dataset from a (single-observer) Pictologics wide export.
+
+        Reads ``table`` (a DataFrame or CSV path), drops the ``subject_id`` leak
+        columns Pictologics emits, detects ``config__feature_key`` feature columns,
+        and validates them against ``catalog``. When ``catalog`` is ``None`` and
+        ``table`` is a path, the sidecar ``features_catalog.csv`` next to it is used
+        if present. Design roles are declared inline as in :meth:`from_wide`.
+
+        For observer-paired reproducibility tables, use
+        :func:`~eigenradiomics.split_observer_tables` (and ``observer_prefixes`` on
+        :class:`~eigenradiomics.RadiomicsFeatureRemover`).
+        """
+        table_path: Path | None = None
+        if isinstance(table, (str, Path)):
+            table_path = Path(table)
+            data = pd.read_csv(table_path)
         else:
-            resolved_catalog = FeatureCatalog.from_csv(catalog)
+            data = table.copy()
+
+        if catalog is None and table_path is not None:
+            sidecar = table_path.parent / "features_catalog.csv"
+            if sidecar.exists():
+                catalog = sidecar
+        resolved_catalog = _resolve_catalog(catalog)
+
+        if drop_subject_id:
+            drop = [
+                col
+                for col in data.columns
+                if isinstance(col, str)
+                and (_split_pictologics_name(col)[2] == "subject_id" or col == "subject_id")
+            ]
+            data = data.drop(columns=drop)
+
+        feature_like = [
+            col
+            for col in data.columns
+            if isinstance(col, str) and _split_pictologics_name(col)[1] is not None
+        ]
+        if resolved_catalog is not None:
+            feature_columns = [col for col in feature_like if col in resolved_catalog]
+            unmatched = [col for col in feature_like if col not in resolved_catalog]
+            if unmatched:
+                warnings.warn(
+                    f"{len(unmatched)} feature-like column(s) are not in the catalog and were "
+                    f"treated as metadata: {', '.join(unmatched[:5])}"
+                    f"{' ...' if len(unmatched) > 5 else ''}. Check for a config/prefix mismatch.",
+                    stacklevel=2,
+                )
+        else:
+            feature_columns = feature_like
+
+        merged_roles: dict[str, str] = dict(roles) if roles else {}
+        for name, column in (
+            ("group", group),
+            ("batch", batch),
+            ("time", time),
+            ("event", event),
+            ("target", target),
+        ):
+            if column is not None:
+                merged_roles[name] = column
 
         return cls(
             data,

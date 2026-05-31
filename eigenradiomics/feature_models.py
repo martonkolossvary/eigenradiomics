@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -26,6 +26,9 @@ from eigenradiomics._features import resolve_analysis_features
 from eigenradiomics._stats import _fdr_correct
 from eigenradiomics.catalog import FeatureCatalog
 from eigenradiomics.dataset import RadiomicsDataset
+
+if TYPE_CHECKING:
+    from eigenradiomics.plotting import Bar
 
 #: Columns every fitted row carries (before FDR and catalog annotation).
 _RESULT_FIELDS = (
@@ -103,6 +106,56 @@ class FeatureAssociationResult:
         if not parts:
             return fitted
         return pd.concat(parts, ignore_index=True)
+
+    def _tier_value(self, tier: str | None, value: str) -> pd.Series:
+        tier = tier if tier is not None else self.tiers[0]
+        if tier not in self.tiers:
+            raise ValueError(f"unknown tier {tier!r}; available: {self.tiers}.")
+        sub = self.table[self.table["model"] == tier].set_index("feature")
+        return _value_column(sub, value)
+
+    def bar(
+        self,
+        tier: str | None = None,
+        *,
+        value: str = "neg_log10_p",
+        title: str | None = None,
+        reference: float | None = None,
+        color: str = "by_module",
+    ) -> Bar:
+        """Return a heatmap :class:`~eigenradiomics.Bar` of a per-feature statistic.
+
+        ``value`` is one of ``"neg_log10_p"``, ``"neg_log10_fdr"``, ``"log2_effect"``,
+        ``"coef"``, ``"effect"``, ``"statistic"``. The bar (indexed by feature) drops
+        straight into ``plot_clustered_heatmap(..., bottom=[bar])``.
+        """
+        from eigenradiomics.plotting import Bar
+
+        series = self._tier_value(tier, value)
+        label = title if title is not None else value
+        return Bar(series.rename(label), title=label, reference=reference, color=color)
+
+    def matrix(self, *, value: str = "coef", tiers: Sequence[str] | None = None) -> pd.DataFrame:
+        """Return a feature x model-tier matrix of *value* (for a heatmap ``CorrPanel``)."""
+        tiers = list(tiers) if tiers is not None else self.tiers
+        return pd.DataFrame({tier: self._tier_value(tier, value) for tier in tiers})
+
+    def to_excel(
+        self,
+        path: Any,
+        *,
+        top_hits_mode: str = "fdr",
+        alpha: float = 0.05,
+        per_panel: int | None = 50,
+    ) -> None:
+        """Write the full results and a top-hits sheet to a styled Excel workbook."""
+        from eigenradiomics._excel import write_styled_workbook
+
+        sheets = {
+            "associations": self.table,
+            "top_hits": self.top_hits(mode=top_hits_mode, alpha=alpha, per_panel=per_panel),
+        }
+        write_styled_workbook(sheets, path, _association_number_format)
 
 
 def _fit_ols_hc3(y: NDArray, design: NDArray, feature_idx: int) -> dict[str, Any]:
@@ -556,6 +609,29 @@ def _apply_fdr(table: pd.DataFrame) -> pd.DataFrame:
         if mask.any():
             table.loc[mask, "p_fdr"] = _fdr_correct(table.loc[mask, "p_value"].to_numpy())
     return table
+
+
+def _value_column(table: pd.DataFrame, value: str) -> pd.Series:
+    """Per-feature Series for a bar/matrix value (feature-indexed)."""
+    tiny = np.nextafter(0, 1)
+    if value == "neg_log10_p":
+        return -np.log10(table["p_value"].clip(lower=tiny))
+    if value == "neg_log10_fdr":
+        return -np.log10(table["p_fdr"].clip(lower=tiny))
+    if value == "log2_effect":
+        return np.log2(table["effect"].clip(lower=tiny))
+    if value in ("coef", "effect", "statistic", "ci_low", "ci_high"):
+        return table[value]
+    raise ValueError(
+        "value must be one of neg_log10_p, neg_log10_fdr, log2_effect, coef, effect, "
+        f"statistic, ci_low, ci_high; got {value!r}."
+    )
+
+
+def _association_number_format(col_name: str, val: float) -> str | None:
+    if "p_value" in col_name or "p_fdr" in col_name:
+        return "0.00E+00" if val < 1e-4 else "0.0000"
+    return "0.000"
 
 
 def _annotate_catalog(

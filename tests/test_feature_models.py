@@ -471,3 +471,54 @@ def test_volcano_binary_xlabel():
     fig = plot_volcano(res, title="binary")
     assert any("odds ratio" in ax.get_xlabel() for ax in fig.axes if ax.get_visible())
     plt.close(fig)
+
+
+# ---- Phase D: heatmap bridge + Excel export -------------------------------
+
+
+def test_bar_and_value_columns():
+    X, meta = _data()
+    res = compute_feature_associations(X, meta["y"], adjust_for=["age"], covariate_data=meta)
+    bar = res.bar(value="neg_log10_p", reference=1.3, title="-log10 p")
+    assert type(bar).__name__ == "Bar"
+    assert list(bar.data.index) == list(X.columns)  # feature-indexed
+    assert bar.title == "-log10 p" and bar.reference == 1.3
+    # exercise the remaining value columns
+    for value in ("neg_log10_fdr", "coef", "effect", "statistic", "ci_low", "ci_high"):
+        assert res.bar(value=value).data.shape[0] == len(X.columns)
+
+
+def test_bar_log2_effect_on_ratio():
+    X, meta, _, binary = _survival_binary()
+    res = compute_feature_associations(X, binary, covariate_data=meta)
+    bar = res.bar(value="log2_effect")  # log2(OR) is well-defined for ratio effects
+    assert bar.data.shape[0] == X.shape[1]
+
+
+def test_matrix_feature_by_tier():
+    X, meta = _data()
+    res = compute_feature_associations(X, meta["y"], adjust_for=["age"], covariate_data=meta)
+    mat = res.matrix(value="coef")
+    assert list(mat.columns) == ["Univariable", "Adjusted"]
+    assert list(mat.index) == list(X.columns)
+
+
+def test_bar_bad_value_and_tier():
+    X, meta = _data()
+    res = compute_feature_associations(X, meta["y"], covariate_data=meta)
+    with pytest.raises(ValueError, match="value must be one of"):
+        res.bar(value="bogus")
+    with pytest.raises(ValueError, match="unknown tier"):
+        res.bar(tier="ghost")
+
+
+def test_to_excel(tmp_path):
+    import openpyxl
+
+    X, meta = _data()
+    res = compute_feature_associations(X, meta["y"], adjust_for=["age"], covariate_data=meta)
+    path = tmp_path / "associations.xlsx"
+    res.to_excel(path)
+    assert path.exists()
+    wb = openpyxl.load_workbook(path)
+    assert "associations" in wb.sheetnames and "top_hits" in wb.sheetnames

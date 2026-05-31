@@ -22,6 +22,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from eigenradiomics import (  # noqa: E402
+    Bar,
     RadiomicsPrepTransformer,
     WGCNAReducer,
     compute_batch_effects,
@@ -135,7 +136,7 @@ def preprocessing_figure() -> None:
 
 
 def clustered_heatmap_figure() -> None:
-    """Clustered WGCNA TOM heatmap with a top family strip and stacked legends."""
+    """Clustered WGCNA TOM heatmap with a top family strip, a bottom bar, and legends."""
     X = _wgcna_matrix()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -145,9 +146,13 @@ def clustered_heatmap_figure() -> None:
     names = list(artifacts.feature_names)
     families = ["Intensity", "Texture", "Morphology"]
     family = pd.Series([families[i % 3] for i in range(len(names))], index=names, name="Family")
+    # A synthetic per-feature -log10 p-value, larger inside the real signal blocks.
+    signal = np.r_[np.abs(RNG.normal(2.5, 0.8, 190)), np.abs(RNG.normal(0.4, 0.3, 10))]
+    neglogp = pd.Series(signal[: len(names)], index=names, name="-log10 p")
     fig = plot_clustered_heatmap(
         artifacts,
         top=[family],
+        bottom=[Bar(neglogp, title="-log10 p", reference=float(-np.log10(0.05)))],
         cmap="magma",
         vmin=0.0,
         vmax=1.0,

@@ -2,15 +2,16 @@
 
 `plot_clustered_heatmap` renders a feature-by-feature **similarity heatmap**
 ordered by hierarchical clustering, with an aligned left dendrogram, a
-per-feature cluster colour strip, and optional **categorical annotation strips**
-above it. It is deliberately generic — bring your own similarity matrix and,
-optionally, a cluster assignment, linkage, ordering, and annotation strips — so
-it works for a WGCNA TOM or any other symmetric similarity.
+per-feature cluster colour strip, optional **categorical annotation strips**
+above it, and optional **numeric annotation bars** below it. It is deliberately
+generic — bring your own similarity matrix and, optionally, a cluster
+assignment, linkage, ordering, and annotation tracks — so it works for a WGCNA
+TOM or any other symmetric similarity.
 
 The figure has a memorable, fixed grammar — **each side answers a question**:
 the **left** is *who?* (dendrogram + module strip), the **top** is *what kind?*
-(categorical strips), and the **centre** is the similarity itself. (Numeric
-bottom bars and a right correlation panel are planned.)
+(categorical strips), the **bottom** is *how much?* (numeric bars), and the
+**centre** is the similarity itself. (A right correlation panel is planned.)
 
 ## From a fitted reducer
 
@@ -82,10 +83,36 @@ fig = plot_clustered_heatmap(
 The cluster (module) strip on the left also gets a "Module" legend. Set
 `show_legend=False` to drop the legend column.
 
+## Bottom annotation bars
+
+Pass numeric per-feature tracks via `bottom` — a `pandas` Series (its name
+becomes the track title) or a `Bar` for explicit control. Each bar is aligned to
+the heatmap columns; by default bars are **coloured by module** (matching the
+left cluster strip), and you can draw a dashed `reference` line (e.g. the
+significance threshold −log10(0.05)). The shared feature tick labels move to the
+bottom-most bar:
+
+```python
+import numpy as np
+from eigenradiomics import plot_clustered_heatmap, Bar
+
+fig = plot_clustered_heatmap(
+    reducer.get_reduction_artifacts(),
+    bottom=[
+        neglog_p,                                       # a named Series -> auto Bar
+        Bar(effect_size, title="Effect", color="0.3"), # explicit title / fixed colour
+        Bar(neglog_p, title="-log10 p",
+            reference=float(-np.log10(0.05))),          # dashed significance line
+    ],
+)
+```
+
+Set `color="by_module"` (the default) to tint each bar by its feature's module,
+or pass any Matplotlib colour to use a single fixed colour for the whole track.
+
 !!! note "What's next"
-    Numeric **bottom bars** (e.g. −log10 p, coloured by module) and a **right
-    correlation panel** (features × clinical variables) are planned, sourced
-    conveniently from a `FeatureCatalog` and `RadiomicsDataset`.
+    A **right correlation panel** (features × clinical variables) is planned,
+    sourced conveniently from a `FeatureCatalog` and `RadiomicsDataset`.
 
 ## Key options
 
@@ -97,6 +124,7 @@ The cluster (module) strip on the left also gets a "Module" legend. Set
 | `order` | explicit feature ordering (overrides the linkage leaves) |
 | `cluster_colors` | `{label: colour}` (otherwise a colourblind-safe palette) |
 | `top` | categorical strips above the heatmap (Series or `Strip`) |
+| `bottom` | numeric bars below the heatmap (Series or `Bar`) |
 | `cmap`, `vmin`, `vmax`, `below_cutoff_color` | similarity colour scaling |
 | `show_dendrogram`, `show_cluster_strip`, `show_legend` | toggle the side panels / legend |
 | `labels` | `"auto"`, an explicit list, or `None` |

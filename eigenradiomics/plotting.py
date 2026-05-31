@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
+from matplotlib.ticker import MaxNLocator
 from numpy.typing import NDArray
 from scipy.cluster.hierarchy import dendrogram, leaves_list
 
@@ -27,6 +28,9 @@ OKABE_ITO: list[str] = [
     "#CC79A7",  # reddish purple
     "#000000",  # black
 ]
+
+#: Default bar colour when "by_module" is requested but no modules are available.
+_DEFAULT_BAR_COLOR = "#4477AA"
 
 
 @dataclass
@@ -47,6 +51,29 @@ class Strip:
     data: pd.Series
     title: str | None = None
     colors: Mapping[Any, Any] | None = None
+
+
+@dataclass
+class Bar:
+    """A numeric annotation bar track drawn below the heatmap (a bottom track).
+
+    Parameters
+    ----------
+    data : pandas.Series
+        Per-feature numeric value, indexed by feature name.
+    title : str, optional
+        Track name shown at its left edge (defaults to the Series name).
+    color : str
+        ``"by_module"`` (default) colours each bar by its feature's module;
+        otherwise any Matplotlib colour applied to all bars.
+    reference : float, optional
+        If set, draw a dashed horizontal reference line (e.g. ``-log10(0.05)``).
+    """
+
+    data: pd.Series
+    title: str | None = None
+    color: str = "by_module"
+    reference: float | None = None
 
 
 def _as_similarity_frame(similarity: NDArray | pd.DataFrame) -> pd.DataFrame:
@@ -86,6 +113,15 @@ def _as_strip(item: pd.Series | Strip) -> Strip:
     raise TypeError(f"top tracks must be a pandas Series or Strip, got {type(item).__name__}.")
 
 
+def _as_bar(item: pd.Series | Bar) -> Bar:
+    """Normalize a bottom-track input to a :class:`Bar`."""
+    if isinstance(item, Bar):
+        return item
+    if isinstance(item, pd.Series):
+        return Bar(data=item, title=item.name)
+    raise TypeError(f"bottom tracks must be a pandas Series or Bar, got {type(item).__name__}.")
+
+
 def plot_clustered_heatmap(
     similarity: NDArray | pd.DataFrame | ReductionArtifacts,
     *,
@@ -94,6 +130,7 @@ def plot_clustered_heatmap(
     order: Sequence[Any] | NDArray | None = None,
     cluster_colors: Mapping[Any, Any] | None = None,
     top: Sequence[pd.Series | Strip] | None = None,
+    bottom: Sequence[pd.Series | Bar] | None = None,
     cmap: str = "magma",
     vmin: float | None = None,
     vmax: float | None = None,
@@ -110,8 +147,8 @@ def plot_clustered_heatmap(
 
     "Bring your own" inputs: pass any symmetric ``similarity`` matrix plus,
     optionally, a per-feature ``cluster_labels`` assignment, a SciPy ``linkage``
-    matrix (left dendrogram), an explicit feature ``order``, and categorical
-    annotation strips via ``top``. A
+    matrix (left dendrogram), an explicit feature ``order``, categorical
+    annotation strips via ``top``, and numeric annotation bars via ``bottom``. A
     :class:`~eigenradiomics.ReductionArtifacts` may be passed directly as
     ``similarity``; its fields fill any argument left unset.
 
@@ -120,29 +157,30 @@ def plot_clustered_heatmap(
     similarity : ndarray, DataFrame, or ReductionArtifacts
         Symmetric ``(n_features, n_features)`` similarity, or a reducer's artifacts.
     cluster_labels : Series or sequence, optional
-        Per-feature cluster / module label; drives the left colour strip and the
-        default ordering when no ``linkage``/``order`` is given.
+        Per-feature cluster / module label; drives the left colour strip, the
+        default ordering, and ``"by_module"`` bar colours.
     linkage : ndarray, optional
         SciPy linkage matrix; drives the left dendrogram and leaf ordering.
     order : sequence, optional
         Explicit feature ordering (overrides the linkage leaves).
     cluster_colors : mapping, optional
-        ``{label: colour}`` for the module strip/legend; otherwise a palette.
+        ``{label: colour}`` for the module strip/legend/bars; otherwise a palette.
     top : sequence of Series or Strip, optional
-        Categorical annotation strips drawn above the heatmap (e.g. feature
-        family). A plain Series becomes a :class:`Strip` (its name as title).
+        Categorical annotation strips drawn above the heatmap.
+    bottom : sequence of Series or Bar, optional
+        Numeric annotation bar tracks drawn below the heatmap.
     cmap, vmin, vmax, below_cutoff_color :
         Similarity colour scaling (``below_cutoff_color`` is ``set_under``).
     show_dendrogram, show_cluster_strip, show_legend : bool
         Toggle the left dendrogram, the left cluster strip, and the legend column.
     labels : "auto", sequence, None, or False
-        Heatmap tick labels. ``"auto"`` shows names only for small matrices.
+        Feature tick labels. ``"auto"`` shows names only for small matrices.
     colorbar_label : str
         Label for the similarity colourbar.
     figsize : tuple, optional
         Figure size; auto-sized from the feature count otherwise.
     title : str, optional
-        Heatmap title.
+        Figure title.
 
     Returns
     -------
@@ -177,6 +215,7 @@ def plot_clustered_heatmap(
             labels_series = pd.Series(list(cluster_labels), index=feature_names)
 
     strips = [_as_strip(item) for item in top] if top is not None else []
+    bars = [_as_bar(item) for item in bottom] if bottom is not None else []
 
     # 2. Determine the display order (feature names).
     if order is not None:
@@ -201,11 +240,13 @@ def plot_clustered_heatmap(
     else:
         tick_labels = list(labels)
 
-    # 3. Resolve colours for categorical tracks + collect legend blocks.
+    # 3. Colours for categorical tracks + legend blocks.
     draw_dendro = show_dendrogram and linkage is not None
     draw_strip = show_cluster_strip and labels_series is not None
     n_top = len(strips)
+    n_bottom = len(bars)
 
+    module_color_map: dict[Any, Any] | None = None
     legend_blocks: list[tuple[str, dict[Any, Any]]] = []
     if draw_strip:
         assert labels_series is not None
@@ -222,12 +263,12 @@ def plot_clustered_heatmap(
 
     has_legend = show_legend and bool(legend_blocks)
 
-    # 4. Lay out the panels (rows: top strips, heatmap, colorbar; cols: dendro,
-    #    cluster strip, heatmap, legend).
+    # 4. Lay out the panels (rows: top strips, heatmap, bottom bars, colorbar;
+    #    cols: dendro, cluster strip, heatmap, legend).
     if figsize is None:
         side = float(np.clip(n / 12.0, 6.0, 14.0))
         width = side + 2.0 + (2.6 if has_legend else 0.0)
-        height = side + 1.0 + 0.4 * n_top
+        height = side + 1.0 + 0.4 * n_top + 0.6 * n_bottom
         figsize = (width, height)
     fig = plt.figure(figsize=figsize)
 
@@ -245,9 +286,9 @@ def plot_clustered_heatmap(
         col["legend"] = len(width_ratios)
         width_ratios.append(2.6)
 
-    height_ratios = [0.32] * n_top + [10.0, 1.0]
+    height_ratios = [0.32] * n_top + [10.0] + [1.1] * n_bottom + [1.0]
     heat_row = n_top
-    cbar_row = n_top + 1
+    cbar_row = n_top + 1 + n_bottom
 
     grid = fig.add_gridspec(
         len(height_ratios),
@@ -255,10 +296,10 @@ def plot_clustered_heatmap(
         width_ratios=width_ratios,
         height_ratios=height_ratios,
         wspace=0.02,
-        hspace=0.05,
+        hspace=0.08,
     )
 
-    # 5. Main heatmap (+ colorbar below it).
+    # 5. Main heatmap (+ colorbar at the bottom).
     ax_heat = fig.add_subplot(grid[heat_row, col["heat"]])
     cmap_obj = plt.get_cmap(cmap).copy()
     if below_cutoff_color is not None:
@@ -268,15 +309,17 @@ def plot_clustered_heatmap(
         vmin=vmin, vmax=vmax, interpolation="nearest",
     )
     if tick_labels is not None:
-        ax_heat.set_xticks(range(n))
-        ax_heat.set_xticklabels(tick_labels, rotation=90, fontsize=6)
         ax_heat.set_yticks(range(n))
         ax_heat.set_yticklabels(tick_labels, fontsize=6)
+        if n_bottom == 0:  # x labels move to the bottom-most bar when bars exist
+            ax_heat.set_xticks(range(n))
+            ax_heat.set_xticklabels(tick_labels, rotation=90, fontsize=6)
+        else:
+            ax_heat.set_xticks([])
     else:
         ax_heat.set_xticks([])
         ax_heat.set_yticks([])
     if title is not None:
-        # suptitle sits above the top strips (set_title would collide with them).
         fig.suptitle(title, weight="bold")
 
     ax_cbar = fig.add_subplot(grid[cbar_row, col["heat"]])
@@ -295,7 +338,33 @@ def plot_clustered_heatmap(
         ax_top.set_yticks([0])
         ax_top.set_yticklabels([strip.title or f"strip {index + 1}"], fontsize=7)
 
-    # 7. Left dendrogram, aligned row-for-row with the heatmap.
+    # 7. Bottom numeric bars (aligned with the heatmap columns).
+    for index, bar in enumerate(bars):
+        ax_bar = fig.add_subplot(grid[heat_row + 1 + index, col["heat"]])
+        values = bar.data.reindex(order_names).to_numpy(dtype=float)
+        if bar.color == "by_module" and labels_series is not None and module_color_map is not None:
+            bar_color: Any = [
+                module_color_map.get(label, "lightgrey")
+                for label in labels_series.loc[order_names]
+            ]
+        else:
+            bar_color = bar.color if bar.color != "by_module" else _DEFAULT_BAR_COLOR
+        ax_bar.bar(np.arange(n), values, width=1.0, color=bar_color, linewidth=0)
+        ax_bar.set_xlim(-0.5, n - 0.5)
+        if bar.reference is not None:
+            ax_bar.axhline(bar.reference, ls="--", lw=0.8, color="0.4")
+        ax_bar.set_ylabel(
+            bar.title or f"bar {index + 1}", rotation=0, ha="right", va="center", fontsize=7
+        )
+        ax_bar.yaxis.set_major_locator(MaxNLocator(nbins=2))
+        ax_bar.tick_params(labelsize=6)
+        if index == n_bottom - 1 and tick_labels is not None:
+            ax_bar.set_xticks(range(n))
+            ax_bar.set_xticklabels(tick_labels, rotation=90, fontsize=6)
+        else:
+            ax_bar.set_xticks([])
+
+    # 8. Left dendrogram, aligned row-for-row with the heatmap.
     if draw_dendro:
         ax_dendro = fig.add_subplot(grid[heat_row, col["dendro"]])
         dendrogram(
@@ -308,20 +377,19 @@ def plot_clustered_heatmap(
         for spine in ax_dendro.spines.values():
             spine.set_visible(False)
 
-    # 8. Left cluster colour strip.
+    # 9. Left cluster colour strip.
     if draw_strip:
-        assert labels_series is not None
+        assert labels_series is not None and module_color_map is not None
         ordered_labels = labels_series.loc[order_names]
-        module_map = legend_blocks[0][1]
         strip_rgba = np.array(
-            [to_rgba(module_map.get(label, "lightgrey")) for label in ordered_labels]
+            [to_rgba(module_color_map.get(label, "lightgrey")) for label in ordered_labels]
         ).reshape(n, 1, 4)
         ax_strip = fig.add_subplot(grid[heat_row, col["strip"]])
         ax_strip.imshow(strip_rgba, aspect="auto", interpolation="nearest")
         ax_strip.set_xticks([])
         ax_strip.set_yticks([])
 
-    # 9. Right-edge stacked legend column (one titled block per categorical track).
+    # 10. Right-edge stacked legend column (one titled block per categorical track).
     if has_legend:
         legend_gs = grid[:, col["legend"]].subgridspec(
             len(legend_blocks), 1, height_ratios=[len(cmap) + 1.5 for _, cmap in legend_blocks]

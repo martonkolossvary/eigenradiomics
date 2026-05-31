@@ -12,7 +12,12 @@ import pytest  # noqa: E402
 from scipy.cluster.hierarchy import leaves_list, linkage  # noqa: E402
 from scipy.spatial.distance import squareform  # noqa: E402
 
-from eigenradiomics import ReductionArtifacts, Strip, plot_clustered_heatmap  # noqa: E402
+from eigenradiomics import Bar, ReductionArtifacts, Strip, plot_clustered_heatmap  # noqa: E402
+
+
+def _values(n: int) -> np.ndarray:
+    """Deterministic numeric values for bottom-bar tests."""
+    return np.linspace(0.0, 3.0, n)
 
 
 def _blocks(n_per: int = 10, n_blocks: int = 3):
@@ -169,3 +174,49 @@ def test_invalid_top_type_raises():
     df, _, _ = _blocks()
     with pytest.raises(TypeError, match="Series or Strip"):
         plot_clustered_heatmap(df, top=[123])
+
+
+# ---- bottom annotation bars ----------------------------------------------
+
+
+def test_bottom_bars_by_module_with_reference_and_labels():
+    df, z, lab = _blocks(n_per=10, n_blocks=3)
+    names = list(df.index)
+    family = pd.Series(["A", "B"] * (len(names) // 2), index=names, name="Family")
+    pvals = pd.Series(_values(len(names)), index=names, name="-log10 p")  # Series -> Bar
+    effect = Bar(pd.Series(_values(len(names)), index=names), title="Effect", reference=1.3)
+    fig = plot_clustered_heatmap(
+        df,
+        linkage=z,
+        cluster_labels=lab,  # by_module colouring + reference line
+        top=[family],
+        bottom=[pvals, effect],
+        labels=list(df.index),  # x-tick labels move to the bottom-most bar
+    )
+    # heat + cbar + dendro + cluster strip + 1 top + 2 bottom + 2 legends (Module + Family)
+    assert len(fig.axes) == 9
+    plt.close(fig)
+
+
+def test_bottom_bar_fixed_color_no_modules():
+    df, _, _ = _blocks()
+    names = list(df.index)
+    bar = Bar(pd.Series(_values(len(names)), index=names), color="steelblue")  # title=None
+    fig = plot_clustered_heatmap(df, bottom=[bar], labels=None)
+    assert len(fig.axes) == 3  # heat + cbar + 1 bottom bar (no dendro/strip/legend)
+    plt.close(fig)
+
+
+def test_bottom_bar_by_module_fallback_when_no_modules():
+    df, _, _ = _blocks()
+    names = list(df.index)
+    # default color="by_module" but no cluster_labels -> single fallback colour
+    fig = plot_clustered_heatmap(df, bottom=[pd.Series(_values(len(names)), index=names)])
+    assert len(fig.axes) == 3
+    plt.close(fig)
+
+
+def test_invalid_bottom_type_raises():
+    df, _, _ = _blocks()
+    with pytest.raises(TypeError, match="Series or Bar"):
+        plot_clustered_heatmap(df, bottom=[123])

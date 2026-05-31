@@ -13,7 +13,7 @@ from eigenradiomics.ingest import (
     normalize_id_column,
     resolve_duplicates,
 )
-from eigenradiomics.plotting import Strip, plot_clustered_heatmap
+from eigenradiomics.plotting import Bar, Strip, plot_clustered_heatmap
 from eigenradiomics.preprocessing import RadiomicsFeatureRemover, RadiomicsPrepTransformer
 from eigenradiomics.reducers import BaseReducer, WGCNAReducer
 from eigenradiomics.reproducibility import (
@@ -44,4 +44,5 @@ __all__ = [
     "write_batch_effects_excel",
     "plot_clustered_heatmap",
     "Strip",
+    "Bar",
 ]

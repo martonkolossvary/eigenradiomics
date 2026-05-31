@@ -2104,7 +2104,11 @@
 <span class="normal"><a href="#__codelineno-0-532">532</a></span>
 <span class="normal"><a href="#__codelineno-0-533">533</a></span>
 <span class="normal"><a href="#__codelineno-0-534">534</a></span>
-<span class="normal"><a href="#__codelineno-0-535">535</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="k">class</span><span class="w"> </span><span class="nc">RadiomicsFeatureRemover</span><span class="p">(</span><span class="n">TransformerMixin</span><span class="p">,</span> <span class="n">BaseEstimator</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-535">535</a></span>
+<span class="normal"><a href="#__codelineno-0-536">536</a></span>
+<span class="normal"><a href="#__codelineno-0-537">537</a></span>
+<span class="normal"><a href="#__codelineno-0-538">538</a></span>
+<span class="normal"><a href="#__codelineno-0-539">539</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="k">class</span><span class="w"> </span><span class="nc">RadiomicsFeatureRemover</span><span class="p">(</span><span class="n">TransformerMixin</span><span class="p">,</span> <span class="n">BaseEstimator</span><span class="p">):</span>
 <a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove selected columns from Pictologics-style wide radiomics tables.</span>
 <a id="__codelineno-0-399" name="__codelineno-0-399"></a>
 <a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">    Parameters</span>
@@ -2234,15 +2238,19 @@
 <a id="__codelineno-0-524" name="__codelineno-0-524"></a>
 <a id="__codelineno-0-525" name="__codelineno-0-525"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_take_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">TableLike</span><span class="p">,</span> <span class="n">indices</span><span class="p">:</span> <span class="n">NDArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TableLike</span><span class="p">:</span>
 <a id="__codelineno-0-526" name="__codelineno-0-526"></a>        <span class="n">names</span> <span class="o">=</span> <span class="n">_validate_transform_names</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
-<a id="__codelineno-0-527" name="__codelineno-0-527"></a>        <span class="n">_check_feature_names</span><span class="p">(</span>
-<a id="__codelineno-0-528" name="__codelineno-0-528"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">feature_names_in_</span><span class="p">,</span>
-<a id="__codelineno-0-529" name="__codelineno-0-529"></a>            <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
-<a id="__codelineno-0-530" name="__codelineno-0-530"></a>            <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
-<a id="__codelineno-0-531" name="__codelineno-0-531"></a>        <span class="p">)</span>
-<a id="__codelineno-0-532" name="__codelineno-0-532"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
-<a id="__codelineno-0-533" name="__codelineno-0-533"></a>            <span class="k">return</span> <span class="n">X</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="n">indices</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-<a id="__codelineno-0-534" name="__codelineno-0-534"></a>        <span class="n">X_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
-<a id="__codelineno-0-535" name="__codelineno-0-535"></a>        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">NDArray</span><span class="p">,</span> <span class="n">X_arr</span><span class="p">[:,</span> <span class="n">indices</span><span class="p">])</span>
+<a id="__codelineno-0-527" name="__codelineno-0-527"></a>        <span class="c1"># Strict same-order check only when transforming a named DataFrame; a bare</span>
+<a id="__codelineno-0-528" name="__codelineno-0-528"></a>        <span class="c1"># array of the same width (positional selection) is supported and must not</span>
+<a id="__codelineno-0-529" name="__codelineno-0-529"></a>        <span class="c1"># raise, matching scikit-learn&#39;s cross-type behaviour.</span>
+<a id="__codelineno-0-530" name="__codelineno-0-530"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+<a id="__codelineno-0-531" name="__codelineno-0-531"></a>            <span class="n">_check_feature_names</span><span class="p">(</span>
+<a id="__codelineno-0-532" name="__codelineno-0-532"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">feature_names_in_</span><span class="p">,</span>
+<a id="__codelineno-0-533" name="__codelineno-0-533"></a>                <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">names</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">),</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a>                <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+<a id="__codelineno-0-535" name="__codelineno-0-535"></a>            <span class="p">)</span>
+<a id="__codelineno-0-536" name="__codelineno-0-536"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+<a id="__codelineno-0-537" name="__codelineno-0-537"></a>            <span class="k">return</span> <span class="n">X</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,</span> <span class="n">indices</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a id="__codelineno-0-538" name="__codelineno-0-538"></a>        <span class="n">X_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<a id="__codelineno-0-539" name="__codelineno-0-539"></a>        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">NDArray</span><span class="p">,</span> <span class="n">X_arr</span><span class="p">[:,</span> <span class="n">indices</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -2716,11 +2724,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>eigenradiomics/preprocessing/_feature_remover.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-583">583</a></span>
-<span class="normal"><a href="#__codelineno-0-584">584</a></span>
-<span class="normal"><a href="#__codelineno-0-585">585</a></span>
-<span class="normal"><a href="#__codelineno-0-586">586</a></span>
-<span class="normal"><a href="#__codelineno-0-587">587</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-587">587</a></span>
 <span class="normal"><a href="#__codelineno-0-588">588</a></span>
 <span class="normal"><a href="#__codelineno-0-589">589</a></span>
 <span class="normal"><a href="#__codelineno-0-590">590</a></span>
@@ -2737,28 +2741,32 @@
 <span class="normal"><a href="#__codelineno-0-601">601</a></span>
 <span class="normal"><a href="#__codelineno-0-602">602</a></span>
 <span class="normal"><a href="#__codelineno-0-603">603</a></span>
-<span class="normal"><a href="#__codelineno-0-604">604</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="k">def</span><span class="w"> </span><span class="nf">split_radiomics_table</span><span class="p">(</span>
-<a id="__codelineno-0-584" name="__codelineno-0-584"></a>    <span class="n">table</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
-<a id="__codelineno-0-585" name="__codelineno-0-585"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-586" name="__codelineno-0-586"></a>    <span class="n">features</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-587" name="__codelineno-0-587"></a>    <span class="n">configs</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-588" name="__codelineno-0-588"></a>    <span class="n">families</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-589" name="__codelineno-0-589"></a>    <span class="n">family_groups</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-590" name="__codelineno-0-590"></a>    <span class="n">catalog</span><span class="p">:</span> <span class="n">CatalogInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-591" name="__codelineno-0-591"></a>    <span class="n">metadata_columns</span><span class="p">:</span> <span class="n">MetadataColumns</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-592" name="__codelineno-0-592"></a>    <span class="n">allow_missing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-593" name="__codelineno-0-593"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RadiomicsFeatureSplit</span><span class="p">:</span>
-<a id="__codelineno-0-594" name="__codelineno-0-594"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Split selected feature columns out of an in-memory radiomics table.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-595" name="__codelineno-0-595"></a>    <span class="n">remover</span> <span class="o">=</span> <span class="n">RadiomicsFeatureRemover</span><span class="p">(</span>
-<a id="__codelineno-0-596" name="__codelineno-0-596"></a>        <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
-<a id="__codelineno-0-597" name="__codelineno-0-597"></a>        <span class="n">configs</span><span class="o">=</span><span class="n">configs</span><span class="p">,</span>
-<a id="__codelineno-0-598" name="__codelineno-0-598"></a>        <span class="n">families</span><span class="o">=</span><span class="n">families</span><span class="p">,</span>
-<a id="__codelineno-0-599" name="__codelineno-0-599"></a>        <span class="n">family_groups</span><span class="o">=</span><span class="n">family_groups</span><span class="p">,</span>
-<a id="__codelineno-0-600" name="__codelineno-0-600"></a>        <span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span>
-<a id="__codelineno-0-601" name="__codelineno-0-601"></a>        <span class="n">metadata_columns</span><span class="o">=</span><span class="n">metadata_columns</span><span class="p">,</span>
-<a id="__codelineno-0-602" name="__codelineno-0-602"></a>        <span class="n">allow_missing</span><span class="o">=</span><span class="n">allow_missing</span><span class="p">,</span>
-<a id="__codelineno-0-603" name="__codelineno-0-603"></a>    <span class="p">)</span>
-<a id="__codelineno-0-604" name="__codelineno-0-604"></a>    <span class="k">return</span> <span class="n">remover</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-604">604</a></span>
+<span class="normal"><a href="#__codelineno-0-605">605</a></span>
+<span class="normal"><a href="#__codelineno-0-606">606</a></span>
+<span class="normal"><a href="#__codelineno-0-607">607</a></span>
+<span class="normal"><a href="#__codelineno-0-608">608</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-587" name="__codelineno-0-587"></a><span class="k">def</span><span class="w"> </span><span class="nf">split_radiomics_table</span><span class="p">(</span>
+<a id="__codelineno-0-588" name="__codelineno-0-588"></a>    <span class="n">table</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+<a id="__codelineno-0-589" name="__codelineno-0-589"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-590" name="__codelineno-0-590"></a>    <span class="n">features</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-591" name="__codelineno-0-591"></a>    <span class="n">configs</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-592" name="__codelineno-0-592"></a>    <span class="n">families</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-593" name="__codelineno-0-593"></a>    <span class="n">family_groups</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-594" name="__codelineno-0-594"></a>    <span class="n">catalog</span><span class="p">:</span> <span class="n">CatalogInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-595" name="__codelineno-0-595"></a>    <span class="n">metadata_columns</span><span class="p">:</span> <span class="n">MetadataColumns</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-596" name="__codelineno-0-596"></a>    <span class="n">allow_missing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-597" name="__codelineno-0-597"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RadiomicsFeatureSplit</span><span class="p">:</span>
+<a id="__codelineno-0-598" name="__codelineno-0-598"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Split selected feature columns out of an in-memory radiomics table.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-599" name="__codelineno-0-599"></a>    <span class="n">remover</span> <span class="o">=</span> <span class="n">RadiomicsFeatureRemover</span><span class="p">(</span>
+<a id="__codelineno-0-600" name="__codelineno-0-600"></a>        <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
+<a id="__codelineno-0-601" name="__codelineno-0-601"></a>        <span class="n">configs</span><span class="o">=</span><span class="n">configs</span><span class="p">,</span>
+<a id="__codelineno-0-602" name="__codelineno-0-602"></a>        <span class="n">families</span><span class="o">=</span><span class="n">families</span><span class="p">,</span>
+<a id="__codelineno-0-603" name="__codelineno-0-603"></a>        <span class="n">family_groups</span><span class="o">=</span><span class="n">family_groups</span><span class="p">,</span>
+<a id="__codelineno-0-604" name="__codelineno-0-604"></a>        <span class="n">catalog</span><span class="o">=</span><span class="n">catalog</span><span class="p">,</span>
+<a id="__codelineno-0-605" name="__codelineno-0-605"></a>        <span class="n">metadata_columns</span><span class="o">=</span><span class="n">metadata_columns</span><span class="p">,</span>
+<a id="__codelineno-0-606" name="__codelineno-0-606"></a>        <span class="n">allow_missing</span><span class="o">=</span><span class="n">allow_missing</span><span class="p">,</span>
+<a id="__codelineno-0-607" name="__codelineno-0-607"></a>    <span class="p">)</span>
+<a id="__codelineno-0-608" name="__codelineno-0-608"></a>    <span class="k">return</span> <span class="n">remover</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -2800,11 +2808,7 @@
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>eigenradiomics/preprocessing/_feature_remover.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-607">607</a></span>
-<span class="normal"><a href="#__codelineno-0-608">608</a></span>
-<span class="normal"><a href="#__codelineno-0-609">609</a></span>
-<span class="normal"><a href="#__codelineno-0-610">610</a></span>
-<span class="normal"><a href="#__codelineno-0-611">611</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-611">611</a></span>
 <span class="normal"><a href="#__codelineno-0-612">612</a></span>
 <span class="normal"><a href="#__codelineno-0-613">613</a></span>
 <span class="normal"><a href="#__codelineno-0-614">614</a></span>
@@ -2886,93 +2890,97 @@
 <span class="normal"><a href="#__codelineno-0-690">690</a></span>
 <span class="normal"><a href="#__codelineno-0-691">691</a></span>
 <span class="normal"><a href="#__codelineno-0-692">692</a></span>
-<span class="normal"><a href="#__codelineno-0-693">693</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-607" name="__codelineno-0-607"></a><span class="k">def</span><span class="w"> </span><span class="nf">split_radiomics_file</span><span class="p">(</span>
-<a id="__codelineno-0-608" name="__codelineno-0-608"></a>    <span class="n">input_table</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
-<a id="__codelineno-0-609" name="__codelineno-0-609"></a>    <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
-<a id="__codelineno-0-610" name="__codelineno-0-610"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-611" name="__codelineno-0-611"></a>    <span class="n">features</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-612" name="__codelineno-0-612"></a>    <span class="n">configs</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-613" name="__codelineno-0-613"></a>    <span class="n">families</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-614" name="__codelineno-0-614"></a>    <span class="n">family_groups</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-615" name="__codelineno-0-615"></a>    <span class="n">catalog</span><span class="p">:</span> <span class="n">CatalogInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-616" name="__codelineno-0-616"></a>    <span class="n">metadata_columns</span><span class="p">:</span> <span class="n">MetadataColumns</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-617" name="__codelineno-0-617"></a>    <span class="n">allow_missing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-618" name="__codelineno-0-618"></a>    <span class="n">stripped_table_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-619" name="__codelineno-0-619"></a>    <span class="n">removed_table_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;removed_features.csv&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-620" name="__codelineno-0-620"></a>    <span class="n">stripped_catalog_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;features_catalog.csv&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-621" name="__codelineno-0-621"></a>    <span class="n">removed_catalog_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;removed_features_catalog.csv&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-622" name="__codelineno-0-622"></a>    <span class="n">manifest_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;radiomics_feature_split_manifest.csv&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-623" name="__codelineno-0-623"></a>    <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">ENCODING</span><span class="p">,</span>
-<a id="__codelineno-0-624" name="__codelineno-0-624"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RadiomicsFeatureSplitFiles</span><span class="p">:</span>
-<a id="__codelineno-0-625" name="__codelineno-0-625"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a radiomics CSV, split selected features, and write output CSV files.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-626" name="__codelineno-0-626"></a>    <span class="n">input_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">input_table</span><span class="p">)</span>
-<a id="__codelineno-0-627" name="__codelineno-0-627"></a>    <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
-<a id="__codelineno-0-628" name="__codelineno-0-628"></a>    <span class="n">table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
-<a id="__codelineno-0-629" name="__codelineno-0-629"></a>    <span class="n">catalog_df</span> <span class="o">=</span> <span class="n">_load_catalog</span><span class="p">(</span><span class="n">catalog</span><span class="p">)</span>
-<a id="__codelineno-0-630" name="__codelineno-0-630"></a>
-<a id="__codelineno-0-631" name="__codelineno-0-631"></a>    <span class="n">split</span> <span class="o">=</span> <span class="n">split_radiomics_table</span><span class="p">(</span>
-<a id="__codelineno-0-632" name="__codelineno-0-632"></a>        <span class="n">table</span><span class="p">,</span>
-<a id="__codelineno-0-633" name="__codelineno-0-633"></a>        <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
-<a id="__codelineno-0-634" name="__codelineno-0-634"></a>        <span class="n">configs</span><span class="o">=</span><span class="n">configs</span><span class="p">,</span>
-<a id="__codelineno-0-635" name="__codelineno-0-635"></a>        <span class="n">families</span><span class="o">=</span><span class="n">families</span><span class="p">,</span>
-<a id="__codelineno-0-636" name="__codelineno-0-636"></a>        <span class="n">family_groups</span><span class="o">=</span><span class="n">family_groups</span><span class="p">,</span>
-<a id="__codelineno-0-637" name="__codelineno-0-637"></a>        <span class="n">catalog</span><span class="o">=</span><span class="n">catalog_df</span><span class="p">,</span>
-<a id="__codelineno-0-638" name="__codelineno-0-638"></a>        <span class="n">metadata_columns</span><span class="o">=</span><span class="n">metadata_columns</span><span class="p">,</span>
-<a id="__codelineno-0-639" name="__codelineno-0-639"></a>        <span class="n">allow_missing</span><span class="o">=</span><span class="n">allow_missing</span><span class="p">,</span>
-<a id="__codelineno-0-640" name="__codelineno-0-640"></a>    <span class="p">)</span>
-<a id="__codelineno-0-641" name="__codelineno-0-641"></a>
-<a id="__codelineno-0-642" name="__codelineno-0-642"></a>    <span class="n">output_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<a id="__codelineno-0-643" name="__codelineno-0-643"></a>    <span class="n">stripped_name</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-0-644" name="__codelineno-0-644"></a>        <span class="n">stripped_table_name</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">input_path</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">_stripped</span><span class="si">{</span><span class="n">input_path</span><span class="o">.</span><span class="n">suffix</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39;.csv&#39;</span><span class="si">}</span><span class="s2">&quot;</span>
-<a id="__codelineno-0-645" name="__codelineno-0-645"></a>    <span class="p">)</span>
-<a id="__codelineno-0-646" name="__codelineno-0-646"></a>    <span class="n">stripped_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">stripped_name</span>
-<a id="__codelineno-0-647" name="__codelineno-0-647"></a>    <span class="n">removed_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">removed_table_name</span>
-<a id="__codelineno-0-648" name="__codelineno-0-648"></a>    <span class="n">cast</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">split</span><span class="o">.</span><span class="n">kept_table</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">stripped_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
-<a id="__codelineno-0-649" name="__codelineno-0-649"></a>    <span class="n">cast</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">split</span><span class="o">.</span><span class="n">removed_table</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">removed_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
-<a id="__codelineno-0-650" name="__codelineno-0-650"></a>
-<a id="__codelineno-0-651" name="__codelineno-0-651"></a>    <span class="n">input_catalog_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">catalog</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">catalog</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">))</span> <span class="k">else</span> <span class="kc">None</span>
-<a id="__codelineno-0-652" name="__codelineno-0-652"></a>    <span class="n">stripped_catalog_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-653" name="__codelineno-0-653"></a>    <span class="n">removed_catalog_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-654" name="__codelineno-0-654"></a>    <span class="k">if</span> <span class="n">catalog_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-655" name="__codelineno-0-655"></a>        <span class="n">stripped_catalog</span><span class="p">,</span> <span class="n">removed_catalog</span> <span class="o">=</span> <span class="n">_split_catalog_by_columns</span><span class="p">(</span>
-<a id="__codelineno-0-656" name="__codelineno-0-656"></a>            <span class="n">catalog_df</span><span class="p">,</span>
-<a id="__codelineno-0-657" name="__codelineno-0-657"></a>            <span class="n">removed_columns</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="n">split</span><span class="o">.</span><span class="n">removed_columns</span><span class="p">),</span>
-<a id="__codelineno-0-658" name="__codelineno-0-658"></a>        <span class="p">)</span>
-<a id="__codelineno-0-659" name="__codelineno-0-659"></a>        <span class="n">stripped_catalog_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">stripped_catalog_name</span>
-<a id="__codelineno-0-660" name="__codelineno-0-660"></a>        <span class="n">removed_catalog_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">removed_catalog_name</span>
-<a id="__codelineno-0-661" name="__codelineno-0-661"></a>        <span class="n">stripped_catalog</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">stripped_catalog_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
-<a id="__codelineno-0-662" name="__codelineno-0-662"></a>        <span class="n">removed_catalog</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">removed_catalog_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
-<a id="__codelineno-0-663" name="__codelineno-0-663"></a>
-<a id="__codelineno-0-664" name="__codelineno-0-664"></a>    <span class="n">manifest_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">manifest_name</span>
-<a id="__codelineno-0-665" name="__codelineno-0-665"></a>    <span class="n">_write_manifest</span><span class="p">(</span>
-<a id="__codelineno-0-666" name="__codelineno-0-666"></a>        <span class="n">manifest_path</span><span class="p">,</span>
-<a id="__codelineno-0-667" name="__codelineno-0-667"></a>        <span class="n">input_table</span><span class="o">=</span><span class="n">input_path</span><span class="p">,</span>
-<a id="__codelineno-0-668" name="__codelineno-0-668"></a>        <span class="n">stripped_table</span><span class="o">=</span><span class="n">stripped_path</span><span class="p">,</span>
-<a id="__codelineno-0-669" name="__codelineno-0-669"></a>        <span class="n">removed_table</span><span class="o">=</span><span class="n">removed_path</span><span class="p">,</span>
-<a id="__codelineno-0-670" name="__codelineno-0-670"></a>        <span class="n">input_catalog</span><span class="o">=</span><span class="n">input_catalog_path</span><span class="p">,</span>
-<a id="__codelineno-0-671" name="__codelineno-0-671"></a>        <span class="n">stripped_catalog</span><span class="o">=</span><span class="n">stripped_catalog_path</span><span class="p">,</span>
-<a id="__codelineno-0-672" name="__codelineno-0-672"></a>        <span class="n">removed_catalog</span><span class="o">=</span><span class="n">removed_catalog_path</span><span class="p">,</span>
-<a id="__codelineno-0-673" name="__codelineno-0-673"></a>        <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
-<a id="__codelineno-0-674" name="__codelineno-0-674"></a>        <span class="n">features</span><span class="o">=</span><span class="n">_normalize_selectors</span><span class="p">(</span><span class="n">features</span><span class="p">),</span>
-<a id="__codelineno-0-675" name="__codelineno-0-675"></a>        <span class="n">configs</span><span class="o">=</span><span class="n">_normalize_selectors</span><span class="p">(</span><span class="n">configs</span><span class="p">),</span>
-<a id="__codelineno-0-676" name="__codelineno-0-676"></a>        <span class="n">families</span><span class="o">=</span><span class="n">_normalize_selectors</span><span class="p">(</span><span class="n">families</span><span class="p">),</span>
-<a id="__codelineno-0-677" name="__codelineno-0-677"></a>        <span class="n">family_groups</span><span class="o">=</span><span class="n">_normalize_selectors</span><span class="p">(</span><span class="n">family_groups</span><span class="p">),</span>
-<a id="__codelineno-0-678" name="__codelineno-0-678"></a>        <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">,</span>
-<a id="__codelineno-0-679" name="__codelineno-0-679"></a>    <span class="p">)</span>
-<a id="__codelineno-0-680" name="__codelineno-0-680"></a>
-<a id="__codelineno-0-681" name="__codelineno-0-681"></a>    <span class="k">return</span> <span class="n">RadiomicsFeatureSplitFiles</span><span class="p">(</span>
-<a id="__codelineno-0-682" name="__codelineno-0-682"></a>        <span class="n">input_table</span><span class="o">=</span><span class="n">input_path</span><span class="p">,</span>
-<a id="__codelineno-0-683" name="__codelineno-0-683"></a>        <span class="n">stripped_table</span><span class="o">=</span><span class="n">stripped_path</span><span class="p">,</span>
-<a id="__codelineno-0-684" name="__codelineno-0-684"></a>        <span class="n">removed_table</span><span class="o">=</span><span class="n">removed_path</span><span class="p">,</span>
-<a id="__codelineno-0-685" name="__codelineno-0-685"></a>        <span class="n">manifest</span><span class="o">=</span><span class="n">manifest_path</span><span class="p">,</span>
-<a id="__codelineno-0-686" name="__codelineno-0-686"></a>        <span class="n">input_catalog</span><span class="o">=</span><span class="n">input_catalog_path</span><span class="p">,</span>
-<a id="__codelineno-0-687" name="__codelineno-0-687"></a>        <span class="n">stripped_catalog</span><span class="o">=</span><span class="n">stripped_catalog_path</span><span class="p">,</span>
-<a id="__codelineno-0-688" name="__codelineno-0-688"></a>        <span class="n">removed_catalog</span><span class="o">=</span><span class="n">removed_catalog_path</span><span class="p">,</span>
-<a id="__codelineno-0-689" name="__codelineno-0-689"></a>        <span class="n">kept_columns</span><span class="o">=</span><span class="n">split</span><span class="o">.</span><span class="n">kept_columns</span><span class="p">,</span>
-<a id="__codelineno-0-690" name="__codelineno-0-690"></a>        <span class="n">removed_columns</span><span class="o">=</span><span class="n">split</span><span class="o">.</span><span class="n">removed_columns</span><span class="p">,</span>
-<a id="__codelineno-0-691" name="__codelineno-0-691"></a>        <span class="n">metadata_columns</span><span class="o">=</span><span class="n">split</span><span class="o">.</span><span class="n">metadata_columns</span><span class="p">,</span>
-<a id="__codelineno-0-692" name="__codelineno-0-692"></a>        <span class="n">unmatched_selectors</span><span class="o">=</span><span class="n">split</span><span class="o">.</span><span class="n">unmatched_selectors</span><span class="p">,</span>
-<a id="__codelineno-0-693" name="__codelineno-0-693"></a>    <span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-693">693</a></span>
+<span class="normal"><a href="#__codelineno-0-694">694</a></span>
+<span class="normal"><a href="#__codelineno-0-695">695</a></span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-611" name="__codelineno-0-611"></a><span class="k">def</span><span class="w"> </span><span class="nf">split_radiomics_file</span><span class="p">(</span>
+<a id="__codelineno-0-612" name="__codelineno-0-612"></a>    <span class="n">input_table</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+<a id="__codelineno-0-613" name="__codelineno-0-613"></a>    <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+<a id="__codelineno-0-614" name="__codelineno-0-614"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-615" name="__codelineno-0-615"></a>    <span class="n">features</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-616" name="__codelineno-0-616"></a>    <span class="n">configs</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-617" name="__codelineno-0-617"></a>    <span class="n">families</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-618" name="__codelineno-0-618"></a>    <span class="n">family_groups</span><span class="p">:</span> <span class="n">SelectorInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-619" name="__codelineno-0-619"></a>    <span class="n">catalog</span><span class="p">:</span> <span class="n">CatalogInput</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-620" name="__codelineno-0-620"></a>    <span class="n">metadata_columns</span><span class="p">:</span> <span class="n">MetadataColumns</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-621" name="__codelineno-0-621"></a>    <span class="n">allow_missing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-622" name="__codelineno-0-622"></a>    <span class="n">stripped_table_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-623" name="__codelineno-0-623"></a>    <span class="n">removed_table_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;removed_features.csv&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-624" name="__codelineno-0-624"></a>    <span class="n">stripped_catalog_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;features_catalog.csv&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-625" name="__codelineno-0-625"></a>    <span class="n">removed_catalog_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;removed_features_catalog.csv&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-626" name="__codelineno-0-626"></a>    <span class="n">manifest_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;radiomics_feature_split_manifest.csv&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-627" name="__codelineno-0-627"></a>    <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">ENCODING</span><span class="p">,</span>
+<a id="__codelineno-0-628" name="__codelineno-0-628"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RadiomicsFeatureSplitFiles</span><span class="p">:</span>
+<a id="__codelineno-0-629" name="__codelineno-0-629"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a radiomics CSV, split selected features, and write output CSV files.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-630" name="__codelineno-0-630"></a>    <span class="n">input_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">input_table</span><span class="p">)</span>
+<a id="__codelineno-0-631" name="__codelineno-0-631"></a>    <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+<a id="__codelineno-0-632" name="__codelineno-0-632"></a>    <span class="n">table</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">input_path</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+<a id="__codelineno-0-633" name="__codelineno-0-633"></a>    <span class="n">catalog_df</span> <span class="o">=</span> <span class="n">_load_catalog</span><span class="p">(</span><span class="n">catalog</span><span class="p">)</span>
+<a id="__codelineno-0-634" name="__codelineno-0-634"></a>
+<a id="__codelineno-0-635" name="__codelineno-0-635"></a>    <span class="n">split</span> <span class="o">=</span> <span class="n">split_radiomics_table</span><span class="p">(</span>
+<a id="__codelineno-0-636" name="__codelineno-0-636"></a>        <span class="n">table</span><span class="p">,</span>
+<a id="__codelineno-0-637" name="__codelineno-0-637"></a>        <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
+<a id="__codelineno-0-638" name="__codelineno-0-638"></a>        <span class="n">configs</span><span class="o">=</span><span class="n">configs</span><span class="p">,</span>
+<a id="__codelineno-0-639" name="__codelineno-0-639"></a>        <span class="n">families</span><span class="o">=</span><span class="n">families</span><span class="p">,</span>
+<a id="__codelineno-0-640" name="__codelineno-0-640"></a>        <span class="n">family_groups</span><span class="o">=</span><span class="n">family_groups</span><span class="p">,</span>
+<a id="__codelineno-0-641" name="__codelineno-0-641"></a>        <span class="n">catalog</span><span class="o">=</span><span class="n">catalog_df</span><span class="p">,</span>
+<a id="__codelineno-0-642" name="__codelineno-0-642"></a>        <span class="n">metadata_columns</span><span class="o">=</span><span class="n">metadata_columns</span><span class="p">,</span>
+<a id="__codelineno-0-643" name="__codelineno-0-643"></a>        <span class="n">allow_missing</span><span class="o">=</span><span class="n">allow_missing</span><span class="p">,</span>
+<a id="__codelineno-0-644" name="__codelineno-0-644"></a>    <span class="p">)</span>
+<a id="__codelineno-0-645" name="__codelineno-0-645"></a>
+<a id="__codelineno-0-646" name="__codelineno-0-646"></a>    <span class="n">output_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-647" name="__codelineno-0-647"></a>    <span class="n">stripped_name</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-0-648" name="__codelineno-0-648"></a>        <span class="n">stripped_table_name</span> <span class="ow">or</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">input_path</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">_stripped</span><span class="si">{</span><span class="n">input_path</span><span class="o">.</span><span class="n">suffix</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39;.csv&#39;</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-649" name="__codelineno-0-649"></a>    <span class="p">)</span>
+<a id="__codelineno-0-650" name="__codelineno-0-650"></a>    <span class="n">stripped_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">stripped_name</span>
+<a id="__codelineno-0-651" name="__codelineno-0-651"></a>    <span class="n">removed_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">removed_table_name</span>
+<a id="__codelineno-0-652" name="__codelineno-0-652"></a>    <span class="n">cast</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">split</span><span class="o">.</span><span class="n">kept_table</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">stripped_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+<a id="__codelineno-0-653" name="__codelineno-0-653"></a>    <span class="n">cast</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">split</span><span class="o">.</span><span class="n">removed_table</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">removed_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+<a id="__codelineno-0-654" name="__codelineno-0-654"></a>
+<a id="__codelineno-0-655" name="__codelineno-0-655"></a>    <span class="n">input_catalog_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">catalog</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">catalog</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">))</span> <span class="k">else</span> <span class="kc">None</span>
+<a id="__codelineno-0-656" name="__codelineno-0-656"></a>    <span class="n">stripped_catalog_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-657" name="__codelineno-0-657"></a>    <span class="n">removed_catalog_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-658" name="__codelineno-0-658"></a>    <span class="k">if</span> <span class="n">catalog_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-659" name="__codelineno-0-659"></a>        <span class="n">stripped_catalog</span><span class="p">,</span> <span class="n">removed_catalog</span> <span class="o">=</span> <span class="n">_split_catalog_by_columns</span><span class="p">(</span>
+<a id="__codelineno-0-660" name="__codelineno-0-660"></a>            <span class="n">catalog_df</span><span class="p">,</span>
+<a id="__codelineno-0-661" name="__codelineno-0-661"></a>            <span class="n">removed_columns</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="n">split</span><span class="o">.</span><span class="n">removed_columns</span><span class="p">),</span>
+<a id="__codelineno-0-662" name="__codelineno-0-662"></a>        <span class="p">)</span>
+<a id="__codelineno-0-663" name="__codelineno-0-663"></a>        <span class="n">stripped_catalog_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">stripped_catalog_name</span>
+<a id="__codelineno-0-664" name="__codelineno-0-664"></a>        <span class="n">removed_catalog_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">removed_catalog_name</span>
+<a id="__codelineno-0-665" name="__codelineno-0-665"></a>        <span class="n">stripped_catalog</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">stripped_catalog_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+<a id="__codelineno-0-666" name="__codelineno-0-666"></a>        <span class="n">removed_catalog</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">removed_catalog_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span>
+<a id="__codelineno-0-667" name="__codelineno-0-667"></a>
+<a id="__codelineno-0-668" name="__codelineno-0-668"></a>    <span class="n">manifest_path</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">manifest_name</span>
+<a id="__codelineno-0-669" name="__codelineno-0-669"></a>    <span class="n">_write_manifest</span><span class="p">(</span>
+<a id="__codelineno-0-670" name="__codelineno-0-670"></a>        <span class="n">manifest_path</span><span class="p">,</span>
+<a id="__codelineno-0-671" name="__codelineno-0-671"></a>        <span class="n">input_table</span><span class="o">=</span><span class="n">input_path</span><span class="p">,</span>
+<a id="__codelineno-0-672" name="__codelineno-0-672"></a>        <span class="n">stripped_table</span><span class="o">=</span><span class="n">stripped_path</span><span class="p">,</span>
+<a id="__codelineno-0-673" name="__codelineno-0-673"></a>        <span class="n">removed_table</span><span class="o">=</span><span class="n">removed_path</span><span class="p">,</span>
+<a id="__codelineno-0-674" name="__codelineno-0-674"></a>        <span class="n">input_catalog</span><span class="o">=</span><span class="n">input_catalog_path</span><span class="p">,</span>
+<a id="__codelineno-0-675" name="__codelineno-0-675"></a>        <span class="n">stripped_catalog</span><span class="o">=</span><span class="n">stripped_catalog_path</span><span class="p">,</span>
+<a id="__codelineno-0-676" name="__codelineno-0-676"></a>        <span class="n">removed_catalog</span><span class="o">=</span><span class="n">removed_catalog_path</span><span class="p">,</span>
+<a id="__codelineno-0-677" name="__codelineno-0-677"></a>        <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
+<a id="__codelineno-0-678" name="__codelineno-0-678"></a>        <span class="n">features</span><span class="o">=</span><span class="n">_normalize_selectors</span><span class="p">(</span><span class="n">features</span><span class="p">),</span>
+<a id="__codelineno-0-679" name="__codelineno-0-679"></a>        <span class="n">configs</span><span class="o">=</span><span class="n">_normalize_selectors</span><span class="p">(</span><span class="n">configs</span><span class="p">),</span>
+<a id="__codelineno-0-680" name="__codelineno-0-680"></a>        <span class="n">families</span><span class="o">=</span><span class="n">_normalize_selectors</span><span class="p">(</span><span class="n">families</span><span class="p">),</span>
+<a id="__codelineno-0-681" name="__codelineno-0-681"></a>        <span class="n">family_groups</span><span class="o">=</span><span class="n">_normalize_selectors</span><span class="p">(</span><span class="n">family_groups</span><span class="p">),</span>
+<a id="__codelineno-0-682" name="__codelineno-0-682"></a>        <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">,</span>
+<a id="__codelineno-0-683" name="__codelineno-0-683"></a>    <span class="p">)</span>
+<a id="__codelineno-0-684" name="__codelineno-0-684"></a>
+<a id="__codelineno-0-685" name="__codelineno-0-685"></a>    <span class="k">return</span> <span class="n">RadiomicsFeatureSplitFiles</span><span class="p">(</span>
+<a id="__codelineno-0-686" name="__codelineno-0-686"></a>        <span class="n">input_table</span><span class="o">=</span><span class="n">input_path</span><span class="p">,</span>
+<a id="__codelineno-0-687" name="__codelineno-0-687"></a>        <span class="n">stripped_table</span><span class="o">=</span><span class="n">stripped_path</span><span class="p">,</span>
+<a id="__codelineno-0-688" name="__codelineno-0-688"></a>        <span class="n">removed_table</span><span class="o">=</span><span class="n">removed_path</span><span class="p">,</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a>        <span class="n">manifest</span><span class="o">=</span><span class="n">manifest_path</span><span class="p">,</span>
+<a id="__codelineno-0-690" name="__codelineno-0-690"></a>        <span class="n">input_catalog</span><span class="o">=</span><span class="n">input_catalog_path</span><span class="p">,</span>
+<a id="__codelineno-0-691" name="__codelineno-0-691"></a>        <span class="n">stripped_catalog</span><span class="o">=</span><span class="n">stripped_catalog_path</span><span class="p">,</span>
+<a id="__codelineno-0-692" name="__codelineno-0-692"></a>        <span class="n">removed_catalog</span><span class="o">=</span><span class="n">removed_catalog_path</span><span class="p">,</span>
+<a id="__codelineno-0-693" name="__codelineno-0-693"></a>        <span class="n">kept_columns</span><span class="o">=</span><span class="n">split</span><span class="o">.</span><span class="n">kept_columns</span><span class="p">,</span>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a>        <span class="n">removed_columns</span><span class="o">=</span><span class="n">split</span><span class="o">.</span><span class="n">removed_columns</span><span class="p">,</span>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a>        <span class="n">metadata_columns</span><span class="o">=</span><span class="n">split</span><span class="o">.</span><span class="n">metadata_columns</span><span class="p">,</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a>        <span class="n">unmatched_selectors</span><span class="o">=</span><span class="n">split</span><span class="o">.</span><span class="n">unmatched_selectors</span><span class="p">,</span>
+<a id="__codelineno-0-697" name="__codelineno-0-697"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3264,7 +3272,9 @@ order differ, preventing silently misapplied per-column parameters.</p>
 <span class="normal"><a href="#__codelineno-0-186">186</a></span>
 <span class="normal"><a href="#__codelineno-0-187">187</a></span>
 <span class="normal"><a href="#__codelineno-0-188">188</a></span>
-<span class="normal"><a href="#__codelineno-0-189">189</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="k">class</span><span class="w"> </span><span class="nc">RadiomicsPrepTransformer</span><span class="p">(</span><span class="n">OneToOneFeatureMixin</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">,</span> <span class="n">BaseEstimator</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-189">189</a></span>
+<span class="normal"><a href="#__codelineno-0-190">190</a></span>
+<span class="normal"><a href="#__codelineno-0-191">191</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="k">class</span><span class="w"> </span><span class="nc">RadiomicsPrepTransformer</span><span class="p">(</span><span class="n">OneToOneFeatureMixin</span><span class="p">,</span> <span class="n">TransformerMixin</span><span class="p">,</span> <span class="n">BaseEstimator</span><span class="p">):</span>
 <a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;scikit-learn compatible preprocessor for radiomics features.</span>
 <a id="__codelineno-0-19" name="__codelineno-0-19"></a>
 <a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    Applies outlier winsorization, Yeo-Johnson power transformation, and z-score</span>
@@ -3425,18 +3435,20 @@ order differ, preventing silently misapplied per-column parameters.</p>
 <a id="__codelineno-0-175" name="__codelineno-0-175"></a>            <span class="k">else</span><span class="p">:</span>
 <a id="__codelineno-0-176" name="__codelineno-0-176"></a>                <span class="n">transformed</span> <span class="o">=</span> <span class="n">clipped</span>
 <a id="__codelineno-0-177" name="__codelineno-0-177"></a>
-<a id="__codelineno-0-178" name="__codelineno-0-178"></a>            <span class="c1"># 3. Apply standard scaling</span>
-<a id="__codelineno-0-179" name="__codelineno-0-179"></a>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">standardize</span> <span class="ow">and</span> <span class="n">std</span> <span class="o">&gt;</span> <span class="mf">1e-12</span><span class="p">:</span>
-<a id="__codelineno-0-180" name="__codelineno-0-180"></a>                <span class="n">scaled</span> <span class="o">=</span> <span class="p">(</span><span class="n">transformed</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span>
-<a id="__codelineno-0-181" name="__codelineno-0-181"></a>            <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-182" name="__codelineno-0-182"></a>                <span class="n">scaled</span> <span class="o">=</span> <span class="n">transformed</span>
-<a id="__codelineno-0-183" name="__codelineno-0-183"></a>
-<a id="__codelineno-0-184" name="__codelineno-0-184"></a>            <span class="n">X_trans</span><span class="p">[</span><span class="n">valid_mask</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">scaled</span>
+<a id="__codelineno-0-178" name="__codelineno-0-178"></a>            <span class="c1"># 3. Apply standard scaling. A (near-)constant column has no spread to</span>
+<a id="__codelineno-0-179" name="__codelineno-0-179"></a>            <span class="c1"># divide by, so it is centered to zero (matching StandardScaler) rather</span>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a>            <span class="c1"># than passed through at its raw magnitude.</span>
+<a id="__codelineno-0-181" name="__codelineno-0-181"></a>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">standardize</span><span class="p">:</span>
+<a id="__codelineno-0-182" name="__codelineno-0-182"></a>                <span class="n">scaled</span> <span class="o">=</span> <span class="p">(</span><span class="n">transformed</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span> <span class="k">if</span> <span class="n">std</span> <span class="o">&gt;</span> <span class="mf">1e-12</span> <span class="k">else</span> <span class="n">transformed</span> <span class="o">-</span> <span class="n">mean</span>
+<a id="__codelineno-0-183" name="__codelineno-0-183"></a>            <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-184" name="__codelineno-0-184"></a>                <span class="n">scaled</span> <span class="o">=</span> <span class="n">transformed</span>
 <a id="__codelineno-0-185" name="__codelineno-0-185"></a>
-<a id="__codelineno-0-186" name="__codelineno-0-186"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
-<a id="__codelineno-0-187" name="__codelineno-0-187"></a>            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">X_trans</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
-<a id="__codelineno-0-188" name="__codelineno-0-188"></a>
-<a id="__codelineno-0-189" name="__codelineno-0-189"></a>        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">NDArray</span><span class="p">,</span> <span class="n">X_trans</span><span class="p">)</span>
+<a id="__codelineno-0-186" name="__codelineno-0-186"></a>            <span class="n">X_trans</span><span class="p">[</span><span class="n">valid_mask</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">scaled</span>
+<a id="__codelineno-0-187" name="__codelineno-0-187"></a>
+<a id="__codelineno-0-188" name="__codelineno-0-188"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+<a id="__codelineno-0-189" name="__codelineno-0-189"></a>            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">X_trans</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+<a id="__codelineno-0-190" name="__codelineno-0-190"></a>
+<a id="__codelineno-0-191" name="__codelineno-0-191"></a>        <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">NDArray</span><span class="p">,</span> <span class="n">X_trans</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -3842,7 +3854,9 @@ otherwise returns a numpy array.</p>
 <span class="normal"><a href="#__codelineno-0-186">186</a></span>
 <span class="normal"><a href="#__codelineno-0-187">187</a></span>
 <span class="normal"><a href="#__codelineno-0-188">188</a></span>
-<span class="normal"><a href="#__codelineno-0-189">189</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-133" name="__codelineno-0-133"></a><span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">NDArray</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-189">189</a></span>
+<span class="normal"><a href="#__codelineno-0-190">190</a></span>
+<span class="normal"><a href="#__codelineno-0-191">191</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-133" name="__codelineno-0-133"></a><span class="k">def</span><span class="w"> </span><span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">NDArray</span><span class="p">:</span>
 <a id="__codelineno-0-134" name="__codelineno-0-134"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply fitted winsorization, Yeo-Johnson, and scaling.</span>
 <a id="__codelineno-0-135" name="__codelineno-0-135"></a>
 <a id="__codelineno-0-136" name="__codelineno-0-136"></a><span class="sd">    Parameters</span>
@@ -3887,18 +3901,20 @@ otherwise returns a numpy array.</p>
 <a id="__codelineno-0-175" name="__codelineno-0-175"></a>        <span class="k">else</span><span class="p">:</span>
 <a id="__codelineno-0-176" name="__codelineno-0-176"></a>            <span class="n">transformed</span> <span class="o">=</span> <span class="n">clipped</span>
 <a id="__codelineno-0-177" name="__codelineno-0-177"></a>
-<a id="__codelineno-0-178" name="__codelineno-0-178"></a>        <span class="c1"># 3. Apply standard scaling</span>
-<a id="__codelineno-0-179" name="__codelineno-0-179"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">standardize</span> <span class="ow">and</span> <span class="n">std</span> <span class="o">&gt;</span> <span class="mf">1e-12</span><span class="p">:</span>
-<a id="__codelineno-0-180" name="__codelineno-0-180"></a>            <span class="n">scaled</span> <span class="o">=</span> <span class="p">(</span><span class="n">transformed</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span>
-<a id="__codelineno-0-181" name="__codelineno-0-181"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-182" name="__codelineno-0-182"></a>            <span class="n">scaled</span> <span class="o">=</span> <span class="n">transformed</span>
-<a id="__codelineno-0-183" name="__codelineno-0-183"></a>
-<a id="__codelineno-0-184" name="__codelineno-0-184"></a>        <span class="n">X_trans</span><span class="p">[</span><span class="n">valid_mask</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">scaled</span>
+<a id="__codelineno-0-178" name="__codelineno-0-178"></a>        <span class="c1"># 3. Apply standard scaling. A (near-)constant column has no spread to</span>
+<a id="__codelineno-0-179" name="__codelineno-0-179"></a>        <span class="c1"># divide by, so it is centered to zero (matching StandardScaler) rather</span>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a>        <span class="c1"># than passed through at its raw magnitude.</span>
+<a id="__codelineno-0-181" name="__codelineno-0-181"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">standardize</span><span class="p">:</span>
+<a id="__codelineno-0-182" name="__codelineno-0-182"></a>            <span class="n">scaled</span> <span class="o">=</span> <span class="p">(</span><span class="n">transformed</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span> <span class="k">if</span> <span class="n">std</span> <span class="o">&gt;</span> <span class="mf">1e-12</span> <span class="k">else</span> <span class="n">transformed</span> <span class="o">-</span> <span class="n">mean</span>
+<a id="__codelineno-0-183" name="__codelineno-0-183"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-184" name="__codelineno-0-184"></a>            <span class="n">scaled</span> <span class="o">=</span> <span class="n">transformed</span>
 <a id="__codelineno-0-185" name="__codelineno-0-185"></a>
-<a id="__codelineno-0-186" name="__codelineno-0-186"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
-<a id="__codelineno-0-187" name="__codelineno-0-187"></a>        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">X_trans</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
-<a id="__codelineno-0-188" name="__codelineno-0-188"></a>
-<a id="__codelineno-0-189" name="__codelineno-0-189"></a>    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">NDArray</span><span class="p">,</span> <span class="n">X_trans</span><span class="p">)</span>
+<a id="__codelineno-0-186" name="__codelineno-0-186"></a>        <span class="n">X_trans</span><span class="p">[</span><span class="n">valid_mask</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">scaled</span>
+<a id="__codelineno-0-187" name="__codelineno-0-187"></a>
+<a id="__codelineno-0-188" name="__codelineno-0-188"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+<a id="__codelineno-0-189" name="__codelineno-0-189"></a>        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">X_trans</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+<a id="__codelineno-0-190" name="__codelineno-0-190"></a>
+<a id="__codelineno-0-191" name="__codelineno-0-191"></a>    <span class="k">return</span> <span class="n">cast</span><span class="p">(</span><span class="n">NDArray</span><span class="p">,</span> <span class="n">X_trans</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

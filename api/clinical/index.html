@@ -1652,11 +1652,7 @@ ready to pass to <code>plot_clustered_heatmap(..., right=...)</code>.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>eigenradiomics/clinical.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-77"> 77</a></span>
-<span class="normal"><a href="#__codelineno-0-78"> 78</a></span>
-<span class="normal"><a href="#__codelineno-0-79"> 79</a></span>
-<span class="normal"><a href="#__codelineno-0-80"> 80</a></span>
-<span class="normal"><a href="#__codelineno-0-81"> 81</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-81"> 81</a></span>
 <span class="normal"><a href="#__codelineno-0-82"> 82</a></span>
 <span class="normal"><a href="#__codelineno-0-83"> 83</a></span>
 <span class="normal"><a href="#__codelineno-0-84"> 84</a></span>
@@ -1702,57 +1698,71 @@ ready to pass to <code>plot_clustered_heatmap(..., right=...)</code>.</p>
 <span class="normal"><a href="#__codelineno-0-124">124</a></span>
 <span class="normal"><a href="#__codelineno-0-125">125</a></span>
 <span class="normal"><a href="#__codelineno-0-126">126</a></span>
-<span class="normal"><a href="#__codelineno-0-127">127</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute_clinical_correlations</span><span class="p">(</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="n">features</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">RadiomicsDataset</span><span class="p">,</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="n">clinical</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;spearman&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-82" name="__codelineno-0-82"></a>    <span class="n">min_pairs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
-<a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Correlate each feature with each clinical variable.</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a>
-<a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="sd">    Parameters</span>
-<a id="__codelineno-0-87" name="__codelineno-0-87"></a><span class="sd">    ----------</span>
-<a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="sd">    features : DataFrame or RadiomicsDataset</span>
-<a id="__codelineno-0-89" name="__codelineno-0-89"></a><span class="sd">        Feature matrix (samples x features). For a :class:`RadiomicsDataset` its</span>
-<a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="sd">        feature matrix is used and *clinical* may name metadata columns.</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="sd">    clinical : DataFrame or sequence of str</span>
-<a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">        Clinical variables (samples x variables), or — when *features* is a</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">        :class:`RadiomicsDataset` — a list of its metadata column names.</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="sd">        Variables are numerically encoded via :func:`encode_clinical_series`.</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">    method : {&quot;spearman&quot;, &quot;pearson&quot;, &quot;kendall&quot;}</span>
-<a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="sd">        Correlation method (``&quot;spearman&quot;`` by default, robust to mixed scales).</span>
-<a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">    min_pairs : int</span>
-<a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="sd">        Minimum non-missing overlapping observations required per correlation;</span>
-<a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="sd">        variables with fewer valid values or no variance are dropped.</span>
-<a id="__codelineno-0-100" name="__codelineno-0-100"></a>
-<a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">    Returns</span>
-<a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">    -------</span>
-<a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">    correlations : pandas.DataFrame</span>
-<a id="__codelineno-0-104" name="__codelineno-0-104"></a><span class="sd">        ``(n_features, n_usable_variables)`` correlation matrix, feature-indexed,</span>
-<a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">        ready to pass to ``plot_clustered_heatmap(..., right=...)``.</span>
-<a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-107" name="__codelineno-0-107"></a>    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;spearman&quot;</span><span class="p">,</span> <span class="s2">&quot;pearson&quot;</span><span class="p">,</span> <span class="s2">&quot;kendall&quot;</span><span class="p">}:</span>
-<a id="__codelineno-0-108" name="__codelineno-0-108"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;method must be &#39;spearman&#39;, &#39;pearson&#39;, or &#39;kendall&#39;, got </span><span class="si">{</span><span class="n">method</span><span class="si">!r}</span><span class="s2">.&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-109" name="__codelineno-0-109"></a>    <span class="n">feature_matrix</span><span class="p">,</span> <span class="n">clinical_frame</span> <span class="o">=</span> <span class="n">_resolve_inputs</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">clinical</span><span class="p">)</span>
-<a id="__codelineno-0-110" name="__codelineno-0-110"></a>    <span class="n">encoded</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-<a id="__codelineno-0-111" name="__codelineno-0-111"></a>        <span class="p">{</span><span class="n">column</span><span class="p">:</span> <span class="n">encode_clinical_series</span><span class="p">(</span><span class="n">clinical_frame</span><span class="p">[</span><span class="n">column</span><span class="p">])</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">clinical_frame</span><span class="p">},</span>
-<a id="__codelineno-0-112" name="__codelineno-0-112"></a>        <span class="n">index</span><span class="o">=</span><span class="n">clinical_frame</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
-<a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="p">)</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">feature_matrix</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
-<a id="__codelineno-0-114" name="__codelineno-0-114"></a>    <span class="n">usable</span> <span class="o">=</span> <span class="p">[</span>
-<a id="__codelineno-0-115" name="__codelineno-0-115"></a>        <span class="n">column</span>
-<a id="__codelineno-0-116" name="__codelineno-0-116"></a>        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">encoded</span><span class="o">.</span><span class="n">columns</span>
-<a id="__codelineno-0-117" name="__codelineno-0-117"></a>        <span class="k">if</span> <span class="n">encoded</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">min_pairs</span>
-<a id="__codelineno-0-118" name="__codelineno-0-118"></a>        <span class="ow">and</span> <span class="n">encoded</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">(</span><span class="n">dropna</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
-<a id="__codelineno-0-119" name="__codelineno-0-119"></a>    <span class="p">]</span>
-<a id="__codelineno-0-120" name="__codelineno-0-120"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">usable</span><span class="p">:</span>
-<a id="__codelineno-0-121" name="__codelineno-0-121"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-122" name="__codelineno-0-122"></a>            <span class="s2">&quot;No clinical variable has enough non-missing, varying values &quot;</span>
-<a id="__codelineno-0-123" name="__codelineno-0-123"></a>            <span class="sa">f</span><span class="s2">&quot;(need &gt;= </span><span class="si">{</span><span class="n">min_pairs</span><span class="si">}</span><span class="s2"> pairs with &gt;1 unique value).&quot;</span>
-<a id="__codelineno-0-124" name="__codelineno-0-124"></a>        <span class="p">)</span>
-<a id="__codelineno-0-125" name="__codelineno-0-125"></a>    <span class="n">combined</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">feature_matrix</span><span class="p">,</span> <span class="n">encoded</span><span class="p">[</span><span class="n">usable</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<a id="__codelineno-0-126" name="__codelineno-0-126"></a>    <span class="n">correlations</span> <span class="o">=</span> <span class="n">combined</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">min_periods</span><span class="o">=</span><span class="n">min_pairs</span><span class="p">)</span>
-<a id="__codelineno-0-127" name="__codelineno-0-127"></a>    <span class="k">return</span> <span class="n">correlations</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">feature_matrix</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span> <span class="n">usable</span><span class="p">]</span>
+<span class="normal"><a href="#__codelineno-0-127">127</a></span>
+<span class="normal"><a href="#__codelineno-0-128">128</a></span>
+<span class="normal"><a href="#__codelineno-0-129">129</a></span>
+<span class="normal"><a href="#__codelineno-0-130">130</a></span>
+<span class="normal"><a href="#__codelineno-0-131">131</a></span>
+<span class="normal"><a href="#__codelineno-0-132">132</a></span>
+<span class="normal"><a href="#__codelineno-0-133">133</a></span>
+<span class="normal"><a href="#__codelineno-0-134">134</a></span>
+<span class="normal"><a href="#__codelineno-0-135">135</a></span>
+<span class="normal"><a href="#__codelineno-0-136">136</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-81" name="__codelineno-0-81"></a><span class="k">def</span><span class="w"> </span><span class="nf">compute_clinical_correlations</span><span class="p">(</span>
+<a id="__codelineno-0-82" name="__codelineno-0-82"></a>    <span class="n">features</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">RadiomicsDataset</span><span class="p">,</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83"></a>    <span class="n">clinical</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<a id="__codelineno-0-84" name="__codelineno-0-84"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a>    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;spearman&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a>    <span class="n">min_pairs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-0-87" name="__codelineno-0-87"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Correlate each feature with each clinical variable.</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a>
+<a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="sd">    Parameters</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="sd">    ----------</span>
+<a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">    features : DataFrame or RadiomicsDataset</span>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">        Feature matrix (samples x features). For a :class:`RadiomicsDataset` its</span>
+<a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="sd">        feature matrix is used and *clinical* may name metadata columns.</span>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">    clinical : DataFrame or sequence of str</span>
+<a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="sd">        Clinical variables (samples x variables), or — when *features* is a</span>
+<a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">        :class:`RadiomicsDataset` — a list of its metadata column names.</span>
+<a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="sd">        Variables are numerically encoded via :func:`encode_clinical_series`.</span>
+<a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="sd">    method : {&quot;spearman&quot;, &quot;pearson&quot;, &quot;kendall&quot;}</span>
+<a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">        Correlation method (``&quot;spearman&quot;`` by default, robust to mixed scales).</span>
+<a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">    min_pairs : int</span>
+<a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">        Minimum non-missing overlapping observations required per correlation;</span>
+<a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">        variables with fewer valid values or no variance are dropped.</span>
+<a id="__codelineno-0-104" name="__codelineno-0-104"></a>
+<a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">    Returns</span>
+<a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">    -------</span>
+<a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="sd">    correlations : pandas.DataFrame</span>
+<a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="sd">        ``(n_features, n_usable_variables)`` correlation matrix, feature-indexed,</span>
+<a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="sd">        ready to pass to ``plot_clustered_heatmap(..., right=...)``.</span>
+<a id="__codelineno-0-110" name="__codelineno-0-110"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-111" name="__codelineno-0-111"></a>    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;spearman&quot;</span><span class="p">,</span> <span class="s2">&quot;pearson&quot;</span><span class="p">,</span> <span class="s2">&quot;kendall&quot;</span><span class="p">}:</span>
+<a id="__codelineno-0-112" name="__codelineno-0-112"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;method must be &#39;spearman&#39;, &#39;pearson&#39;, or &#39;kendall&#39;, got </span><span class="si">{</span><span class="n">method</span><span class="si">!r}</span><span class="s2">.&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="n">feature_matrix</span><span class="p">,</span> <span class="n">clinical_frame</span> <span class="o">=</span> <span class="n">_resolve_inputs</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">clinical</span><span class="p">)</span>
+<a id="__codelineno-0-114" name="__codelineno-0-114"></a>    <span class="k">if</span> <span class="n">feature_matrix</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">clinical_frame</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+<a id="__codelineno-0-115" name="__codelineno-0-115"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-116" name="__codelineno-0-116"></a>            <span class="s2">&quot;features and clinical share no common index labels; align their indexes &quot;</span>
+<a id="__codelineno-0-117" name="__codelineno-0-117"></a>            <span class="s2">&quot;before correlating (or pass a RadiomicsDataset so they stay aligned).&quot;</span>
+<a id="__codelineno-0-118" name="__codelineno-0-118"></a>        <span class="p">)</span>
+<a id="__codelineno-0-119" name="__codelineno-0-119"></a>    <span class="n">encoded</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<a id="__codelineno-0-120" name="__codelineno-0-120"></a>        <span class="p">{</span><span class="n">column</span><span class="p">:</span> <span class="n">encode_clinical_series</span><span class="p">(</span><span class="n">clinical_frame</span><span class="p">[</span><span class="n">column</span><span class="p">])</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">clinical_frame</span><span class="p">},</span>
+<a id="__codelineno-0-121" name="__codelineno-0-121"></a>        <span class="n">index</span><span class="o">=</span><span class="n">clinical_frame</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+<a id="__codelineno-0-122" name="__codelineno-0-122"></a>    <span class="p">)</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">feature_matrix</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+<a id="__codelineno-0-123" name="__codelineno-0-123"></a>    <span class="n">usable</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-0-124" name="__codelineno-0-124"></a>        <span class="n">column</span>
+<a id="__codelineno-0-125" name="__codelineno-0-125"></a>        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">encoded</span><span class="o">.</span><span class="n">columns</span>
+<a id="__codelineno-0-126" name="__codelineno-0-126"></a>        <span class="k">if</span> <span class="n">encoded</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="n">min_pairs</span>
+<a id="__codelineno-0-127" name="__codelineno-0-127"></a>        <span class="ow">and</span> <span class="n">encoded</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">(</span><span class="n">dropna</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+<a id="__codelineno-0-128" name="__codelineno-0-128"></a>    <span class="p">]</span>
+<a id="__codelineno-0-129" name="__codelineno-0-129"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">usable</span><span class="p">:</span>
+<a id="__codelineno-0-130" name="__codelineno-0-130"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-131" name="__codelineno-0-131"></a>            <span class="s2">&quot;No clinical variable has enough non-missing, varying values &quot;</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132"></a>            <span class="sa">f</span><span class="s2">&quot;(need &gt;= </span><span class="si">{</span><span class="n">min_pairs</span><span class="si">}</span><span class="s2"> pairs with &gt;1 unique value).&quot;</span>
+<a id="__codelineno-0-133" name="__codelineno-0-133"></a>        <span class="p">)</span>
+<a id="__codelineno-0-134" name="__codelineno-0-134"></a>    <span class="n">combined</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">feature_matrix</span><span class="p">,</span> <span class="n">encoded</span><span class="p">[</span><span class="n">usable</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="n">correlations</span> <span class="o">=</span> <span class="n">combined</span><span class="o">.</span><span class="n">corr</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">min_periods</span><span class="o">=</span><span class="n">min_pairs</span><span class="p">)</span>
+<a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="k">return</span> <span class="n">correlations</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">feature_matrix</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span> <span class="n">usable</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -1860,7 +1870,11 @@ ready to pass to <code>plot_clustered_heatmap(..., right=...)</code>.</p>
 <span class="normal"><a href="#__codelineno-0-50">50</a></span>
 <span class="normal"><a href="#__codelineno-0-51">51</a></span>
 <span class="normal"><a href="#__codelineno-0-52">52</a></span>
-<span class="normal"><a href="#__codelineno-0-53">53</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="k">def</span><span class="w"> </span><span class="nf">encode_clinical_series</span><span class="p">(</span><span class="n">series</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#__codelineno-0-57">57</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="k">def</span><span class="w"> </span><span class="nf">encode_clinical_series</span><span class="p">(</span><span class="n">series</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
 <a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Coerce a clinical variable to a numeric Series for correlation.</span>
 <a id="__codelineno-0-29" name="__codelineno-0-29"></a>
 <a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">    Applied in order: (1) numeric parse; (2) common binary/ordinal string tokens</span>
@@ -1878,15 +1892,19 @@ ready to pass to <code>plot_clustered_heatmap(..., right=...)</code>.</p>
 <a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">        Float-valued Series aligned to ``series.index`` (unmappable entries NaN).</span>
 <a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-44" name="__codelineno-0-44"></a>    <span class="n">numeric</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">series</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a>    <span class="k">if</span> <span class="n">numeric</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46"></a>        <span class="k">return</span> <span class="n">numeric</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="n">cleaned</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;string&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="n">mapped</span> <span class="o">=</span> <span class="n">cleaned</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_BINARY_MAP</span><span class="p">)</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="k">if</span> <span class="n">mapped</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a>        <span class="k">return</span> <span class="n">mapped</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="n">categories</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">cleaned</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">category_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">category</span><span class="p">:</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">category</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">categories</span><span class="p">)}</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53"></a>    <span class="k">return</span> <span class="n">cleaned</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">category_map</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+<a id="__codelineno-0-45" name="__codelineno-0-45"></a>    <span class="n">n_present</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">series</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+<a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="c1"># Treat the column as numeric only when most non-missing values parse as</span>
+<a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="c1"># numbers; a lone numeric token in an otherwise categorical column must not</span>
+<a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="c1"># blank out the rest (which would silently drop it later).</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="k">if</span> <span class="n">n_present</span> <span class="ow">and</span> <span class="n">numeric</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">n_present</span><span class="p">:</span>
+<a id="__codelineno-0-50" name="__codelineno-0-50"></a>        <span class="k">return</span> <span class="n">numeric</span>
+<a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="n">cleaned</span> <span class="o">=</span> <span class="n">series</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;string&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+<a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">mapped</span> <span class="o">=</span> <span class="n">cleaned</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">_BINARY_MAP</span><span class="p">)</span>
+<a id="__codelineno-0-53" name="__codelineno-0-53"></a>    <span class="k">if</span> <span class="n">mapped</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+<a id="__codelineno-0-54" name="__codelineno-0-54"></a>        <span class="k">return</span> <span class="n">mapped</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+<a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="n">categories</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">cleaned</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+<a id="__codelineno-0-56" name="__codelineno-0-56"></a>    <span class="n">category_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">category</span><span class="p">:</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">category</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">categories</span><span class="p">)}</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="k">return</span> <span class="n">cleaned</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">category_map</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

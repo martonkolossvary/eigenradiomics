@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/radiomics_preprocessing/">
       
       
-        <link rel="prev" href="../pipelines_and_grid_search/">
+        <link rel="prev" href="../batch_effects/">
       
       
-        <link rel="next" href="../reproducibility/">
+        <link rel="next" href="../../reducers/wgcna/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Radiomics Table Preprocessing - eigenradiomics</title>
+        <title>Preprocess feature tables - eigenradiomics</title>
       
     
     
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Radiomics Table Preprocessing
+              Preprocess feature tables
             
           </span>
         </div>
@@ -261,17 +261,37 @@
   
   
   
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../installation/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
     
   
   
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../installation/" class="md-tabs__link">
+        <a href="../data_ingestion/" class="md-tabs__link">
           
   
   
-  User Guide
+  How-to Guides
 
         </a>
       </li>
@@ -287,11 +307,11 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../reducers/" class="md-tabs__link">
+        <a href="../best_practices/" class="md-tabs__link">
           
   
   
-  Reducers (Algorithms)
+  Explanation
 
         </a>
       </li>
@@ -324,55 +344,18 @@
   
   
   
-    <li class="md-tabs__item">
-      <a href="../../quality/" class="md-tabs__link">
-        
-  
-  
     
-  
-  Quality Report
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../../changelog/" class="md-tabs__link">
-        
-  
-  
     
+      <li class="md-tabs__item">
+        <a href="../../quality/" class="md-tabs__link">
+          
   
-  Changelog
+  
+  Project
 
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-  
-    <li class="md-tabs__item">
-      <a href="../../license/" class="md-tabs__link">
-        
-  
-  
+        </a>
+      </li>
     
-  
-  License
-
-      </a>
-    </li>
   
 
       
@@ -451,38 +434,33 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
   
   
   <span class="md-ellipsis">
     
   
-    User Guide
+    Tutorials
   
 
     
@@ -493,12 +471,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
   
-    User Guide
+    Tutorials
   
 
           </label>
@@ -567,14 +545,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../input_data_model/" class="md-nav__link">
+      <a href="../end_to_end/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Data Loading & Validation
+    End-to-End Workflow
   
 
     
@@ -587,6 +565,70 @@
   
 
               
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -602,7 +644,7 @@
   <span class="md-ellipsis">
     
   
-    Data Ingestion & Datasets
+    Load & align data
   
 
     
@@ -623,14 +665,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../pipelines_and_grid_search/" class="md-nav__link">
+      <a href="../reproducibility/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Pipelines & Preprocessing
+    Screen reproducibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../batch_effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnose batch effects
   
 
     
@@ -667,7 +737,7 @@
   <span class="md-ellipsis">
     
   
-    Radiomics Table Preprocessing
+    Preprocess feature tables
   
 
     
@@ -685,7 +755,7 @@
   <span class="md-ellipsis">
     
   
-    Radiomics Table Preprocessing
+    Preprocess feature tables
   
 
     
@@ -755,6 +825,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#selecting-features-by-a-qc-score" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selecting features by a QC score
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#per-feature-cleaning-with-radiomicspreptransformer" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -781,42 +862,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../reproducibility/" class="md-nav__link">
+      <a href="../../reducers/wgcna/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Reproducibility Analysis
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../batch_effects/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Batch Effect Diagnostics
+    Reduce with WGCNA
   
 
     
@@ -844,7 +897,7 @@
   <span class="md-ellipsis">
     
   
-    Clustered Heatmap
+    Visualize the clustered heatmap
   
 
     
@@ -865,14 +918,42 @@
   
   
     <li class="md-nav__item">
-      <a href="../end_to_end/" class="md-nav__link">
+      <a href="../downstream_analysis/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    End-to-End Workflow
+    Downstream statistical analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipelines_and_grid_search/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tune in a Pipeline / GridSearchCV
   
 
     
@@ -900,7 +981,150 @@
   <span class="md-ellipsis">
     
   
-    Cookbook & Recipes
+    Cookbook & recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Explanation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Explanation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../best_practices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Best practices & pitfalls
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../input_data_model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input data model & leakage-safe transforms
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reducers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The reducer contract & artifacts
   
 
     
@@ -928,7 +1152,7 @@
   <span class="md-ellipsis">
     
   
-    Scalability Guide
+    Scalability & performance
   
 
     
@@ -997,125 +1221,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reducers (Algorithms)
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Reducers (Algorithms)
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reducers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../reducers/wgcna/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    WGCNA
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   
@@ -1133,8 +1242,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1207,90 +1316,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/reducers/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reducers
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../api/plotting/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Plotting
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../api/clinical/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Clinical Correlations
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../api/preprocessing/" class="md-nav__link">
         
   
@@ -1299,6 +1324,34 @@
     
   
     Preprocessing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/reducers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reducers
   
 
     
@@ -1375,6 +1428,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api/plotting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plotting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/clinical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clinical & Module-Trait
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api/utils/" class="md-nav__link">
         
   
@@ -1382,7 +1491,7 @@
   <span class="md-ellipsis">
     
   
-    Interoperability Utilities
+    Validation Utilities (internal)
   
 
     
@@ -1409,6 +1518,58 @@
   
   
   
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../../quality/" class="md-nav__link">
         
@@ -1429,9 +1590,10 @@
     </li>
   
 
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -1456,9 +1618,10 @@
     </li>
   
 
-    
-      
-      
+              
+            
+              
+                
   
   
   
@@ -1480,6 +1643,14 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1548,6 +1719,17 @@
     <span class="md-ellipsis">
       
         sklearn Pipeline Use
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#selecting-features-by-a-qc-score" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selecting features by a QC score
       
     </span>
   </a>
@@ -1656,6 +1838,21 @@ the removal should be part of a fitted preprocessing pipeline:</p>
 </code></pre></div>
 <p>Like the reducers, the transformer validates that DataFrame columns at
 <code>transform</code> time match the columns seen during <code>fit</code>.</p>
+<p>For observer-paired reproducibility tables (<code>O1_…</code>, <code>O2_…</code> columns), pass
+<code>observer_prefixes=("O1_", "O2_")</code> so the <code>configs</code>/<code>families</code>/catalog selectors
+resolve on the base <code>config__feature_key</code> name.</p>
+<h2 id="selecting-features-by-a-qc-score">Selecting features by a QC score</h2>
+<p><code>FeatureScoreSelector</code> drops features that fail a <strong>precomputed</strong> quality
+threshold — e.g. low reproducibility ICC or a large batch-effect size — inside a
+<code>Pipeline</code>. Compute the scores once, pass the table and a threshold, and the
+selector becomes part of the fitted, leakage-safe transform:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureScoreSelector</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># keep features with ICC &gt;= 0.80 (icc is the &quot;ICC&quot; sheet from compute_reproducibility)</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">reliable</span> <span class="o">=</span> <span class="n">FeatureScoreSelector</span><span class="p">(</span><span class="n">icc</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.80</span><span class="p">,</span> <span class="n">score_column</span><span class="o">=</span><span class="s2">&quot;icc_2_1&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>See <a href="../downstream_analysis/#qc-driven-feature-selection-in-a-pipeline">Downstream Statistical Analysis</a>
+for using it together with the QC functions.</p>
 <h2 id="per-feature-cleaning-with-radiomicspreptransformer">Per-Feature Cleaning with <code>RadiomicsPrepTransformer</code></h2>
 <p><code>RadiomicsPrepTransformer</code> is a scikit-learn-compatible transformer that
 cleans each feature column independently while <strong>preserving NaN values</strong>
@@ -1669,10 +1866,10 @@ every column it applies, in order:</p>
 <li><strong>Standardization</strong> — z-score to zero mean / unit variance (disable with
    <code>standardize=False</code>).</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsPrepTransformer</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">prep</span> <span class="o">=</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">(</span><span class="n">winsor_lower</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">winsor_upper</span><span class="o">=</span><span class="mf">0.99</span><span class="p">)</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">X_clean</span> <span class="o">=</span> <span class="n">prep</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>  <span class="c1"># NaNs in X stay NaN in X_clean</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">RadiomicsPrepTransformer</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">prep</span> <span class="o">=</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">(</span><span class="n">winsor_lower</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">winsor_upper</span><span class="o">=</span><span class="mf">0.99</span><span class="p">)</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">X_clean</span> <span class="o">=</span> <span class="n">prep</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>  <span class="c1"># NaNs in X stay NaN in X_clean</span>
 </code></pre></div>
 <p>A right-skewed, outlier-laden feature becomes approximately normal and centered,
 while missing values pass straight through:</p>

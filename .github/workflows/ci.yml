@@ -38,7 +38,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          poetry install --with dev --extras wgcna --no-interaction
+          poetry install --with dev --extras "wgcna survival modeling" --no-interaction
 
       - name: Ruff
         run: |
@@ -90,7 +90,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          poetry install --with dev --extras wgcna --no-interaction
+          poetry install --with dev --extras "wgcna survival modeling" --no-interaction
 
       - name: Generate documentation pages
         run: |

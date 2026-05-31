@@ -42,6 +42,7 @@ _RESULT_FIELDS = (
     "p_value",
     "ci_low",
     "ci_high",
+    "c_index",
     "n",
     "n_events",
     "n_missing",
@@ -141,34 +142,228 @@ def _fit_ols_hc3(y: NDArray, design: NDArray, feature_idx: int) -> dict[str, Any
     }
 
 
-def _fit_feature_continuous(
-    frame: pd.DataFrame,
-    feature: str,
-    covariates: Sequence[str],
-    outcome_col: str,
-    min_unique: int,
-) -> dict[str, Any]:
-    """Complete-case continuous (OLS+HC3) fit for one feature in one tier."""
-    columns = [outcome_col, feature, *covariates]
-    subset = frame[columns].apply(pd.to_numeric, errors="coerce").dropna()
-    base = {
-        "n": int(len(subset)),
-        "n_events": np.nan,
-        "n_missing": int(len(frame) - len(subset)),
-    }
-    if subset.empty:
-        return {**base, "status": "no_complete_cases"}
-    if subset[feature].nunique() < min_unique:
-        return {**base, "status": "constant_feature"}
-    y = subset[outcome_col].to_numpy(dtype=float)
-    design = np.column_stack(
+@dataclass(frozen=True)
+class _OutcomeSpec:
+    outcome_type: str
+    outcome_cols: list[str]
+    groups_col: str | None
+    mixed_method: str
+    penalizer: float
+    min_events: int
+    min_unique: int
+
+
+def _import_lifelines() -> Any:
+    try:
+        from lifelines import CoxPHFitter
+    except ImportError as exc:
+        raise ImportError(
+            "survival models require the optional 'lifelines' dependency "
+            "(`pip install eigenradiomics[survival]`)."
+        ) from exc
+    return CoxPHFitter
+
+
+def _import_statsmodels() -> Any:
+    try:
+        import statsmodels.api as sm
+    except ImportError as exc:
+        raise ImportError(
+            "binary / mixed models require the optional 'statsmodels' dependency "
+            "(`pip install eigenradiomics[modeling]`)."
+        ) from exc
+    return sm
+
+
+def _clean_error(exc: Exception) -> str:
+    import re
+
+    return re.sub(r"\s+", " ", str(exc)).strip()[:300]
+
+
+def _design(subset: pd.DataFrame, feature: str, covariates: Sequence[str]) -> NDArray:
+    """[intercept, feature, *covariates] design matrix; the feature is column 1."""
+    return np.column_stack(
         [np.ones(len(subset)), subset[feature].to_numpy(dtype=float)]
         + [subset[col].to_numpy(dtype=float) for col in covariates]
     )
-    fit = _fit_ols_hc3(y, design, feature_idx=1)
+
+
+def _ratio_result(family: str, coef: float, se: float, p: float, lo: float, hi: float) -> dict:
+    """Result row for a ratio effect (HR/OR) on the exp scale."""
+    return {
+        "status": "ok",
+        "model_family": family,
+        "coef": coef,
+        "effect": float(np.exp(coef)),
+        "effect_name": "HR" if family.startswith("cox") else "OR",
+        "se": se,
+        "statistic": coef / se if se > 0 else np.nan,
+        "p_value": p,
+        "ci_low": float(np.exp(lo)),
+        "ci_high": float(np.exp(hi)),
+    }
+
+
+def _fit_cox(
+    subset: pd.DataFrame, feature: str, covariates: Sequence[str], spec: _OutcomeSpec
+) -> dict:
+    cox_cls = _import_lifelines()
+    time_col, event_col = spec.outcome_cols
+    keep = [time_col, event_col, feature, *covariates]
+    fit_kwargs = {"duration_col": time_col, "event_col": event_col, "show_progress": False}
+    family = "cox"
+    if spec.groups_col:
+        keep = [*keep, spec.groups_col]
+        fit_kwargs["cluster_col"] = spec.groups_col
+        fit_kwargs["robust"] = True
+        family = "cox_clustered"
+    try:
+        cph = cox_cls(penalizer=spec.penalizer)
+        cph.fit(subset[keep], **fit_kwargs)
+        row = cph.summary.loc[feature]
+    except Exception as exc:
+        return {"status": "fit_failed", "error": _clean_error(exc)}
+    result = _ratio_result(
+        family,
+        float(row["coef"]),
+        float(row["se(coef)"]),
+        float(row["p"]),
+        np.log(float(row["exp(coef) lower 95%"])),
+        np.log(float(row["exp(coef) upper 95%"])),
+    )
+    result["statistic"] = float(row["z"])
+    result["c_index"] = float(cph.concordance_index_)
+    return result
+
+
+def _fit_binary(
+    subset: pd.DataFrame, feature: str, covariates: Sequence[str], spec: _OutcomeSpec
+) -> dict:
+    if spec.groups_col and spec.mixed_method == "glmm":
+        return _fit_glmm(subset, feature, covariates, spec)
+    sm = _import_statsmodels()
+    y = subset[spec.outcome_cols[0]].to_numpy(dtype=float)
+    design = _design(subset, feature, covariates)
+    try:
+        if spec.groups_col:
+            model = sm.GEE(
+                y,
+                design,
+                groups=subset[spec.groups_col].to_numpy(),
+                family=sm.families.Binomial(),
+                cov_struct=sm.cov_struct.Exchangeable(),
+            )
+            family = "gee_logit"
+        else:
+            model = sm.Logit(y, design)
+            family = "logit"
+        res = model.fit(disp=0) if family == "logit" else model.fit()
+        params, bse, pvals = np.asarray(res.params), np.asarray(res.bse), np.asarray(res.pvalues)
+        conf = np.asarray(res.conf_int())
+    except Exception as exc:
+        return {"status": "fit_failed", "error": _clean_error(exc)}
+    return _ratio_result(
+        family,
+        float(params[1]),
+        float(bse[1]),
+        float(pvals[1]),
+        float(conf[1, 0]),
+        float(conf[1, 1]),
+    )
+
+
+def _fit_glmm(
+    subset: pd.DataFrame, feature: str, covariates: Sequence[str], spec: _OutcomeSpec
+) -> dict:
+    _import_statsmodels()
+    from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
+
+    renames = {spec.outcome_cols[0]: "y", feature: "x"}
+    renames.update({col: f"c{i}" for i, col in enumerate(covariates)})
+    safe = subset.rename(columns=renames).copy()
+    safe["g"] = subset[spec.groups_col].to_numpy()
+    rhs = " + ".join(["x", *(f"c{i}" for i in range(len(covariates)))])
+    try:
+        model = BinomialBayesMixedGLM.from_formula(f"y ~ {rhs}", {"g": "0 + C(g)"}, safe)
+        res = model.fit_vb()
+        idx = list(res.model.fep_names).index("x")
+        coef, sd = float(res.fe_mean[idx]), float(res.fe_sd[idx])
+    except Exception as exc:
+        return {"status": "fit_failed", "error": _clean_error(exc)}
+    z = coef / sd if sd > 0 else np.nan
+    p = float(2 * stats.norm.sf(abs(z))) if np.isfinite(z) else np.nan
+    return _ratio_result("glmm", coef, sd, p, coef - 1.96 * sd, coef + 1.96 * sd)
+
+
+def _fit_continuous(
+    subset: pd.DataFrame, feature: str, covariates: Sequence[str], spec: _OutcomeSpec
+) -> dict:
+    if spec.groups_col:
+        sm = _import_statsmodels()
+        design = _design(subset, feature, covariates)
+        y = subset[spec.outcome_cols[0]].to_numpy(dtype=float)
+        try:
+            res = sm.MixedLM(y, design, groups=subset[spec.groups_col].to_numpy()).fit(
+                method=["lbfgs"], reml=True
+            )
+            params, bse, pvals = (
+                np.asarray(res.params),
+                np.asarray(res.bse),
+                np.asarray(res.pvalues),
+            )
+            conf = np.asarray(res.conf_int())
+        except Exception as exc:
+            return {"status": "fit_failed", "error": _clean_error(exc)}
+        coef, se = float(params[1]), float(bse[1])
+        return {
+            "status": "ok",
+            "model_family": "mixedlm",
+            "coef": coef,
+            "effect": coef,
+            "effect_name": "beta",
+            "se": se,
+            "statistic": coef / se if se > 0 else np.nan,
+            "p_value": float(pvals[1]),
+            "ci_low": float(conf[1, 0]),
+            "ci_high": float(conf[1, 1]),
+        }
+    y = subset[spec.outcome_cols[0]].to_numpy(dtype=float)
+    return _fit_ols_hc3(y, _design(subset, feature, covariates), feature_idx=1)
+
+
+def _fit_feature(
+    work: pd.DataFrame, feature: str, covariates: Sequence[str], spec: _OutcomeSpec
+) -> dict:
+    """Complete-case fit for one feature in one tier, dispatched by outcome type."""
+    model_cols = [*spec.outcome_cols, feature, *covariates]
+    subset = work[model_cols].apply(pd.to_numeric, errors="coerce")
+    if spec.groups_col:
+        subset[spec.groups_col] = work[spec.groups_col].to_numpy()
+    subset = subset.dropna()
+    base = {"n": int(len(subset)), "n_events": np.nan, "n_missing": int(len(work) - len(subset))}
+    if subset.empty:
+        return {**base, "status": "no_complete_cases"}
+    if subset[feature].nunique() < spec.min_unique:
+        return {**base, "status": "constant_feature"}
+
+    if spec.outcome_type == "survival":
+        base["n_events"] = int(subset[spec.outcome_cols[1]].sum())
+        if base["n_events"] < spec.min_events:
+            return {**base, "status": "no_events"}
+        fit = _fit_cox(subset, feature, covariates, spec)
+    elif spec.outcome_type == "binary":
+        outcome_values = subset[spec.outcome_cols[0]]
+        base["n_events"] = int(outcome_values.sum())
+        if outcome_values.nunique() < 2:
+            return {**base, "status": "no_events"}
+        fit = _fit_binary(subset, feature, covariates, spec)
+    else:
+        fit = _fit_continuous(subset, feature, covariates, spec)
+
     fit["n_missing"] = base["n_missing"]
     fit.setdefault("n", base["n"])
-    fit.setdefault("n_events", np.nan)
+    fit.setdefault("n_events", base["n_events"])
     return fit
 
 
@@ -214,6 +409,9 @@ def compute_feature_associations(
     adjust_for: Sequence[str] | None = None,
     covariate_data: pd.DataFrame | None = None,
     groups: Any = None,
+    mixed_method: str = "glmm",
+    penalizer: float = 0.0,
+    min_events: int = 1,
     catalog: FeatureCatalog | pd.DataFrame | None = None,
     features: Any = None,
     min_unique: int = 2,
@@ -239,8 +437,17 @@ def compute_feature_associations(
     covariate_data : DataFrame, optional
         Where covariate columns live when *X* is a bare feature DataFrame
         (defaults to the dataset metadata, or *X* itself).
-    groups : optional
-        Cluster / repeated-measures identifier (used by the mixed engines).
+    groups : array-like or column name, optional
+        Cluster / repeated-measures identifier. When given, the engine switches to
+        a mixed/clustered variant: MixedLM (continuous), GLMM or GEE (binary), and
+        cluster-robust Cox (survival).
+    mixed_method : {"glmm", "gee"}
+        Mixed binary model when *groups* is given (random-intercept GLMM, default,
+        vs cluster-robust GEE).
+    penalizer : float
+        Optional Cox ridge penalizer for convergence support.
+    min_events : int
+        Minimum events required to fit a survival/binary model (else ``no_events``).
     catalog : FeatureCatalog or DataFrame, optional
         Adds ``family`` / ``family_group`` (and any other catalog columns).
     features : optional
@@ -261,17 +468,15 @@ def compute_feature_associations(
         feature_matrix = X
         data = covariate_data if covariate_data is not None else X
 
+    if mixed_method not in ("glmm", "gee"):
+        raise ValueError(f"mixed_method must be 'glmm' or 'gee', got {mixed_method!r}.")
+
     outcome_frame, _ = _resolve_outcome(X, outcome, data)
     outcome_frame = outcome_frame.reindex(feature_matrix.index)
     resolved_type = _infer_outcome_type(outcome_frame) if outcome_type == "auto" else outcome_type
     if resolved_type not in ("continuous", "binary", "survival"):
         raise ValueError(
             f"outcome_type must be continuous/binary/survival, got {resolved_type!r}."
-        )
-    if resolved_type != "continuous":
-        raise NotImplementedError(
-            f"{resolved_type} models are added in a later phase; pass outcome_type='continuous' "
-            "for now."
         )
 
     feature_names = list(resolve_analysis_features(feature_matrix, features=features))
@@ -284,16 +489,38 @@ def compute_feature_associations(
     if missing:
         raise KeyError(f"covariate column(s) not found: {', '.join(missing[:5])}.")
 
-    outcome_col = outcome_frame.columns[0]
-    work = pd.concat(
-        [feature_matrix[feature_names], outcome_frame[[outcome_col]], data[covariate_cols]],
-        axis=1,
+    # Resolve the clustering/repeated-measures identifier (column name or array).
+    groups_col: str | None = None
+    groups_series: pd.Series | None = None
+    if isinstance(X, RadiomicsDataset) and groups is None and X.design.group:
+        groups = X.design.group
+    if groups is not None:
+        if isinstance(groups, str):
+            groups_col, groups_series = groups, data[groups]
+        else:
+            groups_col = "__groups__"
+            groups_series = pd.Series(np.asarray(groups), index=feature_matrix.index)
+
+    outcome_cols = list(outcome_frame.columns)
+    frames = [feature_matrix[feature_names], outcome_frame, data[covariate_cols]]
+    if groups_series is not None:
+        frames.append(groups_series.rename(groups_col).to_frame())
+    work = pd.concat(frames, axis=1)
+
+    spec = _OutcomeSpec(
+        outcome_type=resolved_type,
+        outcome_cols=outcome_cols,
+        groups_col=groups_col,
+        mixed_method=mixed_method,
+        penalizer=penalizer,
+        min_events=min_events,
+        min_unique=min_unique,
     )
 
     rows = []
     for tier_name, tier_covariates in tiers.items():
         for feature in feature_names:
-            fit = _fit_feature_continuous(work, feature, tier_covariates, outcome_col, min_unique)
+            fit = _fit_feature(work, feature, list(tier_covariates), spec)
             rows.append(
                 {
                     "model": tier_name,

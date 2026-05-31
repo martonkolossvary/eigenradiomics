@@ -157,18 +157,10 @@ def test_invalid_outcome_type_raises():
         compute_feature_associations(X, meta["y"], outcome_type="poisson", covariate_data=meta)
 
 
-def test_binary_outcome_not_implemented():
+def test_mixed_method_invalid_raises():
     X, meta = _data()
-    binary = pd.Series((meta["y"] > meta["y"].median()).astype(int), index=X.index)
-    with pytest.raises(NotImplementedError, match="binary"):
-        compute_feature_associations(X, binary, covariate_data=meta)
-
-
-def test_survival_outcome_not_implemented():
-    X, meta = _data()
-    surv = pd.DataFrame({"time": meta["y"].abs(), "event": 1}, index=X.index)
-    with pytest.raises(NotImplementedError, match="survival"):
-        compute_feature_associations(X, surv, covariate_data=meta)
+    with pytest.raises(ValueError, match="mixed_method must be"):
+        compute_feature_associations(X, meta["y"], covariate_data=meta, mixed_method="reml")
 
 
 def test_missing_covariate_raises():
@@ -201,3 +193,189 @@ def test_top_hits_empty_when_nothing_fitted():
     constants = X[["original__const"]]  # only a constant feature -> never "ok"
     res = compute_feature_associations(constants, meta["y"], covariate_data=meta)
     assert res.top_hits(mode="fdr").empty
+
+
+# ---- Phase B engines (survival / binary / mixed; need lifelines/statsmodels) --
+
+
+def _survival_binary(n: int = 150):
+    rng = np.random.default_rng(1)
+    f0 = rng.normal(0, 1, n)
+    f1 = rng.normal(0, 1, n)
+    age = rng.normal(60, 8, n)
+    patient = np.repeat(np.arange(n // 3 + 1), 3)[:n]  # repeated-measures clusters
+    lp = 1.2 * f0 + 0.02 * age
+    idx = list(range(n))
+    X = pd.DataFrame({"original__f0": f0, "original__f1": f1}, index=idx)
+    meta = pd.DataFrame({"age": age, "patient": patient}, index=idx)
+    surv = pd.DataFrame(
+        {
+            "time": rng.exponential(np.exp(-lp)) + 0.01,
+            "event": (rng.uniform(size=n) < 0.7).astype(int),
+        },
+        index=idx,
+    )
+    binary = pd.Series((rng.uniform(size=n) < 1 / (1 + np.exp(-lp))).astype(int), index=idx)
+    return X, meta, surv, binary
+
+
+def test_survival_cox():
+    X, meta, surv, _ = _survival_binary()
+    res = compute_feature_associations(
+        X, surv, adjust_for=["age"], covariate_data=meta, min_events=5
+    )
+    assert res.outcome_type == "survival"
+    row = res.table.set_index(["model", "feature"]).loc[("Univariable", "original__f0")]
+    assert row["status"] == "ok"
+    assert row["model_family"] == "cox" and row["effect_name"] == "HR"
+    assert np.isfinite(row["c_index"])
+
+
+def test_survival_cox_clustered():
+    X, meta, surv, _ = _survival_binary()
+    res = compute_feature_associations(
+        X, surv, covariate_data=meta, groups="patient", min_events=5
+    )
+    fam = res.table.set_index(["model", "feature"]).loc[
+        ("Univariable", "original__f0"), "model_family"
+    ]
+    assert fam == "cox_clustered"
+
+
+def test_survival_no_events():
+    X, meta, surv, _ = _survival_binary()
+    res = compute_feature_associations(X, surv, covariate_data=meta, min_events=10_000)
+    assert (res.table["status"] == "no_events").all()
+
+
+def test_binary_logistic():
+    X, meta, _, binary = _survival_binary()
+    res = compute_feature_associations(X, binary, adjust_for=["age"], covariate_data=meta)
+    assert res.outcome_type == "binary"
+    row = res.table.set_index(["model", "feature"]).loc[("Univariable", "original__f0")]
+    assert row["status"] == "ok" and row["model_family"] == "logit" and row["effect_name"] == "OR"
+
+
+def test_binary_no_events():
+    X, meta, _, _ = _survival_binary()
+    const_outcome = pd.Series(np.zeros(len(X)), index=X.index)
+    res = compute_feature_associations(
+        X, const_outcome, outcome_type="binary", covariate_data=meta
+    )
+    assert (res.table["status"] == "no_events").all()
+
+
+def test_binary_gee_clustered():
+    X, meta, _, binary = _survival_binary()
+    res = compute_feature_associations(
+        X, binary, covariate_data=meta, groups="patient", mixed_method="gee"
+    )
+    fam = res.table.set_index(["model", "feature"]).loc[
+        ("Univariable", "original__f0"), "model_family"
+    ]
+    assert fam == "gee_logit"
+
+
+def test_binary_glmm_clustered():
+    X, meta, _, binary = _survival_binary()
+    res = compute_feature_associations(X, binary, covariate_data=meta, groups="patient")
+    row = res.table.set_index(["model", "feature"]).loc[("Univariable", "original__f0")]
+    assert row["model_family"] == "glmm" and row["status"] == "ok"
+
+
+def test_continuous_mixedlm_via_groups_array():
+    X, meta, _, _ = _survival_binary()
+    y = pd.Series(1.0 * X["original__f0"] + meta["age"] * 0.02, index=X.index)
+    # groups passed as an array (not a column name) -> exercises that resolution branch
+    res = compute_feature_associations(
+        X, y, groups=meta["patient"].to_numpy(), covariate_data=meta
+    )
+    fam = res.table.set_index(["model", "feature"]).loc[
+        ("Univariable", "original__f0"), "model_family"
+    ]
+    assert fam == "mixedlm"
+
+
+def test_dataset_supplies_groups():
+    X, meta, _, _ = _survival_binary()
+    y = pd.Series(X["original__f0"] + 0.02 * meta["age"], index=X.index)
+    data = pd.concat([X, meta, y.rename("y")], axis=1)
+    ds = RadiomicsDataset(
+        data,
+        feature_columns=list(X.columns),
+        design=StudyDesign(roles={"target": "y", "group": "patient"}),
+    )
+    res = compute_feature_associations(ds)  # groups taken from the design
+    fam = res.table.set_index(["model", "feature"]).loc[
+        ("Univariable", "original__f0"), "model_family"
+    ]
+    assert fam == "mixedlm"
+
+
+# ---- fit-failure and optional-dependency handling -------------------------
+
+
+def test_logit_fit_failed(monkeypatch):
+    import types as _types
+
+    fake_sm = _types.SimpleNamespace(
+        Logit=lambda *a, **k: (_ for _ in ()).throw(RuntimeError("logit boom"))
+    )
+    monkeypatch.setattr("eigenradiomics.feature_models._import_statsmodels", lambda: fake_sm)
+    X, meta, _, binary = _survival_binary(n=30)
+    res = compute_feature_associations(X, binary, outcome_type="binary", covariate_data=meta)
+    assert (res.table["status"] == "fit_failed").all()
+    assert res.table.iloc[0]["error"]
+
+
+def test_cox_fit_failed(monkeypatch):
+    class _BadCox:
+        def __init__(self, **kwargs):
+            pass
+
+        def fit(self, *args, **kwargs):
+            raise RuntimeError("cox boom")
+
+    monkeypatch.setattr("eigenradiomics.feature_models._import_lifelines", lambda: _BadCox)
+    X, meta, surv, _ = _survival_binary(n=30)
+    res = compute_feature_associations(X, surv, covariate_data=meta, min_events=1)
+    assert (res.table["status"] == "fit_failed").all()
+
+
+def test_mixedlm_fit_failed(monkeypatch):
+    import types as _types
+
+    fake_sm = _types.SimpleNamespace(
+        MixedLM=lambda *a, **k: (_ for _ in ()).throw(RuntimeError("mixedlm boom"))
+    )
+    monkeypatch.setattr("eigenradiomics.feature_models._import_statsmodels", lambda: fake_sm)
+    X, meta, _, _ = _survival_binary(n=30)
+    y = pd.Series(X["original__f0"].to_numpy(), index=X.index)
+    res = compute_feature_associations(X, y, covariate_data=meta, groups="patient")
+    assert (res.table["status"] == "fit_failed").all()
+
+
+def test_glmm_fit_failed(monkeypatch):
+    from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("glmm boom")
+
+    monkeypatch.setattr(BinomialBayesMixedGLM, "from_formula", staticmethod(_boom))
+    X, meta, _, binary = _survival_binary(n=30)
+    res = compute_feature_associations(X, binary, covariate_data=meta, groups="patient")
+    assert (res.table["status"] == "fit_failed").all()
+
+
+def test_lifelines_import_error(monkeypatch):
+    monkeypatch.setitem(__import__("sys").modules, "lifelines", None)
+    X, meta, surv, _ = _survival_binary(n=30)
+    with pytest.raises(ImportError, match="lifelines"):
+        compute_feature_associations(X, surv, covariate_data=meta, min_events=1)
+
+
+def test_statsmodels_import_error(monkeypatch):
+    monkeypatch.setitem(__import__("sys").modules, "statsmodels.api", None)
+    X, meta, _, binary = _survival_binary(n=30)
+    with pytest.raises(ImportError, match="statsmodels"):
+        compute_feature_associations(X, binary, outcome_type="binary", covariate_data=meta)

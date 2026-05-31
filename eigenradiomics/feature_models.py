@@ -567,3 +567,239 @@ def _annotate_catalog(
     frame = catalog.frame if isinstance(catalog, FeatureCatalog) else FeatureCatalog(catalog).frame
     keep = [c for c in ("feature", "family", "family_group", "config") if c in frame.columns]
     return table.merge(frame[keep], on="feature", how="left", validate="many_to_one")
+
+
+# ----------------------------------------------------------------------
+# Volcano plot
+# ----------------------------------------------------------------------
+
+#: Exact grids for small panel counts; 5-9 panels use a 3x3 grid.
+_VOLCANO_LAYOUTS = {1: (1, 1), 2: (1, 2), 3: (1, 3), 4: (2, 2)}
+_VOLCANO_MARKERS = ["o", "^", "s", "D", "v", "P", "X", "*", "p"]
+_X_LABELS = {
+    "survival": r"$\log_2$ hazard ratio",
+    "binary": r"$\log_2$ odds ratio",
+    "continuous": "coefficient",
+}
+_NONSIG_COLOR = "#B8B8B8"
+
+
+def _resolve_layout(layout: str | tuple[int, int], n: int) -> tuple[int, int]:
+    if isinstance(layout, tuple):
+        rows, cols = layout
+        if rows * cols < n:
+            raise ValueError(f"layout {layout} has fewer cells than the {n} panels requested.")
+        return rows, cols
+    return _VOLCANO_LAYOUTS.get(n, (3, 3))
+
+
+def _symmetric_xlim(x: NDArray, strategy: str, percentile: float) -> tuple[float, float]:
+    finite = x[np.isfinite(x)]
+    if finite.size == 0:
+        return (-1.0, 1.0)
+    extent = (
+        np.max(np.abs(finite))
+        if strategy == "include"
+        else np.percentile(np.abs(finite), percentile)
+    )
+    extent = max(float(extent), 1e-6)
+    return (-extent * 1.08, extent * 1.08)
+
+
+def plot_volcano(
+    result: FeatureAssociationResult,
+    *,
+    tiers: Sequence[str] | None = None,
+    color_by: str | None = "family_group",
+    marker_by: str | None = None,
+    fdr_alpha: float = 0.05,
+    layout: str | tuple[int, int] = "auto",
+    axis_mode: str = "panel",
+    outlier_strategy: str = "clip",
+    core_percentile: float = 99.0,
+    figsize: tuple[float, float] | None = None,
+    title: str | None = None,
+) -> Any:
+    """Volcano plot of the feature-association results, one panel per model tier.
+
+    The panel grid is chosen from the number of tiers shown: 1 -> 1x1, 2 -> 1x2,
+    3 -> 1x3, 4 -> 2x2, and 5-9 -> 3x3 (unused cells hidden). Pass an explicit
+    ``layout=(rows, cols)`` to override.
+
+    Parameters
+    ----------
+    result : FeatureAssociationResult
+        Output of :func:`compute_feature_associations`.
+    tiers : sequence of str, optional
+        Which model tiers to show as panels (default: all, capped at 9).
+    color_by : str, optional
+        Catalog column whose categories colour the FDR-significant points
+        (default ``"family_group"``); others are grey.
+    marker_by : str, optional
+        Catalog column whose categories set the point markers.
+    fdr_alpha : float
+        FDR threshold for "significant" colouring and the horizontal reference.
+    layout : "auto" or (rows, cols)
+        Panel grid.
+    axis_mode : {"panel", "shared"}
+        Per-panel or shared axis limits.
+    outlier_strategy : {"clip", "include"}
+        ``"clip"`` bounds the x-axis to ``core_percentile`` of \\|effect\\| (extreme
+        points pinned to the edge); ``"include"`` shows the full range.
+    core_percentile : float
+        Percentile of \\|x\\| used for the "clip" x-limit.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+
+    from eigenradiomics._plotting import apply_science_style
+    from eigenradiomics.plotting import _assign_colors
+
+    if axis_mode not in ("panel", "shared"):
+        raise ValueError(f"axis_mode must be 'panel' or 'shared', got {axis_mode!r}.")
+    if outlier_strategy not in ("clip", "include"):
+        raise ValueError(
+            f"outlier_strategy must be 'clip' or 'include', got {outlier_strategy!r}."
+        )
+
+    panels = list(tiers) if tiers is not None else list(result.tiers)
+    if not 1 <= len(panels) <= 9:
+        raise ValueError(f"plot_volcano supports 1-9 panels, got {len(panels)}.")
+
+    is_ratio = result.outcome_type in ("survival", "binary")
+    shown = result.table[
+        result.table["model"].isin(panels)
+        & result.table["status"].eq("ok")
+        & result.table["p_value"].notna()
+        & result.table["p_value"].gt(0)
+    ].copy()
+    if is_ratio:
+        shown["_x"] = np.log2(shown["effect"].clip(lower=np.finfo(float).tiny))
+    else:
+        shown["_x"] = shown["coef"]
+    shown["_y"] = -np.log10(shown["p_value"].clip(lower=np.nextafter(0, 1)))
+    shown["_sig"] = shown["p_fdr"].lt(fdr_alpha)
+
+    has_color = bool(color_by) and color_by in shown.columns
+    categories = (
+        sorted(shown.loc[shown["_sig"], color_by].dropna().astype(str).unique())
+        if has_color
+        else []
+    )
+    color_map = _assign_colors(categories, None) if categories else {}
+    has_marker = bool(marker_by) and marker_by in shown.columns
+    marker_cats = sorted(shown[marker_by].dropna().astype(str).unique()) if has_marker else []
+    marker_map = {
+        c: _VOLCANO_MARKERS[i % len(_VOLCANO_MARKERS)] for i, c in enumerate(marker_cats)
+    }
+
+    rows, cols = _resolve_layout(layout, len(panels))
+    apply_science_style()
+    fig, axes = plt.subplots(
+        rows, cols, figsize=figsize or (cols * 3.4, rows * 3.3), squeeze=False
+    )
+    flat = axes.ravel()
+
+    shared_xlim = _symmetric_xlim(shown["_x"].to_numpy(), outlier_strategy, core_percentile)
+    shared_ylim = (0.0, float(shown["_y"].max()) * 1.08 if len(shown) else 1.0)
+    x_label = _X_LABELS[result.outcome_type]
+
+    for index, tier in enumerate(panels):
+        ax = flat[index]
+        tier_data = shown[shown["model"].eq(tier)]
+        if axis_mode == "shared":
+            xlim, ylim = shared_xlim, shared_ylim
+        else:
+            xlim = _symmetric_xlim(tier_data["_x"].to_numpy(), outlier_strategy, core_percentile)
+            ylim = (0.0, float(tier_data["_y"].max()) * 1.08 if len(tier_data) else 1.0)
+        _draw_volcano_panel(
+            ax,
+            tier_data,
+            tier,
+            color_by,
+            marker_by,
+            color_map,
+            marker_map,
+            fdr_alpha,
+            xlim,
+            ylim,
+            x_label,
+        )
+        if index % cols == 0:
+            ax.set_ylabel(r"$-\log_{10}$(p-value)")
+    for hidden in flat[len(panels) :]:
+        hidden.set_visible(False)
+
+    handles: list[Any] = []
+    for category, colour in color_map.items():
+        handles.append(Patch(facecolor=colour, edgecolor="0.3", label=str(category)))
+    if color_map or has_color:
+        handles.append(
+            Patch(facecolor=_NONSIG_COLOR, edgecolor="0.3", label=f"FDR ≥ {fdr_alpha:g}")
+        )
+    for category, marker in marker_map.items():
+        handles.append(
+            Line2D(
+                [0],
+                [0],
+                marker=marker,
+                linestyle="",
+                markerfacecolor="white",
+                markeredgecolor="black",
+                label=str(category),
+            )
+        )
+    handles.append(
+        Line2D([0], [0], color="black", linestyle=":", label=f"p = {fdr_alpha:g} (FDR)")
+    )
+    fig.legend(handles=handles, loc="lower center", ncol=min(len(handles), 5), frameon=False)
+    if title:
+        fig.suptitle(title, weight="bold")
+    fig.tight_layout(rect=(0, 0.08, 1, 1))
+    return fig
+
+
+def _draw_volcano_panel(
+    ax: Any,
+    data: pd.DataFrame,
+    tier: str,
+    color_by: str | None,
+    marker_by: str | None,
+    color_map: Mapping[str, Any],
+    marker_map: Mapping[str, str],
+    fdr_alpha: float,
+    xlim: tuple[float, float],
+    ylim: tuple[float, float],
+    x_label: str,
+) -> None:
+    ax.set_title(tier)
+    ax.set_xlabel(x_label)
+    if data.empty:
+        ax.text(0.5, 0.5, "no fitted features", ha="center", va="center", transform=ax.transAxes)
+        return
+    x = np.clip(data["_x"].to_numpy(), xlim[0], xlim[1])
+    y = data["_y"].to_numpy()
+    for i, (_, row) in enumerate(data.iterrows()):
+        if row["_sig"] and color_map and color_by:
+            colour = color_map.get(str(row[color_by]), _NONSIG_COLOR)
+        else:
+            colour = "#D55E00" if row["_sig"] else _NONSIG_COLOR
+        marker = marker_map.get(str(row[marker_by]), "o") if (marker_by and marker_map) else "o"
+        ax.scatter(
+            x[i],
+            y[i],
+            c=colour,
+            marker=marker,
+            s=16,
+            alpha=0.7 if row["_sig"] else 0.3,
+            edgecolors="none",
+        )
+    ax.axvline(0, color="black", linestyle="--", linewidth=0.7, alpha=0.5)
+    ax.axhline(-np.log10(fdr_alpha), color="black", linestyle=":", linewidth=0.9, alpha=0.7)
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)

@@ -15,6 +15,7 @@ from eigenradiomics.dataset import RadiomicsDataset, StudyDesign
 from eigenradiomics.feature_models import (
     FeatureAssociationResult,
     compute_feature_associations,
+    plot_volcano,
 )
 from eigenradiomics.ingest import (
     MergeResult,
@@ -69,4 +70,5 @@ __all__ = [
     "encode_clinical_series",
     "compute_feature_associations",
     "FeatureAssociationResult",
+    "plot_volcano",
 ]

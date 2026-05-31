@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
-import numpy as np
-import pandas as pd
-import pytest
+import matplotlib
 
-from eigenradiomics import (
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+import pytest  # noqa: E402
+
+from eigenradiomics import (  # noqa: E402
     FeatureCatalog,
     RadiomicsDataset,
     StudyDesign,
     compute_feature_associations,
+    plot_volcano,
 )
 
 
@@ -379,3 +384,90 @@ def test_statsmodels_import_error(monkeypatch):
     X, meta, _, binary = _survival_binary(n=30)
     with pytest.raises(ImportError, match="statsmodels"):
         compute_feature_associations(X, binary, outcome_type="binary", covariate_data=meta)
+
+
+# ---- Phase C: volcano plot ------------------------------------------------
+
+
+def _volcano_result(n_tiers: int = 2, n_features: int = 8):
+    rng = np.random.default_rng(2)
+    n = 200
+    cols = {f"original__f{i}": rng.normal(0, 1, n) for i in range(n_features)}
+    X = pd.DataFrame(cols, index=range(n))
+    age = rng.normal(60, 8, n)
+    y = pd.Series(1.5 * X["original__f0"] + 0.02 * age + rng.normal(0, 1, n), index=range(n))
+    meta = pd.DataFrame({"age": age}, index=range(n))
+    fams = ["Intensity", "Texture", "Morphology"]
+    catalog = FeatureCatalog(
+        pd.DataFrame(
+            {
+                "config": ["original"] * n_features,
+                "feature_key": [f"f{i}" for i in range(n_features)],
+                "family": ["firstorder"] * n_features,
+                "family_group": [fams[i % 3] for i in range(n_features)],
+            }
+        )
+    )
+    tiers = {f"M{j}": (["age"] if j % 2 else []) for j in range(n_tiers)}
+    return compute_feature_associations(
+        X, y, model_tiers=tiers, covariate_data=meta, catalog=catalog
+    )
+
+
+@pytest.mark.parametrize(
+    ("n_tiers", "expected_axes", "expected_visible"),
+    [(1, 1, 1), (2, 2, 2), (3, 3, 3), (4, 4, 4), (5, 9, 5), (9, 9, 9)],
+)
+def test_volcano_layouts(n_tiers, expected_axes, expected_visible):
+    res = _volcano_result(n_tiers=n_tiers)
+    fig = plot_volcano(res, color_by="family_group", marker_by="family_group")
+    assert len(fig.axes) == expected_axes
+    assert sum(ax.get_visible() for ax in fig.axes) == expected_visible
+    plt.close(fig)
+
+
+def test_volcano_panel_count_out_of_range():
+    res = _volcano_result(n_tiers=2)
+    with pytest.raises(ValueError, match="1-9 panels"):
+        plot_volcano(res, tiers=[])
+
+
+def test_volcano_explicit_layout_and_too_small():
+    res = _volcano_result(n_tiers=4)
+    fig = plot_volcano(res, layout=(2, 3))
+    assert len(fig.axes) == 6
+    plt.close(fig)
+    with pytest.raises(ValueError, match="fewer cells"):
+        plot_volcano(res, layout=(1, 1))
+
+
+def test_volcano_axis_and_outlier_modes():
+    res = _volcano_result()
+    plt.close(plot_volcano(res, axis_mode="shared", outlier_strategy="include"))
+    with pytest.raises(ValueError, match="axis_mode"):
+        plot_volcano(res, axis_mode="weird")
+    with pytest.raises(ValueError, match="outlier_strategy"):
+        plot_volcano(res, outlier_strategy="weird")
+
+
+def test_volcano_color_none_and_marker_by():
+    res = _volcano_result()
+    plt.close(plot_volcano(res, color_by=None))  # significant points use a single highlight colour
+    plt.close(plot_volcano(res, color_by="family_group", marker_by="family_group"))
+
+
+def test_volcano_empty_panels():
+    # all-constant features -> nothing fitted -> every panel shows "no fitted features"
+    X = pd.DataFrame({f"original__f{i}": np.full(50, 3.0) for i in range(3)}, index=range(50))
+    y = pd.Series(np.arange(50, dtype=float), index=range(50))
+    res = compute_feature_associations(X, y, covariate_data=pd.DataFrame({"y": y}))
+    fig = plot_volcano(res)
+    plt.close(fig)
+
+
+def test_volcano_binary_xlabel():
+    X, meta, _, binary = _survival_binary()
+    res = compute_feature_associations(X, binary, covariate_data=meta)
+    fig = plot_volcano(res, title="binary")
+    assert any("odds ratio" in ax.get_xlabel() for ax in fig.axes if ax.get_visible())
+    plt.close(fig)

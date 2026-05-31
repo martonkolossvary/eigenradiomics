@@ -247,6 +247,18 @@ class WGCNAReducer(BaseReducer):
                 f"got n_features = {n_features}."
             )
 
+        # Constant features cannot correlate with anything and are left unassigned
+        # (grey). Surface them so a silently-degenerate input does not go unnoticed.
+        constant = np.where(X_arr.std(axis=0) == 0)[0]
+        if constant.size > 0:
+            names = ", ".join(str(feature_names[i]) for i in constant[:5])
+            suffix = " ..." if constant.size > 5 else ""
+            warnings.warn(
+                f"{constant.size} feature(s) have zero variance and will not enter the "
+                f"correlation network (left unassigned): {names}{suffix}.",
+                stacklevel=2,
+            )
+
         # Spearman WGCNA == Pearson correlation on per-feature ranks. Rank-transform
         # only the matrix used to build the network (adjacency/TOM/clustering/merge);
         # the eigengene loadings are computed on the original scale below so that
@@ -369,6 +381,13 @@ class WGCNAReducer(BaseReducer):
             else 1
             for mod in unique_modules
         )
+        if self.n_components_ == 0:
+            warnings.warn(
+                "WGCNA found no modules (every feature was assigned to the grey "
+                "unassigned group); transform will return a (n_samples, 0) matrix. "
+                "Lower min_module_size or set include_grey=True.",
+                stacklevel=2,
+            )
         return self
 
     def transform(self, X: NDArray | pd.DataFrame) -> NDArray:

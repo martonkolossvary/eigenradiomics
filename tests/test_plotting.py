@@ -114,6 +114,19 @@ def test_non_square_raises():
         plot_clustered_heatmap(pd.DataFrame(np.zeros((3, 4))))
 
 
+def test_unknown_order_name_raises():
+    df, _, _ = _blocks()
+    with pytest.raises(ValueError, match="absent from the similarity index"):
+        plot_clustered_heatmap(df, order=[*list(df.index)[:-1], "ghost"])
+
+
+def test_all_nan_similarity_raises():
+    df, _, _ = _blocks()
+    df.loc[:, :] = np.nan
+    with pytest.raises(ValueError, match="no finite values"):
+        plot_clustered_heatmap(df)
+
+
 # ---- top annotation strips + legends -------------------------------------
 
 

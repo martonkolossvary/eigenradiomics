@@ -57,7 +57,7 @@ dataset = RadiomicsDataset(
     table,
     feature_columns=feature_cols,
     catalog=catalog,
-    design=StudyDesign(roles={"group": "PatientID", "batch": "Center", "event": "Event"}),
+    design=StudyDesign(roles={"group": "PatientID", "batch": "Center", "target": "Event"}),
 )
 ```
 

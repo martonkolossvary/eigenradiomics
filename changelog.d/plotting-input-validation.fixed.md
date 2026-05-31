@@ -1,0 +1,1 @@
+`plot_clustered_heatmap` now validates its inputs up front: an `order` containing names absent from the similarity index, or a similarity matrix with no finite values, raises a clear error instead of a raw pandas `KeyError` or a blank figure.

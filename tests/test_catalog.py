@@ -39,6 +39,15 @@ class TestConstruction:
         with pytest.raises(ValueError, match="must contain"):
             FeatureCatalog(pd.DataFrame({"name": ["a", "b"]}))
 
+    def test_duplicate_feature_keys_raise(self) -> None:
+        # config__feature_key must be unique, else annotate() fans out the join.
+        with pytest.raises(ValueError, match="duplicate feature key"):
+            FeatureCatalog(
+                pd.DataFrame(
+                    {"config": ["orig", "orig"], "feature_key": ["Energy", "Energy"]}
+                )
+            )
+
     def test_from_csv(self, tmp_path, catalog_frame: pd.DataFrame) -> None:
         path = tmp_path / "catalog.csv"
         catalog_frame.to_csv(path, index=False)

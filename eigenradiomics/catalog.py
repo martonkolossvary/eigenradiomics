@@ -43,6 +43,15 @@ class FeatureCatalog:
         normalized["feature"] = normalized["_column_name"].astype(str)
         helper_columns = [col for col in normalized.columns if col.startswith("_")]
         self._frame = normalized.drop(columns=helper_columns).reset_index(drop=True)
+        duplicates = self._frame["feature"][self._frame["feature"].duplicated()].unique()
+        if len(duplicates) > 0:
+            preview = ", ".join(map(str, duplicates[:5]))
+            suffix = " ..." if len(duplicates) > 5 else ""
+            raise ValueError(
+                f"catalog has {len(duplicates)} duplicate feature key(s); "
+                f"config__feature_key must be unique: {preview}{suffix}"
+            )
+        self._feature_set = set(self._frame["feature"])
 
     @classmethod
     def from_csv(cls, path: str | Path) -> FeatureCatalog:
@@ -82,7 +91,7 @@ class FeatureCatalog:
         return len(self._frame)
 
     def __contains__(self, feature: object) -> bool:
-        return feature in set(self._frame["feature"])
+        return feature in self._feature_set
 
     def __repr__(self) -> str:
         return (
@@ -116,8 +125,7 @@ class FeatureCatalog:
         missing : list of str
             Feature columns not found in the catalog.
         """
-        known = set(self._frame["feature"])
-        missing = [str(col) for col in feature_columns if col not in known]
+        missing = [str(col) for col in feature_columns if col not in self._feature_set]
         if missing and not allow_missing:
             preview = ", ".join(missing[:5])
             suffix = " ..." if len(missing) > 5 else ""

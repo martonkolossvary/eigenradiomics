@@ -124,3 +124,26 @@ class TestAccess:
         ds = RadiomicsDataset.from_wide(wide, group="PatientID")
         assert len(ds) == 4
         assert "n_features=2" in repr(ds)
+
+    def test_groups_with_missing_raises(self) -> None:
+        df = pd.DataFrame(
+            {"PatientID": ["p1", None, "p3"], "orig__E": [1.0, 2.0, 3.0]}
+        )
+        ds = RadiomicsDataset(df, design=StudyDesign(roles={"group": "PatientID"}))
+        with pytest.raises(ValueError, match="missing values"):
+            _ = ds.groups
+
+    def test_half_specified_survival_raises(self, wide: pd.DataFrame) -> None:
+        # 'time' without 'event' (or vice versa) is a config error, not a silent skip.
+        ds = RadiomicsDataset(wide, design=StudyDesign(roles={"time": "fu_years"}))
+        with pytest.raises(ValueError, match="both 'time' and 'event'"):
+            ds.y()
+
+
+class TestCatalogIntegration:
+    def test_catalog_zero_match_warns_and_falls_back(self) -> None:
+        df = pd.DataFrame({"id": ["p1"], "alpha": [1.0], "beta": [2.0]})
+        cat = FeatureCatalog(pd.DataFrame({"feature": ["orig__Energy"], "family": ["fo"]}))
+        with pytest.warns(UserWarning, match="none of its features match"):
+            ds = RadiomicsDataset(df, catalog=cat)
+        assert ds.feature_columns == []  # no '__' columns either -> empty

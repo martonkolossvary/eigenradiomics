@@ -258,6 +258,12 @@ def plot_clustered_heatmap(
     # 2. Determine the display order (feature names).
     if order is not None:
         order_names = list(order)
+        unknown = [name for name in order_names if name not in set(feature_names)]
+        if unknown:
+            raise ValueError(
+                f"`order` contains {len(unknown)} name(s) absent from the similarity "
+                f"index: {', '.join(map(str, unknown[:5]))}."
+            )
     elif linkage is not None:
         order_names = [feature_names[i] for i in leaves_list(np.asarray(linkage))]
     elif labels_series is not None:
@@ -266,10 +272,13 @@ def plot_clustered_heatmap(
         order_names = feature_names
 
     ordered = sim.loc[order_names, order_names]
+    ordered_values = ordered.to_numpy()
+    if not np.isfinite(ordered_values).any():
+        raise ValueError("similarity matrix has no finite values to plot.")
     if vmin is None:
-        vmin = float(np.nanmin(ordered.to_numpy()))
+        vmin = float(np.nanmin(ordered_values))
     if vmax is None:
-        vmax = float(np.nanmax(ordered.to_numpy()))
+        vmax = float(np.nanmax(ordered_values))
 
     if isinstance(labels, str) and labels == "auto":
         tick_labels = order_names if n <= 60 else None
@@ -465,7 +474,8 @@ def plot_clustered_heatmap(
     # 10. Right-edge stacked legend column (one titled block per categorical track).
     if has_legend:
         legend_gs = grid[:, col["legend"]].subgridspec(
-            len(legend_blocks), 1, height_ratios=[len(cmap) + 1.5 for _, cmap in legend_blocks]
+            len(legend_blocks), 1,
+            height_ratios=[len(block_map) + 1.5 for _, block_map in legend_blocks],
         )
         for block_index, (block_title, color_map) in enumerate(legend_blocks):
             ax_legend = fig.add_subplot(legend_gs[block_index])

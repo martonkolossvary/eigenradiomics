@@ -379,6 +379,12 @@ class TestWGCNAReducerConstantColumns:
         assert Y.ndim == 2
         assert Y.shape[0] == matrix_with_constant_cols.shape[0]
 
+    def test_constant_cols_warn(self, matrix_with_constant_cols):
+        """Zero-variance columns are surfaced via a warning (then left unassigned)."""
+        r = WGCNAReducer(soft_power=6, min_module_size=5, verbose=0)
+        with pytest.warns(UserWarning, match="zero variance"):
+            r.fit(matrix_with_constant_cols)
+
 
 class TestWGCNAReducerWideMatrix:
     """Tests using the wide_feature_matrix fixture for scalability."""
@@ -638,6 +644,15 @@ class TestWGCNAReducerCoverageGaps:
         X = np.random.default_rng(0).standard_normal((20, 1))
         with pytest.raises(ValueError, match="n_features >= 3"):
             r.fit(X)
+
+    def test_no_modules_warns_and_returns_empty(self):
+        """All-grey fit -> warn and produce a (n_samples, 0) transform."""
+        X = np.random.default_rng(1).standard_normal((30, 6))  # unstructured noise
+        r = WGCNAReducer(soft_power=6, min_module_size=30, include_grey=False, verbose=0)
+        with pytest.warns(UserWarning, match="no modules"):
+            r.fit(X)
+        assert r.n_components_ == 0
+        assert r.transform(X).shape == (30, 0)
 
     def test_auto_soft_power_failure(self, monkeypatch):
         """_wgcna.py:236 — pickSoftThreshold returns None."""

@@ -9,6 +9,7 @@ feature matrix (plus optional target / groups) to a pipeline.
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -128,6 +129,12 @@ class RadiomicsDataset:
             from_catalog = [col for col in data.columns if col in known]
             if from_catalog:
                 return from_catalog
+            warnings.warn(
+                "a catalog was provided but none of its features match the table's "
+                "columns; falling back to the '__' name heuristic. Check for an "
+                "observer/config prefix mismatch between the table and the catalog.",
+                stacklevel=2,
+            )
         return [col for col in data.columns if isinstance(col, str) and "__" in col]
 
     @classmethod
@@ -208,7 +215,13 @@ class RadiomicsDataset:
         column = self.design.group
         if column is None:
             return None
-        result: NDArray = self.data[column].to_numpy()
+        values = self.data[column]
+        if values.isna().any():
+            raise ValueError(
+                f"group column {column!r} has missing values; grouped (leakage-safe) "
+                "cross-validation requires a non-null group label for every sample."
+            )
+        result: NDArray = values.to_numpy()
         return result
 
     def y(self) -> pd.DataFrame | pd.Series | None:
@@ -217,8 +230,14 @@ class RadiomicsDataset:
         A two-column ``[time, event]`` frame for survival designs, a Series for
         a single ``target`` column, or None when no outcome role is set.
         """
-        if self.design.time is not None and self.design.event is not None:
-            return self.data[[self.design.time, self.design.event]]
+        time, event = self.design.time, self.design.event
+        if (time is None) != (event is None):
+            raise ValueError(
+                "a survival design needs both 'time' and 'event' roles; got "
+                f"time={time!r}, event={event!r}."
+            )
+        if time is not None and event is not None:
+            return self.data[[time, event]]
         if self.design.target is not None:
             return self.data[self.design.target]
         return None

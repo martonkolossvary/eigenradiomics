@@ -154,6 +154,29 @@ fig = plot_clustered_heatmap(
 )
 ```
 
+## Accessibility
+
+The defaults are chosen to stay legible for colourblind readers and in greyscale,
+and were verified under a deuteranopia simulation:
+
+- **Similarity (`magma`)** — a perceptually-uniform sequential map whose
+  luminance increases monotonically, so magnitude reads correctly even in
+  greyscale.
+- **Correlation (`RdBu_r`)** — a diverging map centred on a near-neutral grey at
+  zero, using red↔blue (not red↔green); the two ends remain clearly separable
+  under deuteranopia, so the *sign* of a correlation is never lost.
+- **Categories (modules / strips)** — the colourblind-safe **Okabe-Ito** palette
+  for up to eight categories; all eight stay mutually distinct under
+  deuteranopia.
+
+Two compact colourbars sit in the bottom corners (similarity bottom-left,
+correlation bottom-right) to keep the central matrix uncluttered.
+
+!!! warning "Beyond eight categories"
+    With more than eight categories a strip falls back to Matplotlib's `tab20`,
+    which is **not** colourblind-safe. Prefer ≤ 8 categories, or pass explicit
+    `colors=` / `cluster_colors=`.
+
 ## Key options
 
 | Argument | Purpose |

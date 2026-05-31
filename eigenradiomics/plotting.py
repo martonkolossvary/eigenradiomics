@@ -372,7 +372,9 @@ def plot_clustered_heatmap(
     if title is not None:
         fig.suptitle(title, weight="bold")
 
-    ax_cbar = fig.add_subplot(grid[cbar_row, col["heat"]])
+    # Compact colourbar tucked into the bottom-left corner under the heatmap.
+    cbar_host = grid[cbar_row, col["heat"]].subgridspec(1, 2, width_ratios=[0.5, 0.5], wspace=0.0)
+    ax_cbar = fig.add_subplot(cbar_host[0, 0])
     fig.colorbar(image, cax=ax_cbar, orientation="horizontal", label=colorbar_label)
 
     # 6. Top categorical strips (aligned with the heatmap columns).
@@ -426,7 +428,11 @@ def plot_clustered_heatmap(
         ax_corr.set_yticks([])
         ax_corr.set_xticks(range(panel.shape[1]))
         ax_corr.set_xticklabels(list(panel.columns), rotation=90, fontsize=7)
-        ax_corr_cbar = fig.add_subplot(grid[cbar_row, col["corr"]])
+        # Compact colourbar tucked into the bottom-right corner under the panel.
+        corr_cbar_host = grid[cbar_row, col["corr"]].subgridspec(
+            1, 2, width_ratios=[0.2, 0.8], wspace=0.0
+        )
+        ax_corr_cbar = fig.add_subplot(corr_cbar_host[0, 1])
         fig.colorbar(
             corr_image, cax=ax_corr_cbar, orientation="horizontal", label=corr_panel.label
         )

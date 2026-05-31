@@ -26,6 +26,7 @@ from eigenradiomics import (  # noqa: E402
     RadiomicsPrepTransformer,
     WGCNAReducer,
     compute_batch_effects,
+    compute_clinical_correlations,
     compute_reproducibility,
     plot_batch_effects,
     plot_clustered_heatmap,
@@ -136,8 +137,11 @@ def preprocessing_figure() -> None:
 
 
 def clustered_heatmap_figure() -> None:
-    """Clustered WGCNA TOM heatmap with a top family strip, a bottom bar, and legends."""
-    X = _wgcna_matrix()
+    """Cornerstone heatmap: WGCNA TOM + top family strip, bottom bar, and clinical panel."""
+    matrix = _wgcna_matrix()
+    cols = [f"original__feat_{i}" for i in range(matrix.shape[1])]
+    samples = [f"S{i}" for i in range(matrix.shape[0])]
+    X = pd.DataFrame(matrix, columns=cols, index=samples)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         reducer = WGCNAReducer(soft_power="auto", min_module_size=20, store_tom=True, verbose=0)
@@ -149,10 +153,23 @@ def clustered_heatmap_figure() -> None:
     # A synthetic per-feature -log10 p-value, larger inside the real signal blocks.
     signal = np.r_[np.abs(RNG.normal(2.5, 0.8, 190)), np.abs(RNG.normal(0.4, 0.3, 10))]
     neglogp = pd.Series(signal[: len(names)], index=names, name="-log10 p")
+    # Clinical variables tied to specific correlated blocks (+ a categorical, a stage).
+    clinical = pd.DataFrame(
+        {
+            "Biomarker A": matrix[:, :38].mean(axis=1) + RNG.normal(0, 0.4, matrix.shape[0]),
+            "Biomarker B": matrix[:, 38:76].mean(axis=1) + RNG.normal(0, 0.4, matrix.shape[0]),
+            "Outcome": matrix[:, 76:114].mean(axis=1) + RNG.normal(0, 0.6, matrix.shape[0]),
+            "Sex": RNG.choice(["male", "female"], matrix.shape[0]),
+            "Stage": RNG.choice(["I", "II", "III", "IV"], matrix.shape[0]),
+        },
+        index=samples,
+    )
+    corr = compute_clinical_correlations(X, clinical, method="spearman", min_pairs=20)
     fig = plot_clustered_heatmap(
         artifacts,
         top=[family],
         bottom=[Bar(neglogp, title="-log10 p", reference=float(-np.log10(0.05)))],
+        right=corr,
         cmap="magma",
         vmin=0.0,
         vmax=1.0,

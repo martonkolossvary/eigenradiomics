@@ -12,7 +12,13 @@ import pytest  # noqa: E402
 from scipy.cluster.hierarchy import leaves_list, linkage  # noqa: E402
 from scipy.spatial.distance import squareform  # noqa: E402
 
-from eigenradiomics import Bar, ReductionArtifacts, Strip, plot_clustered_heatmap  # noqa: E402
+from eigenradiomics import (  # noqa: E402
+    Bar,
+    CorrPanel,
+    ReductionArtifacts,
+    Strip,
+    plot_clustered_heatmap,
+)
 
 
 def _values(n: int) -> np.ndarray:
@@ -220,3 +226,53 @@ def test_invalid_bottom_type_raises():
     df, _, _ = _blocks()
     with pytest.raises(TypeError, match="Series or Bar"):
         plot_clustered_heatmap(df, bottom=[123])
+
+
+# ---- right correlation panel ---------------------------------------------
+
+
+def _corr_frame(names, n_vars: int = 4) -> pd.DataFrame:
+    """A features x variables correlation matrix in [-1, 1]."""
+    grid = np.linspace(-0.9, 0.9, len(names) * n_vars).reshape(len(names), n_vars)
+    return pd.DataFrame(grid, index=names, columns=[f"var{j}" for j in range(n_vars)])
+
+
+def test_right_panel_minimal():
+    df, _, _ = _blocks()
+    fig = plot_clustered_heatmap(df, right=_corr_frame(list(df.index)))
+    assert len(fig.axes) == 4  # heat + cbar + corr panel + corr colorbar
+    plt.close(fig)
+
+
+def test_right_panel_spec_custom_cmap():
+    df, _, _ = _blocks()
+    panel = CorrPanel(_corr_frame(list(df.index)), cmap="coolwarm", vmin=-0.5, vmax=0.5,
+                      label="Spearman r")
+    fig = plot_clustered_heatmap(df, right=panel)
+    assert len(fig.axes) == 4
+    plt.close(fig)
+
+
+def test_right_panel_full_cornerstone():
+    df, z, lab = _blocks(n_per=10, n_blocks=3)
+    names = list(df.index)
+    family = pd.Series(["A", "B"] * (len(names) // 2), index=names, name="Family")
+    pvals = pd.Series(_values(len(names)), index=names, name="-log10 p")
+    fig = plot_clustered_heatmap(
+        df,
+        linkage=z,
+        cluster_labels=lab,
+        top=[family],
+        bottom=[pvals],
+        right=_corr_frame(names, n_vars=5),
+        labels=names,
+    )
+    # heat + cbar + dendro + strip + 1 top + 1 bottom + corr + corr cbar + 2 legends
+    assert len(fig.axes) == 10
+    plt.close(fig)
+
+
+def test_invalid_right_type_raises():
+    df, _, _ = _blocks()
+    with pytest.raises(TypeError, match="DataFrame or CorrPanel"):
+        plot_clustered_heatmap(df, right=123)

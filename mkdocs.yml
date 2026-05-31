@@ -101,6 +101,7 @@ nav:
       - Ingestion & Datasets: api/ingestion.md
       - Reducers: api/reducers.md
       - Plotting: api/plotting.md
+      - Clinical Correlations: api/clinical.md
       - Preprocessing: api/preprocessing.md
       - Reproducibility: api/reproducibility.md
       - Batch Effects: api/batch_effects.md

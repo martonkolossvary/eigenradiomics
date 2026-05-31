@@ -7,3 +7,5 @@ Public plotting utilities.
 ::: eigenradiomics.plotting.Strip
 
 ::: eigenradiomics.plotting.Bar
+
+::: eigenradiomics.plotting.CorrPanel

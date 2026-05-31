@@ -6,6 +6,7 @@ from eigenradiomics.batch_effects import (
     write_batch_effects_excel,
 )
 from eigenradiomics.catalog import FeatureCatalog
+from eigenradiomics.clinical import compute_clinical_correlations, encode_clinical_series
 from eigenradiomics.dataset import RadiomicsDataset, StudyDesign
 from eigenradiomics.ingest import (
     MergeResult,
@@ -13,7 +14,7 @@ from eigenradiomics.ingest import (
     normalize_id_column,
     resolve_duplicates,
 )
-from eigenradiomics.plotting import Bar, Strip, plot_clustered_heatmap
+from eigenradiomics.plotting import Bar, CorrPanel, Strip, plot_clustered_heatmap
 from eigenradiomics.preprocessing import RadiomicsFeatureRemover, RadiomicsPrepTransformer
 from eigenradiomics.reducers import BaseReducer, WGCNAReducer
 from eigenradiomics.reproducibility import (
@@ -45,4 +46,7 @@ __all__ = [
     "plot_clustered_heatmap",
     "Strip",
     "Bar",
+    "CorrPanel",
+    "compute_clinical_correlations",
+    "encode_clinical_series",
 ]

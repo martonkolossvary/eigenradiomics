@@ -76,6 +76,30 @@ class Bar:
     reference: float | None = None
 
 
+@dataclass
+class CorrPanel:
+    """A feature-by-variable correlation panel drawn to the right of the heatmap.
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        ``(n_features, n_variables)`` correlations, indexed by feature name (e.g.
+        from :func:`~eigenradiomics.compute_clinical_correlations`).
+    cmap : str
+        Diverging colourmap (``"RdBu_r"`` by default).
+    vmin, vmax : float
+        Colour limits, symmetric about zero by default (``-1`` / ``1``).
+    label : str
+        Label for the panel's colourbar.
+    """
+
+    data: pd.DataFrame
+    cmap: str = "RdBu_r"
+    vmin: float = -1.0
+    vmax: float = 1.0
+    label: str = "Correlation"
+
+
 def _as_similarity_frame(similarity: NDArray | pd.DataFrame) -> pd.DataFrame:
     """Coerce *similarity* to a square feature-by-feature DataFrame."""
     if isinstance(similarity, pd.DataFrame):
@@ -122,6 +146,15 @@ def _as_bar(item: pd.Series | Bar) -> Bar:
     raise TypeError(f"bottom tracks must be a pandas Series or Bar, got {type(item).__name__}.")
 
 
+def _as_corr_panel(item: pd.DataFrame | CorrPanel) -> CorrPanel:
+    """Normalize a right-panel input to a :class:`CorrPanel`."""
+    if isinstance(item, CorrPanel):
+        return item
+    if isinstance(item, pd.DataFrame):
+        return CorrPanel(data=item)
+    raise TypeError(f"right must be a pandas DataFrame or CorrPanel, got {type(item).__name__}.")
+
+
 def plot_clustered_heatmap(
     similarity: NDArray | pd.DataFrame | ReductionArtifacts,
     *,
@@ -131,6 +164,7 @@ def plot_clustered_heatmap(
     cluster_colors: Mapping[Any, Any] | None = None,
     top: Sequence[pd.Series | Strip] | None = None,
     bottom: Sequence[pd.Series | Bar] | None = None,
+    right: pd.DataFrame | CorrPanel | None = None,
     cmap: str = "magma",
     vmin: float | None = None,
     vmax: float | None = None,
@@ -169,6 +203,9 @@ def plot_clustered_heatmap(
         Categorical annotation strips drawn above the heatmap.
     bottom : sequence of Series or Bar, optional
         Numeric annotation bar tracks drawn below the heatmap.
+    right : DataFrame or CorrPanel, optional
+        Feature-by-variable correlation panel (e.g. features vs clinical
+        variables) drawn to the right with its own diverging colourbar.
     cmap, vmin, vmax, below_cutoff_color :
         Similarity colour scaling (``below_cutoff_color`` is ``set_under``).
     show_dendrogram, show_cluster_strip, show_legend : bool
@@ -216,6 +253,7 @@ def plot_clustered_heatmap(
 
     strips = [_as_strip(item) for item in top] if top is not None else []
     bars = [_as_bar(item) for item in bottom] if bottom is not None else []
+    corr_panel = _as_corr_panel(right) if right is not None else None
 
     # 2. Determine the display order (feature names).
     if order is not None:
@@ -264,10 +302,19 @@ def plot_clustered_heatmap(
     has_legend = show_legend and bool(legend_blocks)
 
     # 4. Lay out the panels (rows: top strips, heatmap, bottom bars, colorbar;
-    #    cols: dendro, cluster strip, heatmap, legend).
+    #    cols: dendro, cluster strip, heatmap, correlation panel, legend).
+    corr_ratio = (
+        float(np.clip(0.5 * corr_panel.data.shape[1], 1.4, 4.5))
+        if corr_panel is not None
+        else 0.0
+    )
     if figsize is None:
         side = float(np.clip(n / 12.0, 6.0, 14.0))
-        width = side + 2.0 + (2.6 if has_legend else 0.0)
+        width = (
+            side + 2.0
+            + (2.6 if has_legend else 0.0)
+            + (0.1 * side * corr_ratio + 0.6 if corr_panel is not None else 0.0)
+        )
         height = side + 1.0 + 0.4 * n_top + 0.6 * n_bottom
         figsize = (width, height)
     fig = plt.figure(figsize=figsize)
@@ -282,6 +329,9 @@ def plot_clustered_heatmap(
         width_ratios.append(0.30)
     col["heat"] = len(width_ratios)
     width_ratios.append(10.0)
+    if corr_panel is not None:
+        col["corr"] = len(width_ratios)
+        width_ratios.append(corr_ratio)
     if has_legend:
         col["legend"] = len(width_ratios)
         width_ratios.append(2.6)
@@ -363,6 +413,23 @@ def plot_clustered_heatmap(
             ax_bar.set_xticklabels(tick_labels, rotation=90, fontsize=6)
         else:
             ax_bar.set_xticks([])
+
+    # 7b. Right correlation panel (shares the heatmap row order; own colourbar).
+    if corr_panel is not None:
+        panel = corr_panel.data.reindex(order_names)
+        ax_corr = fig.add_subplot(grid[heat_row, col["corr"]])
+        corr_image = ax_corr.imshow(
+            panel.to_numpy(dtype=float), aspect="auto", cmap=corr_panel.cmap,
+            vmin=corr_panel.vmin, vmax=corr_panel.vmax,
+            interpolation="nearest", origin="upper",
+        )
+        ax_corr.set_yticks([])
+        ax_corr.set_xticks(range(panel.shape[1]))
+        ax_corr.set_xticklabels(list(panel.columns), rotation=90, fontsize=7)
+        ax_corr_cbar = fig.add_subplot(grid[cbar_row, col["corr"]])
+        fig.colorbar(
+            corr_image, cax=ax_corr_cbar, orientation="horizontal", label=corr_panel.label
+        )
 
     # 8. Left dendrogram, aligned row-for-row with the heatmap.
     if draw_dendro:

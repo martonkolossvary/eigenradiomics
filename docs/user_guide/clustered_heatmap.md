@@ -3,15 +3,17 @@
 `plot_clustered_heatmap` renders a feature-by-feature **similarity heatmap**
 ordered by hierarchical clustering, with an aligned left dendrogram, a
 per-feature cluster colour strip, optional **categorical annotation strips**
-above it, and optional **numeric annotation bars** below it. It is deliberately
-generic — bring your own similarity matrix and, optionally, a cluster
-assignment, linkage, ordering, and annotation tracks — so it works for a WGCNA
-TOM or any other symmetric similarity.
+above it, optional **numeric annotation bars** below it, and an optional
+**correlation panel** to its right. It is deliberately generic — bring your own
+similarity matrix and, optionally, a cluster assignment, linkage, ordering, and
+annotation tracks — so it works for a WGCNA TOM or any other symmetric
+similarity.
 
 The figure has a memorable, fixed grammar — **each side answers a question**:
 the **left** is *who?* (dendrogram + module strip), the **top** is *what kind?*
-(categorical strips), the **bottom** is *how much?* (numeric bars), and the
-**centre** is the similarity itself. (A right correlation panel is planned.)
+(categorical strips), the **bottom** is *how much?* (numeric bars), the
+**right** is *related to what?* (feature × clinical correlations), and the
+**centre** is the similarity itself.
 
 ## From a fitted reducer
 
@@ -110,9 +112,47 @@ fig = plot_clustered_heatmap(
 Set `color="by_module"` (the default) to tint each bar by its feature's module,
 or pass any Matplotlib colour to use a single fixed colour for the whole track.
 
-!!! note "What's next"
-    A **right correlation panel** (features × clinical variables) is planned,
-    sourced conveniently from a `FeatureCatalog` and `RadiomicsDataset`.
+## Right correlation panel
+
+Pass a features × variables correlation matrix via `right` to add a panel on the
+right — typically *features vs clinical variables* — with its own **diverging**
+colourbar (`RdBu_r`, centred at 0). Each row aligns with the heatmap's features;
+the columns are the variables.
+
+`compute_clinical_correlations` sources this matrix for you. Clinical variables
+are mixed types, so each is numerically encoded (`encode_clinical_series`:
+numeric → binary/ordinal tokens → alphabetical ordinal) and then correlated by
+rank (Spearman by default):
+
+```python
+from eigenradiomics import compute_clinical_correlations, plot_clustered_heatmap
+
+corr = compute_clinical_correlations(
+    X,                                  # samples × features (or a RadiomicsDataset)
+    clinical,                           # samples × variables (str/binary/continuous)
+    method="spearman",
+    min_pairs=20,                       # drop variables with too few / no-variance values
+)
+fig = plot_clustered_heatmap(reducer.get_reduction_artifacts(), right=corr)
+```
+
+With a `RadiomicsDataset`, name the metadata columns to pull directly from it:
+
+```python
+corr = compute_clinical_correlations(dataset, ["age", "ldl", "sex", "stage"])
+```
+
+For explicit control of the colourmap, limits, or colourbar label, wrap it in a
+`CorrPanel`:
+
+```python
+from eigenradiomics import CorrPanel
+
+fig = plot_clustered_heatmap(
+    artifacts,
+    right=CorrPanel(corr, cmap="RdBu_r", vmin=-1, vmax=1, label="Spearman r"),
+)
+```
 
 ## Key options
 
@@ -125,6 +165,7 @@ or pass any Matplotlib colour to use a single fixed colour for the whole track.
 | `cluster_colors` | `{label: colour}` (otherwise a colourblind-safe palette) |
 | `top` | categorical strips above the heatmap (Series or `Strip`) |
 | `bottom` | numeric bars below the heatmap (Series or `Bar`) |
+| `right` | feature × variable correlation panel (DataFrame or `CorrPanel`) |
 | `cmap`, `vmin`, `vmax`, `below_cutoff_color` | similarity colour scaling |
 | `show_dendrogram`, `show_cluster_strip`, `show_legend` | toggle the side panels / legend |
 | `labels` | `"auto"`, an explicit list, or `None` |

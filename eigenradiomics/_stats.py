@@ -61,21 +61,31 @@ def _get_deterministic_seed(feature_name: str, base_seed: int = 42) -> int:
 
 
 def _fisher_ci(r: float, n: int, is_spearman: bool = False) -> tuple[float, float]:
-    """Compute Fisher-transformed 95% Confidence Interval for a correlation coefficient."""
-    if n <= 3 or np.isnan(r):
+    """Fisher-transformed 95% confidence interval for a correlation coefficient.
+
+    For Spearman's rho the standard error is inflated by ``1.03`` (a common
+    Bonett-Wright-style approximation). Returns ``(nan, nan)`` when ``n <= 3`` or
+    ``|r| >= 1``: the Fisher z-transform diverges at ``|r| = 1``, so the interval
+    is not estimable (reporting a narrow band there would be misleading).
+    """
+    if n <= 3 or np.isnan(r) or abs(r) >= 1.0:
         return np.nan, np.nan
 
-    # Clip r to prevent infinite values in arctanh
-    r_clipped = np.clip(r, -0.9999, 0.9999)
-    z = np.arctanh(r_clipped)
-
-    # Standard error adjustments
+    z = np.arctanh(r)
     se = (1.03 if is_spearman else 1.0) / np.sqrt(n - 3)
+    return float(np.tanh(z - 1.96 * se)), float(np.tanh(z + 1.96 * se))
 
-    z_low = z - 1.96 * se
-    z_high = z + 1.96 * se
 
-    return float(np.tanh(z_low)), float(np.tanh(z_high))
+def _fisher_mean(coefficients: NDArray | list[float]) -> float:
+    """Average correlation coefficients in Fisher z-space.
+
+    The arithmetic mean of correlation coefficients is downward-biased; averaging
+    via ``arctanh`` and back-transforming removes that bias. Used to pool the
+    pairwise coefficients across three or more observers.
+    """
+    arr = np.asarray(coefficients, dtype=float)
+    z = np.arctanh(np.clip(arr, -0.999999999999, 0.999999999999))
+    return float(np.tanh(np.mean(z)))
 
 
 # ----------------------------------------------------------------------
@@ -125,14 +135,26 @@ def _icc_2_1_estimate(Y: NDArray) -> dict[str, float]:
     df_between_observers = k - 1
     ms_between_observers = ss_between_observers / df_between_observers
 
-    # Residual / Error
+    # Residual / Error. Clamp tiny negative floating-point noise to zero; do NOT
+    # inflate to a fake positive (the old 1e-15 floor fabricated a finite F and a
+    # near-zero p for perfect-agreement features).
     ss_error = ss_total - ss_between_subjects - ss_between_observers
     df_error = df_between_subjects * df_between_observers
-    ms_error = max(ss_error / df_error, 1e-15)  # Avoid division by zero
+    ms_error = max(ss_error / df_error, 0.0)
 
-    # F-statistic and p-value for subjects
-    f_stat = ms_between_subjects / ms_error
-    p_value = stats.f.sf(f_stat, df_between_subjects, df_error)
+    # F-statistic and p-value for a subject effect.
+    if ms_error > 0:
+        f_stat = ms_between_subjects / ms_error
+        p_value = float(stats.f.sf(f_stat, df_between_subjects, df_error))
+    elif ms_between_subjects > 0:
+        # Perfect agreement with real between-subject variance: subjects are
+        # perfectly separable, so the effect is infinitely significant.
+        f_stat = np.inf
+        p_value = 0.0
+    else:
+        # No variance anywhere (fully constant input): the test is undefined.
+        f_stat = np.nan
+        p_value = np.nan
 
     # ICC(2,1) formula
     denominator = (
@@ -161,7 +183,12 @@ def _bootstrap_icc_ci(
     iterations: int = 1000,
     base_seed: int = 42,
 ) -> tuple[float, float]:
-    """Deterministically estimate the 95% Confidence Interval for ICC(2,1) via bootstrapping."""
+    """Deterministically estimate the 95% Confidence Interval for ICC(2,1) via bootstrapping.
+
+    Note that with only a handful of subjects (``n`` small) the percentile CI is
+    unreliable regardless of the number of iterations, since the resampling space
+    is tiny; treat such intervals with caution.
+    """
     n, k = Y.shape
     if n < 3 or k < 2 or iterations <= 0:
         return np.nan, np.nan
@@ -177,7 +204,10 @@ def _bootstrap_icc_ci(
         if not np.isnan(est["icc"]):
             boot_estimates.append(est["icc"])
 
-    if len(boot_estimates) < min(10, iterations // 2):
+    # Require at least half the resamples to yield a valid ICC; fewer means the
+    # feature is degenerate and the percentile CI would be meaningless. (The old
+    # min(10, iterations // 2) gate accepted as few as 10 successes out of 1000.)
+    if len(boot_estimates) < max(1, iterations // 2):
         return np.nan, np.nan
 
     ci_low = float(np.percentile(boot_estimates, 2.5))

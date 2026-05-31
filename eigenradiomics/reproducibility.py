@@ -20,6 +20,7 @@ from eigenradiomics._stats import (
     _bootstrap_icc_ci,
     _fdr_correct,
     _fisher_ci,
+    _fisher_mean,
     _icc_2_1_estimate,
 )
 
@@ -56,6 +57,16 @@ def compute_reproducibility(
     results : dict[str, pd.DataFrame]
         A dictionary containing three sheets: "Spearman", "Pearson",
         and "ICC" with detailed statistics.
+
+    Notes
+    -----
+    The ICC ``p_value`` tests whether subjects are distinguishable (the F-test
+    ``H0: MS_between_subjects = MS_error``); it is *not* a test that the ICC
+    exceeds a clinically useful threshold, and is almost always significant for
+    real data. Judge reliability from the ICC estimate and its CI versus
+    ``primary_threshold``, not from the p-value. For three or more observers the
+    Spearman/Pearson ``mean`` is pooled in Fisher z-space; the ICC is the
+    principled multi-rater statistic.
     """
     if len(datasets) < 2:
         raise ValueError("At least 2 datasets must be provided for reproducibility analysis.")
@@ -284,11 +295,16 @@ def compute_reproducibility(
                         }
                     )
                 else:
+                    # `mean` pools the pairwise coefficients in Fisher z-space (an
+                    # arithmetic mean of correlations is downward-biased). The
+                    # spread columns (sd/quartiles/min/max) describe the raw pairwise
+                    # distribution; note the pairs are not independent, so they
+                    # understate the true sampling uncertainty.
                     sd_val = float(np.std(coeffs, ddof=1)) if len(coeffs) > 1 else 0.0
                     row_list.append(
                         {
                             "feature": f_name,
-                            "mean": float(np.mean(coeffs)),
+                            "mean": _fisher_mean(coeffs),
                             "median": float(np.median(coeffs)),
                             "sd": sd_val,
                             "q25": float(np.percentile(coeffs, 25)),

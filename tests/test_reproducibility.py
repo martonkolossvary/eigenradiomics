@@ -11,7 +11,12 @@ import openpyxl
 import pandas as pd
 import pytest
 
-from eigenradiomics._stats import _get_deterministic_seed, _icc_2_1_estimate
+from eigenradiomics._stats import (
+    _fisher_ci,
+    _fisher_mean,
+    _get_deterministic_seed,
+    _icc_2_1_estimate,
+)
 from eigenradiomics.reproducibility import (
     compute_reproducibility,
     plot_reproducibility_histograms,
@@ -30,6 +35,39 @@ def test_deterministic_seed():
     assert seed1 != seed3
     assert seed1 != seed4
     assert isinstance(seed1, int)
+
+
+def test_fisher_mean_corrects_downward_bias():
+    """Fisher z-averaging exceeds the (biased) arithmetic mean of correlations."""
+    coeffs = [0.90, 0.95, 0.99]
+    fisher = _fisher_mean(coeffs)
+    assert fisher > float(np.mean(coeffs))  # bias-corrected upward
+    assert np.isclose(fisher, float(np.tanh(np.mean(np.arctanh(coeffs)))))
+
+
+def test_fisher_ci_undefined_at_unit_correlation():
+    """The Fisher CI is not estimable at |r| = 1 (z diverges) -> NaN, not a band."""
+    assert _fisher_ci(1.0, 30) == (np.nan, np.nan)
+    assert _fisher_ci(-1.0, 30) == (np.nan, np.nan)
+    low, high = _fisher_ci(0.8, 30)  # ordinary case still works
+    assert low < 0.8 < high
+
+
+def test_icc_perfect_agreement_is_exact():
+    """Perfect agreement -> ICC 1.0 with an honest p=0 / infinite F (no fabricated F)."""
+    Y = np.array([[1.0, 1.0], [2.0, 2.0], [3.0, 3.0], [4.0, 4.0]])
+    res = _icc_2_1_estimate(Y)
+    assert res["icc"] == 1.0
+    assert res["p_value"] == 0.0
+    assert np.isinf(res["f_stat"])
+
+
+def test_icc_fully_constant_is_nan():
+    """No variance anywhere -> ICC, F, and p are all undefined (NaN)."""
+    res = _icc_2_1_estimate(np.full((4, 2), 5.0))
+    assert np.isnan(res["icc"])
+    assert np.isnan(res["f_stat"])
+    assert np.isnan(res["p_value"])
 
 
 def test_icc_2_1_mathematical_correctness():

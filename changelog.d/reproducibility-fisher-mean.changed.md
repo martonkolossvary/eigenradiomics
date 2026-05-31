@@ -1,0 +1,1 @@
+For three or more observers, the Spearman/Pearson reproducibility `mean` now pools the pairwise coefficients in Fisher z-space instead of taking a plain arithmetic mean, removing the well-known downward bias. The spread columns (sd/quartiles/min/max) remain descriptive of the raw pairwise distribution.

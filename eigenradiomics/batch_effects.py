@@ -74,7 +74,13 @@ def _compute_feature_level_stats(
     trans_df: pd.DataFrame,
     batch_series: pd.Series,
 ) -> pd.DataFrame:
-    """Run ANOVA, Kruskal-Wallis, and Levene tests on a set of features."""
+    """Run ANOVA, Kruskal-Wallis, and Levene tests on a set of features.
+
+    ANOVA (and its ``eta_squared``) is computed on the *transformed* matrix, which
+    is closer to the test's normality assumption; the rank-based Kruskal-Wallis
+    (``epsilon_squared``) and the Levene variance test use the *raw* matrix. So
+    ``eta_squared`` and ``epsilon_squared`` in one row summarize different inputs.
+    """
     batches = sorted(batch_series.astype(str).unique())
     features = raw_df.columns.tolist()
     rows = []

@@ -2,37 +2,15 @@
 
 Radiomics features extracted from medical images are notoriously sensitive to variation in scanner manufacturer, imaging protocols, reconstruction kernels, and slice thicknesses. These variations introduce non-biological variations (batch effects) that can severely confound predictive models, leading to models that learn to classify scanners rather than clinical pathology.
 
-`eigenradiomics` provides a publication-grade **Batch Effect Diagnostics Framework** to identify, evaluate, and perform sensitivity checks on scanner/center-associated batch effects. It integrates rigorous preprocessing, feature-level tests, multivariate global diagnostics, ComBat correction sensitivity, and structured Excel/accessible visual reports.
+`eigenradiomics` provides a batch-effect diagnostics framework to identify and evaluate scanner/center-associated batch effects and to check how sensitive results are to ComBat correction. It covers preprocessing, per-feature tests, multivariate global diagnostics, a ComBat sensitivity check, and Excel + figure reports.
 
----
-
-## The Preprocessing Pipeline: `RadiomicsPrepTransformer`
-
-To perform clean statistics, feature distributions must be prepared. Standard scikit-learn preprocessing transformers (such as `PowerTransformer` or `StandardScaler`) fail immediately on incomplete matrices containing missing values (NaNs). 
-
-`eigenradiomics` introduces `RadiomicsPrepTransformer`, a scikit-learn compatible preprocessor designed specifically for sparse radiomics matrices. It performs:
-1. **Outlier Winsorization**: Clips features at custom percentiles (e.g. 1st and 99th) column-by-column to mitigate the impact of extreme radiomics outliers.
-2. **Yeo-Johnson Transformation**: Automatically estimates and applies Yeo-Johnson power transformations per feature to optimize normality. Constant columns are safely bypassed.
-3. **Standard Scaling**: Standardizes features to zero mean and unit variance.
-4. **NaN Carriage**: Natively carries and preserves NaN values during both fitting and transformation, avoiding matrix imputation.
-
-```python
-import numpy as np
-import pandas as pd
-from eigenradiomics.preprocessing import RadiomicsPrepTransformer
-
-# Create a sample radiomics table with a massive outlier and a missing value
-df = pd.DataFrame({
-    "feat_1": [1.0, 2.0, np.nan, 4.0, 500.0],  # Outlier 500.0
-    "feat_2": [10.0, 10.0, 10.0, 10.0, 10.0]   # Constant column
-})
-
-transformer = RadiomicsPrepTransformer(winsor_lower=0.1, winsor_upper=0.9)
-df_trans = transformer.fit_transform(df)
-
-# NaNs are preserved, outliers are clipped, and constant columns are returned safely
-print(df_trans)
-```
+For clean statistics the feature distributions are first normalised with
+`RadiomicsPrepTransformer` (NaN-aware winsorize → Yeo-Johnson → z-score). The
+ANOVA and its effect size are computed on that transformed matrix, while the
+rank-based Kruskal-Wallis and the Levene variance test use the raw matrix. You
+can supply your own prep configuration via the `pipeline=` argument (see
+[Pipeline integration](#pipeline-and-preprocessing-integration) below); for the
+transformer itself, see [Preprocess feature tables](radiomics_preprocessing.md).
 
 ---
 
@@ -82,7 +60,7 @@ batch = pd.read_csv("centers.csv", index_col="PatientID")["CenterID"]
 results = compute_batch_effects(
     X,
     batch,
-    permutations=999,      # High permutations for publication-ready p-values
+    permutations=999,      # more permutations -> finer p-value resolution
     no_combat=False        # Perform ComBat sensitivity check
 )
 
@@ -95,23 +73,22 @@ print(results["feature_stats"].head())
 
 ---
 
-## Polished Excel Reports & Scientific Plots
+## Excel Reports & Figures
 
 ### Multi-Sheet Excel Reports
 
-Export the complete diagnostics suite to a highly formatted Excel file with:
-* **Active auto-filters** and **frozen headers (`A2`)** on all sheets.
-* **Sleek dark-navy table headers**.
-* **Auto-fit columns** with dynamic padding to prevent string truncation.
-* **Custom decimal formatting** (3 decimals for statistical coefficients, 4 decimals/scientific notation for p-values).
+Export the complete diagnostics suite to a formatted Excel file with auto-filters
+and frozen headers on every sheet, styled header rows, auto-fit columns, and
+decimal formatting (3 d.p. for coefficients, 4 d.p./scientific notation for
+p-values):
 
 ```python
 write_batch_effects_excel(results, "batch_effects_report.xlsx")
 ```
 
-### Accessible Scientific Figures
+### Accessible Figures
 
-Generate high-contrast, publication-grade figures conforming to Oxford University Press (OUP) journals styling rules:
+Generate high-contrast figures with accessible (colourblind-safe, sans-serif) styling:
 
 ```python
 fig = plot_batch_effects(

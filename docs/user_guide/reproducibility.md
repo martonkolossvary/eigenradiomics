@@ -2,7 +2,7 @@
 
 Evaluating the robustness and reproducibility of machine learning features across different observers, readers, or software settings is a fundamental step in high-dimensional radiomics pipelines. Non-reproducible features can introduce substantial noise and bias, and should be excluded early in the modeling process.
 
-`eigenradiomics` provides a publication-grade reproducibility framework featuring rigorous Quality Control (QC), multiple-rater statistics, formatted Excel reports, and accessible scientific visuals conforming strictly to OUP journals styling rules.
+`eigenradiomics` provides a reproducibility framework with quality control (QC), multiple-rater statistics (ICC(2,1) and Spearman/Pearson), formatted Excel reports, and accessible figures.
 
 ---
 
@@ -98,13 +98,13 @@ results = compute_reproducibility(
 
 ---
 
-## Polished Excel Reports
+## Excel Reports
 
-To share statistics with collaborators, export the results dictionary to a pristine Excel workbook. It automatically applies:
-* **Frozen headers (`A2`)** and **active auto-filters** on all sheets (`Spearman`, `Pearson`, `ICC`).
-* **Auto-fit column widths** with dynamic padding to prevent cropped values.
-* **Sleek dark-navy fills** on the header row.
-* **Tailored alignments & decimal formatting** (e.g. 3 decimal places for coefficients, 4 decimal places/scientific notation for $p$-values).
+Export the results dictionary to a formatted Excel workbook, which applies:
+* **Frozen headers (`A2`)** and **auto-filters** on all sheets (`Spearman`, `Pearson`, `ICC`).
+* **Auto-fit column widths** with padding to prevent cropped values.
+* **Styled header rows**.
+* **Decimal formatting** (3 d.p. for coefficients, 4 d.p./scientific notation for $p$-values).
 
 ```python
 from eigenradiomics import write_reproducibility_excel
@@ -114,9 +114,9 @@ write_reproducibility_excel(results, "reproducibility_report.xlsx")
 
 ---
 
-## Accessible Scientific Histograms
+## Accessible Histograms
 
-Visualize metric distributions using publication-ready scientific plots built on the `scienceplots` package, with accessibility-focused styling (high-contrast colors, dark bar outlines, direct labeling, and sans-serif typography):
+Visualize metric distributions with accessible styling (high-contrast colours, dark bar outlines, direct labelling, sans-serif type):
 
 ```python
 from eigenradiomics import plot_reproducibility_histograms

@@ -49,8 +49,8 @@ mtr["p"]       # matching p-values
 mtr["p_fdr"]   # Benjamini-Hochberg FDR
 ```
 
-`mtr["r"]` (with `mtr["p_fdr"]` for significance) is a compact, publication-ready
-summary linking the reduced space to outcomes.
+`mtr["r"]` (with `mtr["p_fdr"]` for significance) is a compact summary linking the
+reduced space to outcomes.
 
 ## QC-driven feature selection in a Pipeline
 

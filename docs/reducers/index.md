@@ -16,13 +16,11 @@ While different algorithms operate under distinct statistical assumptions, all r
 
 ## Hyperparameter Optimization
 
-Because reducers are unsupervised transformers, optimizing their parameters requires either:
-
-- **Downstream supervised evaluation**: Coupling the reducer in a `Pipeline` with a supervised model and evaluating the end-to-end prediction quality (e.g., accuracy, AUC).
-- **Intrinsic unsupervised scoring**: Using custom scorers (e.g., reconstruction error via `inverse_transform`, silhouette coefficients) to evaluate the quality of the reduction independently of labels.
-- **Multi-metric tracking**: Simultaneously monitoring both supervised and unsupervised metrics using scikit-learn's multi-scoring `GridSearchCV` interface.
-
-For detailed examples and code, see the [Pipelines & Grid Search](../user_guide/pipelines_and_grid_search.md) guide.
+Because reducers are unsupervised, their parameters are tuned either by downstream
+supervised evaluation in a `Pipeline`, by an intrinsic unsupervised score
+(reconstruction error, silhouette), or by tracking both with a multi-metric
+`GridSearchCV`. The [Pipelines & Grid Search](../user_guide/pipelines_and_grid_search.md)
+guide is the single home for those strategies with worked examples.
 
 ## Output Nomenclature
 

@@ -1,8 +1,14 @@
-# Recipes
+# Cookbook & Recipes
 
-This page collects common usage patterns for eigenradiomics.
+Focused snippets that go beyond the basics. For the happy path see the
+[Quick Start](quick_start.md); for leakage-safe cross-validation and the
+recommended workflow order see [Best Practices](best_practices.md).
 
-## Reduce a [Pictologics](https://github.com/martonkolossvary/pictologics) Feature Table
+## Compose with stock scikit-learn preprocessors
+
+`WGCNAReducer` is a normal transformer, so it slots in after any scikit-learn
+preprocessing — useful when you want generic imputation/variance filtering
+instead of (or before) the radiomics-specific `RadiomicsPrepTransformer`:
 
 ```python
 import pandas as pd
@@ -25,18 +31,6 @@ pipe = Pipeline(
 )
 
 X_reduced = pipe.fit_transform(X)
-```
-
-## Prevent data leakage
-
-Fit on the training split only, then transform both splits with the *same*
-fitted pipeline. Reindex the test columns to the training order so feature
-identity is preserved.
-
-```python
-pipe.fit(X_train)
-Y_train = pipe.transform(X_train)
-Y_test = pipe.transform(X_test[X_train.columns])
 ```
 
 ## Reconstruct features (inverse transform)

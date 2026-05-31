@@ -12,6 +12,10 @@ from eigenradiomics.clinical import (
     encode_clinical_series,
 )
 from eigenradiomics.dataset import RadiomicsDataset, StudyDesign
+from eigenradiomics.feature_models import (
+    FeatureAssociationResult,
+    compute_feature_associations,
+)
 from eigenradiomics.ingest import (
     MergeResult,
     merge_tables,
@@ -63,4 +67,6 @@ __all__ = [
     "compute_clinical_correlations",
     "compute_module_trait_associations",
     "encode_clinical_series",
+    "compute_feature_associations",
+    "FeatureAssociationResult",
 ]

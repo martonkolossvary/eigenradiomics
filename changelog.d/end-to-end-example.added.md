@@ -1,0 +1,1 @@
+Added an end-to-end workflow that wires every primitive into one pipeline — ingest/merge → `FeatureCatalog` + `RadiomicsDataset` → reproducibility & batch-effect QC → preprocessing → WGCNA reduction → the cornerstone clustered heatmap. It ships as a runnable script (`examples/end_to_end.py`) and a narrated "End-to-End Workflow" guide page.

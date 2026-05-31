@@ -51,3 +51,6 @@ tmp_docs_env/
 
 # Agent workflows
 .agent/
+
+# Example script generated output
+examples/output/

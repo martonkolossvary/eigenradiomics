@@ -89,6 +89,7 @@ nav:
       - Reproducibility Analysis: user_guide/reproducibility.md
       - Batch Effect Diagnostics: user_guide/batch_effects.md
       - Clustered Heatmap: user_guide/clustered_heatmap.md
+      - End-to-End Workflow: user_guide/end_to_end.md
       - Cookbook & Recipes: user_guide/recipes.md
       - Scalability Guide: user_guide/scalability.md
       - Troubleshooting: user_guide/troubleshooting.md

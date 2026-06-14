@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections import Counter
 from typing import Any, Protocol, cast
 
@@ -178,3 +179,27 @@ def _check_feature_names(
     raise ValueError(
         f"{estimator_name} requires input features to be in the same order as during fit."
     )
+
+
+def check_constant_features(X: NDArray, threshold: float = 1e-12) -> NDArray:
+    """Identify constant columns (with standard deviation <= threshold), ignoring NaNs.
+
+    Parameters
+    ----------
+    X : ndarray of shape (n_samples, n_features)
+        Input feature matrix.
+    threshold : float, default=1e-12
+        Standard deviation threshold.
+
+    Returns
+    -------
+    constant_mask : ndarray of shape (n_features,)
+        Boolean mask where True indicates a constant feature column.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        std = np.nanstd(X, axis=0)
+    mask = np.asarray(std <= threshold)
+    # Treat entirely-NaN columns as not constant here (handled by missing warnings)
+    mask[np.isnan(std)] = False
+    return mask

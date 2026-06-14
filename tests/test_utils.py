@@ -9,6 +9,7 @@ import scipy.sparse
 
 from eigenradiomics._utils import (
     _check_feature_names,
+    check_constant_features,
     extract_feature_names,
     validate_estimator_input,
     validate_feature_matrix,
@@ -127,3 +128,25 @@ class TestValidateEstimatorInputSparse:
         X_sparse = scipy.sparse.csc_matrix(np.eye(5))
         with pytest.raises(TypeError, match="Sparse matrices are not supported"):
             validate_estimator_input(est, X_sparse, reset=True)
+
+
+class TestCheckConstantFeatures:
+    """Tests for check_constant_features helper."""
+
+    def test_identifies_constant_columns(self):
+        X = np.array([
+            [1.0, 2.0, 3.0],
+            [1.0, 2.5, 3.0],
+            [1.0, 2.1, 3.0],
+        ])
+        mask = check_constant_features(X)
+        np.testing.assert_array_equal(mask, [True, False, True])
+
+    def test_handles_nan_correctly(self):
+        X = np.array([
+            [1.0, 2.0, np.nan],
+            [1.0, 2.5, np.nan],
+            [np.nan, 2.1, np.nan],
+        ])
+        mask = check_constant_features(X)
+        np.testing.assert_array_equal(mask, [True, False, False])

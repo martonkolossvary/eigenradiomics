@@ -538,3 +538,82 @@ def test_to_excel(tmp_path):
     assert path.exists()
     wb = openpyxl.load_workbook(path)
     assert "associations" in wb.sheetnames and "top_hits" in wb.sheetnames
+
+
+def test_plot_rwas_manhattan(tmp_path):
+    from eigenradiomics.feature_models import plot_rwas_manhattan
+    from eigenradiomics.plotting import Bar, CorrPanel, Strip
+
+    X, meta = _data()
+    res = compute_feature_associations(X, meta["y"], adjust_for=["age"], covariate_data=meta)
+
+    # Simple call
+    fig = plot_rwas_manhattan(res)
+    assert fig is not None
+    plt.close(fig)
+
+    # Custom ordering, catalog, and strips/bars/corr_panel
+    catalog = _catalog()
+    features = list(X.columns)
+    strip = Strip(pd.Series(["A", "B", "A", "B"], index=features), title="strip1")
+    bar = Bar(pd.Series([1.0, 2.0, 1.5, 3.0], index=features), title="bar1")
+    corr_df = pd.DataFrame(
+        [[0.1, -0.2], [0.5, 0.4], [-0.3, 0.1], [0.8, -0.7]],
+        index=features,
+        columns=["var1", "var2"],
+    )
+    corr_panel = CorrPanel(corr_df, label="Correlation")
+
+    fig2 = plot_rwas_manhattan(
+        res,
+        catalog=catalog,
+        tier="Univariable",
+        group_by="family",
+        order=features[::-1],
+        strips=[strip],
+        bars=[bar],
+        corr_panel=corr_panel,
+        title="Manhattan Test",
+        path=tmp_path / "manhattan.png",
+    )
+    assert fig2 is not None
+    assert (tmp_path / "manhattan.png").exists()
+    plt.close(fig2)
+
+
+def test_plot_rwas_manhattan_coverage_gaps():
+    from eigenradiomics.feature_models import plot_rwas_manhattan
+    from eigenradiomics.plotting import CorrPanel
+
+    # 1. No fitted features available to plot
+    empty_df = pd.DataFrame(columns=["feature", "p_value", "status"])
+    with pytest.raises(ValueError, match="No fitted features available to plot"):
+        plot_rwas_manhattan(empty_df)
+
+    # 2. No features match the specified order
+    X, meta = _data()
+    res = compute_feature_associations(X, meta["y"], adjust_for=["age"], covariate_data=meta)
+    with pytest.raises(ValueError, match="No features match the specified order"):
+        plot_rwas_manhattan(res, order=["non_existent_feature"])
+
+    # 3. n > 60 features (to hit tick_labels is None and ax_corr.set_xticks([]))
+    n_feats = 65
+    rng = np.random.default_rng(42)
+    X_large = pd.DataFrame(
+        {f"feat_{i}": rng.normal(0, 1, 100) for i in range(n_feats)}
+    )
+    y_large = pd.Series(rng.normal(0, 1, 100))
+    res_large = compute_feature_associations(X_large, y_large)
+
+    features_large = list(X_large.columns)
+    corr_df = pd.DataFrame(
+        rng.normal(0, 1, (n_feats, 2)),
+        index=features_large,
+        columns=["var1", "var2"],
+    )
+    corr_panel = CorrPanel(corr_df, label="Large Correlation")
+
+    fig = plot_rwas_manhattan(res_large, corr_panel=corr_panel)
+    assert fig is not None
+    plt.close(fig)
+

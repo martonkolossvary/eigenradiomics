@@ -292,3 +292,14 @@ def test_import_error_without_inmoose(monkeypatch):
     X, batch = _data()
     with pytest.raises(ImportError, match="requires the optional 'inmoose'"):
         ComBatHarmonizer().fit(X, batch=batch)
+
+
+def test_constant_column_warning_with_fake(fake_inmoose):
+    X, batch = _data()
+    # Make one column constant
+    X["f0"] = 1.0
+    h = ComBatHarmonizer()
+    with pytest.warns(UserWarning, match="have near-zero variance"):
+        h.fit(X, batch=batch)
+    assert h.constant_mask_[0]
+    assert not h.constant_mask_[1]

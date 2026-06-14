@@ -20,7 +20,7 @@ import pandas as pd
 from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, OneToOneFeatureMixin, TransformerMixin
 
-from eigenradiomics._utils import validate_estimator_input
+from eigenradiomics._utils import check_constant_features, validate_estimator_input
 
 
 def _import_combat() -> tuple[Any, Any, Any, Any, Any]:
@@ -117,7 +117,16 @@ class ComBatHarmonizer(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
             raise ValueError(f"reference_batch {self.reference_batch!r} is not among the batches.")
 
         # Constant (train) features cannot be standardized; pass them through.
-        self.constant_mask_ = X_arr.std(axis=0) <= 1e-12
+        self.constant_mask_ = check_constant_features(X_arr, threshold=1e-12)
+        constant_indices = np.flatnonzero(self.constant_mask_)
+        if constant_indices.size > 0:
+            names = ", ".join(self.feature_names_in_[i] for i in constant_indices[:5])
+            suffix = " ..." if constant_indices.size > 5 else ""
+            warnings.warn(
+                f"{constant_indices.size} feature(s) have near-zero variance and will not "
+                f"be harmonized (passed through unchanged): {names}{suffix}.",
+                stacklevel=2,
+            )
         active = ~self.constant_mask_
         if not active.any():
             raise ValueError("all features are constant; nothing to harmonize.")

@@ -20,6 +20,7 @@ from eigenradiomics.dataset import RadiomicsDataset, StudyDesign
 from eigenradiomics.feature_models import (
     FeatureAssociationResult,
     compute_feature_associations,
+    plot_rwas_manhattan,
     plot_volcano,
 )
 from eigenradiomics.ingest import (
@@ -37,6 +38,7 @@ from eigenradiomics.plotting import (
     plot_clustered_heatmap,
     plot_eigengene_profiles,
     plot_hub_significance,
+    plot_observer_synteny,
 )
 from eigenradiomics.preprocessing import (
     ComBatHarmonizer,
@@ -44,7 +46,20 @@ from eigenradiomics.preprocessing import (
     RadiomicsFeatureRemover,
     RadiomicsPrepTransformer,
 )
-from eigenradiomics.reducers import BaseReducer, PCAReducer, SparsePCAReducer, WGCNAReducer
+from eigenradiomics.reducers import (
+    BaseReducer,
+    IsomapReducer,
+    LLEReducer,
+    MDSReducer,
+    PaCMAPReducer,
+    PCAReducer,
+    SparsePCAReducer,
+    SpectralReducer,
+    TriMAPReducer,
+    TSNEReducer,
+    UMAPReducer,
+    WGCNAReducer,
+)
 from eigenradiomics.reproducibility import (
     compute_reproducibility,
     plot_reproducibility_histograms,
@@ -61,6 +76,14 @@ __all__ = [
     "WGCNAReducer",
     "PCAReducer",
     "SparsePCAReducer",
+    "TSNEReducer",
+    "MDSReducer",
+    "SpectralReducer",
+    "IsomapReducer",
+    "LLEReducer",
+    "UMAPReducer",
+    "PaCMAPReducer",
+    "TriMAPReducer",
     "RadiomicsPrepTransformer",
     "FeatureCatalog",
     "RadiomicsDataset",
@@ -83,6 +106,8 @@ __all__ = [
     "plot_hub_significance",
     "plot_eigengene_profiles",
     "plot_batch_distributions",
+    "plot_observer_synteny",
+    "plot_rwas_manhattan",
     "compute_clinical_correlations",
     "compute_module_trait_associations",
     "encode_clinical_series",

@@ -5,7 +5,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from eigenradiomics.catalog import FeatureCatalog
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -388,43 +391,20 @@ def plot_clustered_heatmap(
     fig.colorbar(image, cax=ax_cbar, orientation="horizontal", label=colorbar_label)
 
     # 6. Top categorical strips (aligned with the heatmap columns).
-    for index, strip in enumerate(strips):
-        ordered_cats = strip.data.reindex(order_names)
-        color_map = strip_color_maps[index]
-        rgba = np.array(
-            [to_rgba(color_map.get(category, "lightgrey")) for category in ordered_cats]
-        ).reshape(1, n, 4)
-        ax_top = fig.add_subplot(grid[index, col["heat"]])
-        ax_top.imshow(rgba, aspect="auto", interpolation="nearest")
-        ax_top.set_xticks([])
-        ax_top.set_yticks([0])
-        ax_top.set_yticklabels([strip.title or f"strip {index + 1}"], fontsize=7)
+    _draw_top_strips(fig, grid, strips, strip_color_maps, order_names, col["heat"])
 
     # 7. Bottom numeric bars (aligned with the heatmap columns).
-    for index, bar in enumerate(bars):
-        ax_bar = fig.add_subplot(grid[heat_row + 1 + index, col["heat"]])
-        values = bar.data.reindex(order_names).to_numpy(dtype=float)
-        if bar.color == "by_module" and labels_series is not None and module_color_map is not None:
-            bar_color: Any = [
-                module_color_map.get(label, "lightgrey")
-                for label in labels_series.loc[order_names]
-            ]
-        else:
-            bar_color = bar.color if bar.color != "by_module" else _DEFAULT_BAR_COLOR
-        ax_bar.bar(np.arange(n), values, width=1.0, color=bar_color, linewidth=0)
-        ax_bar.set_xlim(-0.5, n - 0.5)
-        if bar.reference is not None:
-            ax_bar.axhline(bar.reference, ls="--", lw=0.8, color="0.4")
-        ax_bar.set_ylabel(
-            bar.title or f"bar {index + 1}", rotation=0, ha="right", va="center", fontsize=7
-        )
-        ax_bar.yaxis.set_major_locator(MaxNLocator(nbins=2))
-        ax_bar.tick_params(labelsize=6)
-        if index == n_bottom - 1 and tick_labels is not None:
-            ax_bar.set_xticks(range(n))
-            ax_bar.set_xticklabels(tick_labels, rotation=90, fontsize=6)
-        else:
-            ax_bar.set_xticks([])
+    _draw_bottom_bars(
+        fig,
+        grid,
+        heat_row + 1,
+        bars,
+        labels_series,
+        module_color_map,
+        order_names,
+        col["heat"],
+        tick_labels,
+    )
 
     # 7b. Right correlation panel (shares the heatmap row order; own colourbar).
     if corr_panel is not None:
@@ -891,6 +871,301 @@ def plot_batch_distributions(
             fontweight="bold",
         )
 
+    if path:
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+
+    return fig
+
+
+def _draw_top_strips(
+    fig: plt.Figure,
+    grid: Any,
+    strips: Sequence[Strip],
+    strip_color_maps: list[dict[Any, Any]],
+    order_names: Sequence[Any],
+    col_idx: int,
+    row_offset: int = 0,
+) -> None:
+    """Draw top categorical strips aligned with the columns of the main plot."""
+    n = len(order_names)
+    for index, strip in enumerate(strips):
+        ordered_cats = strip.data.reindex(order_names)
+        color_map = strip_color_maps[index]
+        rgba = np.array(
+            [to_rgba(color_map.get(category, "lightgrey")) for category in ordered_cats]
+        ).reshape(1, n, 4)
+        ax_top = fig.add_subplot(grid[row_offset + index, col_idx])
+        ax_top.imshow(rgba, aspect="auto", interpolation="nearest")
+        ax_top.set_xticks([])
+        ax_top.set_yticks([0])
+        ax_top.set_yticklabels([strip.title or f"strip {index + 1}"], fontsize=7)
+
+
+def _draw_bottom_bars(
+    fig: plt.Figure,
+    grid: Any,
+    row_offset: int,
+    bars: Sequence[Bar],
+    labels_series: pd.Series | None,
+    module_color_map: dict[Any, Any] | None,
+    order_names: Sequence[Any],
+    col_idx: int,
+    tick_labels: Sequence[str] | None = None,
+) -> None:
+    """Draw bottom numeric bars aligned with the columns of the main plot."""
+    n = len(order_names)
+    n_bottom = len(bars)
+    for index, bar in enumerate(bars):
+        ax_bar = fig.add_subplot(grid[row_offset + index, col_idx])
+        values = bar.data.reindex(order_names).to_numpy(dtype=float)
+        if bar.color == "by_module" and labels_series is not None and module_color_map is not None:
+            bar_color: Any = [
+                module_color_map.get(label, "lightgrey")
+                for label in labels_series.loc[order_names]
+            ]
+        else:
+            bar_color = bar.color if bar.color != "by_module" else _DEFAULT_BAR_COLOR
+        ax_bar.bar(np.arange(n), values, width=1.0, color=bar_color, linewidth=0)
+        ax_bar.set_xlim(-0.5, n - 0.5)
+        if bar.reference is not None:
+            ax_bar.axhline(bar.reference, ls="--", lw=0.8, color="0.4")
+        ax_bar.set_ylabel(
+            bar.title or f"bar {index + 1}", rotation=0, ha="right", va="center", fontsize=7
+        )
+        ax_bar.yaxis.set_major_locator(MaxNLocator(nbins=2))
+        ax_bar.tick_params(labelsize=6)
+        if index == n_bottom - 1 and tick_labels is not None:
+            ax_bar.set_xticks(range(n))
+            ax_bar.set_xticklabels(tick_labels, rotation=90, fontsize=6)
+        else:
+            ax_bar.set_xticks([])
+
+
+def plot_observer_synteny(
+    reproducibility_results: pd.DataFrame | dict[str, pd.DataFrame],
+    catalog: FeatureCatalog | pd.DataFrame | None = None,
+    *,
+    order: Sequence[str] | NDArray | None = None,
+    group_by: str = "family",
+    metric: str | None = None,
+    figsize: tuple[float, float] | None = None,
+    title: str | None = None,
+    path: str | Path | None = None,
+) -> plt.Figure:
+    """Plot an observer reproducibility synteny-style comparison plot.
+
+    Features are aligned on parallel left and right axes. Connection lines
+    are drawn between corresponding features, with color and thickness
+    representing the reproducibility score (e.g. ICC). Ideogram-style family
+    bars are rendered on the left and right margins.
+
+    Parameters
+    ----------
+    reproducibility_results : DataFrame or dict of DataFrame
+        Output from `compute_reproducibility` containing reproducibility metrics.
+    catalog : FeatureCatalog or DataFrame, optional
+        Used to resolve feature groups/families.
+    order : sequence of str, optional
+        Custom ordering of features. If None, features are ordered by family
+        then by name.
+    group_by : str, default="family"
+        Catalog column to group features by.
+    metric : str, optional
+        Metric column to plot (e.g. "icc" or "correlation"). If None, is automatically
+        inferred from the columns of the results.
+    figsize : tuple, optional
+        Figure size.
+    title : str, optional
+        Figure title.
+    path : str or Path, optional
+        If set, save the figure to this file path.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
+
+    # Resolve reproducibility DataFrame
+    if isinstance(reproducibility_results, dict):
+        if "ICC" in reproducibility_results:
+            df = reproducibility_results["ICC"].copy()
+            inferred_metric = "icc"
+        elif "Spearman" in reproducibility_results:
+            df = reproducibility_results["Spearman"].copy()
+            inferred_metric = "correlation"
+        else:
+            df = list(reproducibility_results.values())[0].copy()
+            inferred_metric = "correlation" if "correlation" in df.columns else "icc"
+    else:
+        df = reproducibility_results.copy()
+        if "icc" in df.columns:
+            inferred_metric = "icc"
+        elif "correlation" in df.columns:
+            inferred_metric = "correlation"
+        else:
+            inferred_metric = df.columns[1]
+
+    if metric is None:
+        metric = inferred_metric
+
+    if metric not in df.columns:
+        raise ValueError(f"Metric column {metric!r} not found in reproducibility results.")
+    if "feature" not in df.columns:
+        raise ValueError("Reproducibility results must contain a 'feature' column.")
+
+    # Annotate catalog
+    if catalog is not None:
+        from eigenradiomics.feature_models import _annotate_catalog
+        df = _annotate_catalog(df, catalog)
+
+    if group_by not in df.columns:
+        df[group_by] = "All Features"
+
+    # Sort features
+    if order is not None:
+        order_list = list(order)
+        # Reorder df to match order_list
+        df = df.set_index("feature").reindex(order_list).reset_index()
+        # Drop nan rows (features not in order)
+        df = df.dropna(subset=["feature"])
+    else:
+        df = df.sort_values(by=[group_by, "feature"]).reset_index(drop=True)
+
+    n = len(df)
+    if n == 0:
+        raise ValueError("No features available to plot.")
+
+    unique_groups = sorted(df[group_by].dropna().unique())
+    group_colors = _assign_colors(unique_groups, None)
+
+    # Plot
+    from eigenradiomics._plotting import apply_science_style
+    apply_science_style()
+    if figsize is None:
+        figsize = (6.0, float(np.clip(n * 0.15, 5.0, 12.0)))
+
+    fig, ax = plt.subplots(figsize=figsize)
+
+    # Draw lines and ribbons
+    y_coords = np.arange(n)
+    df["_y"] = y_coords
+
+    # Draw connection lines
+    for _, row in df.iterrows():
+        y = row["_y"]
+        val = row[metric]
+        if pd.isna(val):
+            color = "lightgrey"
+            alpha = 0.2
+            lw = 0.5
+        elif val >= 0.8:
+            color = "#0072B2"  # deep blue (reproducible)
+            alpha = 0.8
+            lw = 1.5
+        elif val >= 0.5:
+            color = "#E69F00"  # orange (moderate)
+            alpha = 0.5
+            lw = 1.0
+        else:
+            color = "#D55E00"  # vermillion (poor)
+            alpha = 0.3
+            lw = 0.8
+
+        ax.plot([0, 1], [y, y], color=color, alpha=alpha, lw=lw, zorder=1)
+
+    # Draw ideogram bars
+    from matplotlib.patches import Rectangle
+    for grp in unique_groups:
+        grp_idx = df[df[group_by] == grp]["_y"]
+        if not grp_idx.empty:
+            y_min = grp_idx.min() - 0.45
+            y_max = grp_idx.max() + 0.45
+            # Left bar
+            ax.add_patch(
+                Rectangle(
+                    (-0.03, y_min),
+                    0.03,
+                    y_max - y_min,
+                    color=group_colors[grp],
+                    alpha=0.8,
+                    ec="none",
+                    zorder=2,
+                )
+            )
+            # Right bar
+            ax.add_patch(
+                Rectangle(
+                    (1.0, y_min),
+                    0.03,
+                    y_max - y_min,
+                    color=group_colors[grp],
+                    alpha=0.8,
+                    ec="none",
+                    zorder=2,
+                )
+            )
+
+    # Axis decoration
+    ax.set_xlim(-0.1, 1.1)
+    ax.set_ylim(-0.5, n - 0.5)
+
+    # If small number of features, label them on left/right axes
+    if n <= 50:
+        ax.set_yticks(y_coords)
+        ax.set_yticklabels(df["feature"], fontsize=8)
+        # Add labels to the right axis too
+        ax2 = ax.twinx()
+        ax2.set_ylim(ax.get_ylim())
+        ax2.set_yticks(y_coords)
+        ax2.set_yticklabels(df["feature"], fontsize=8)
+    else:
+        ax.set_yticks([])
+        ax2 = ax.twinx()
+        ax2.set_yticks([])
+
+    ax.set_xticks([0, 1])
+    ax.set_xticklabels(["Observer A", "Observer B"], fontsize=10, weight="bold")
+
+    ax.spines["top"].set_visible(False)
+    ax.spines["bottom"].set_visible(False)
+    ax.spines["left"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    if 'ax2' in locals():
+        ax2.spines["top"].set_visible(False)
+        ax2.spines["bottom"].set_visible(False)
+        ax2.spines["left"].set_visible(False)
+        ax2.spines["right"].set_visible(False)
+
+    # Legend for groups
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+    handles: list[Any] = []
+    for grp in unique_groups:
+        handles.append(Patch(facecolor=group_colors[grp], label=str(grp)))
+
+    handles.append(
+        Line2D([0], [0], color="#0072B2", lw=1.5, label=f"{metric.upper()} >= 0.8")
+    )
+    handles.append(
+        Line2D([0], [0], color="#E69F00", lw=1.0, label=f"0.5 <= {metric.upper()} < 0.8")
+    )
+    handles.append(
+        Line2D([0], [0], color="#D55E00", lw=0.8, label=f"{metric.upper()} < 0.5")
+    )
+
+    ax.legend(
+        handles=handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.05),
+        ncol=min(len(handles), 4),
+        frameon=False,
+        fontsize=9,
+    )
+
+    if title:
+        fig.suptitle(title, weight="bold", fontsize=12)
+
+    fig.tight_layout()
     if path:
         plt.savefig(path, dpi=300, bbox_inches="tight")
 

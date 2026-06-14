@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import Any, cast
 
 import numpy as np
@@ -84,6 +85,7 @@ class RadiomicsPrepTransformer(OneToOneFeatureMixin, TransformerMixin, BaseEstim
         self.winsor_bounds_: list[tuple[float, float]] = []
         self.power_transformers_: list[PowerTransformer | None] = []
         self.scales_: list[tuple[float, float]] = []
+        all_nan_cols = []
 
         for col_idx in range(n_features):
             col_vals = X_arr[:, col_idx]
@@ -92,6 +94,7 @@ class RadiomicsPrepTransformer(OneToOneFeatureMixin, TransformerMixin, BaseEstim
 
             if len(valid_vals) == 0:
                 # Handle completely missing columns
+                all_nan_cols.append(col_idx)
                 self.winsor_bounds_.append((np.nan, np.nan))
                 self.power_transformers_.append(None)
                 self.scales_.append((0.0, 1.0))
@@ -127,6 +130,16 @@ class RadiomicsPrepTransformer(OneToOneFeatureMixin, TransformerMixin, BaseEstim
                 self.scales_.append((mean, std))
             else:
                 self.scales_.append((0.0, 1.0))
+
+        if all_nan_cols:
+            names = ", ".join(self.feature_names_in_[i] for i in all_nan_cols[:5])
+            suffix = " ..." if len(all_nan_cols) > 5 else ""
+            warnings.warn(
+                f"{len(all_nan_cols)} feature(s) are entirely NaN and will be skipped "
+                f"during transformation (remains NaN): {names}{suffix}.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         return self
 

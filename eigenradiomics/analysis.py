@@ -183,7 +183,7 @@ def identify_hub_features(
         cluster_features = k_me.index[cluster_mask]
 
         if len(cluster_features) == 0:
-            continue
+            continue  # pragma: no cover
 
         # Find the column in k_me matching this cluster name.
         # Fallback: if names match, use the matched column. Otherwise, match by position.

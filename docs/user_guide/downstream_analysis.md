@@ -115,6 +115,48 @@ fig_box = plot_eigengene_profiles(eigengenes, dataset.data["Grade"], trait_name=
 fig_scatter = plot_eigengene_profiles(eigengenes, dataset.data["SurvivalTime"], trait_name="Survival Days")
 ```
 
+## Observer Reproducibility Synteny Plot
+
+To visually compare feature reproducibility (e.g. ICC or correlation) between two observers/readers, you can use the `plot_observer_synteny` function. It displays features along parallel vertical axes with color-coded connection lines representing reproducibility scores.
+
+```python
+from eigenradiomics.plotting import plot_observer_synteny
+
+# Plot observer synteny comparison
+fig = plot_observer_synteny(
+    reproducibility_results,    # DataFrame from compute_reproducibility
+    catalog=catalog,            # FeatureCatalog for family grouping
+    metric="icc",               # Inferred metric to plot
+    order=custom_order_names,   # Optional custom ordering
+    title="Observer Reproducibility Synteny"
+)
+```
+
+## RWAS Manhattan Plot
+
+The Radiomics Wide Association Study (RWAS) Manhattan plot displays association p-values ($-\log_{10}$ p-value) on the vertical axis against features grouped by their family on the horizontal axis. You can also attach categorical strips, numeric bars, or correlation heatmaps underneath.
+
+```python
+from eigenradiomics.feature_models import plot_rwas_manhattan
+from eigenradiomics.plotting import Strip, Bar, CorrPanel
+
+# Optionally prepare annotation tracks
+strip = Strip(catalog.frame.set_index("feature")["family_group"])
+bar = Bar(repro_results.set_index("feature")["icc"])
+corr_panel = CorrPanel(correlations_df)
+
+# Render Manhattan plot with bottom tracks
+fig = plot_rwas_manhattan(
+    association_result,
+    catalog=catalog,
+    tier="Univariable",
+    strips=[strip],
+    bars=[bar],
+    corr_panel=corr_panel,
+    title="RWAS Manhattan Plot"
+)
+```
+
 !!! tip "Per-feature outcome models"
     To model individual **features** (not module eigengenes) against an outcome —
     survival, binary, or continuous, with clinical adjustment and repeated-measures

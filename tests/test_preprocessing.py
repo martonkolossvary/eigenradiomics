@@ -561,7 +561,8 @@ class TestRadiomicsPrepTransformer:
 
     def test_all_nan_column_carried_through(self) -> None:
         df = pd.DataFrame({"a": [1.0, 2.0, 3.0, 4.0], "b": [np.nan, np.nan, np.nan, np.nan]})
-        out = RadiomicsPrepTransformer().fit_transform(df)
+        with pytest.warns(UserWarning, match="entirely NaN"):
+            out = RadiomicsPrepTransformer().fit_transform(df)
         assert out["b"].isna().all()
         assert not out["a"].isna().any()
 

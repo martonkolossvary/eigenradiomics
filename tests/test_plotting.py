@@ -289,3 +289,115 @@ def test_invalid_right_type_raises():
     df, _, _ = _blocks()
     with pytest.raises(TypeError, match="DataFrame or CorrPanel"):
         plot_clustered_heatmap(df, right=123)
+
+
+def test_plot_observer_synteny(tmp_path):
+    from eigenradiomics.plotting import plot_observer_synteny
+
+    features = [f"f{i}" for i in range(10)]
+    df_repro = pd.DataFrame(
+        {
+            "feature": features,
+            "icc": [0.95, 0.45, 0.82, 0.73, 0.91, 0.33, 0.61, 0.88, 0.79, 0.52],
+            "correlation": [0.96, 0.50, 0.85, 0.75, 0.92, 0.38, 0.65, 0.90, 0.82, 0.55],
+        }
+    )
+
+    catalog = pd.DataFrame({"feature": features, "family": ["firstorder"] * 5 + ["glcm"] * 5})
+
+    fig1 = plot_observer_synteny(df_repro, catalog=catalog)
+    assert fig1 is not None
+    plt.close(fig1)
+
+    fig2 = plot_observer_synteny(
+        df_repro,
+        catalog=catalog,
+        metric="correlation",
+        order=features[::-1],
+        title="Synteny test",
+        path=tmp_path / "synteny.png",
+    )
+    assert fig2 is not None
+    assert (tmp_path / "synteny.png").exists()
+    plt.close(fig2)
+
+
+def test_plot_observer_synteny_coverage_gaps(tmp_path):
+    from eigenradiomics.plotting import plot_observer_synteny
+
+    features = [f"f{i}" for i in range(10)]
+    df_repro = pd.DataFrame(
+        {
+            "feature": features,
+            "icc": [0.95, np.nan, 0.82, 0.73, 0.91, 0.33, 0.61, 0.88, 0.79, 0.52],
+            "correlation": [0.96, 0.50, 0.85, 0.75, 0.92, 0.38, 0.65, 0.90, 0.82, 0.55],
+        }
+    )
+
+    # 1. reproducibility_results as dict
+    fig = plot_observer_synteny({"ICC": df_repro})
+    assert fig is not None
+    plt.close(fig)
+
+    fig = plot_observer_synteny({"Spearman": df_repro})
+    assert fig is not None
+    plt.close(fig)
+
+    # DataFrame with custom metric column
+    df_custom = pd.DataFrame(
+        {
+            "feature": features,
+            "custom_val": [0.9] * 10,
+        }
+    )
+    fig = plot_observer_synteny({"Pearson": df_custom}, metric="custom_val")
+    assert fig is not None
+    plt.close(fig)
+
+    # 2. DataFrame without "icc" or "correlation" (inferred_metric = df.columns[1])
+    fig = plot_observer_synteny(df_custom)
+    assert fig is not None
+    plt.close(fig)
+
+    # 2.b DataFrame with "correlation" only (to hit line 1004)
+    df_corr_only = pd.DataFrame(
+        {
+            "feature": features,
+            "correlation": [0.9] * 10,
+        }
+    )
+    fig = plot_observer_synteny(df_corr_only)
+    assert fig is not None
+    plt.close(fig)
+
+    # 3. raise ValueError: metric not found
+    with pytest.raises(ValueError, match="Metric column 'missing' not found"):
+        plot_observer_synteny(df_repro, metric="missing")
+
+    # 4. raise ValueError: "feature" column not found
+    df_no_feat = df_repro.drop(columns=["feature"])
+    with pytest.raises(ValueError, match="must contain a 'feature' column"):
+        plot_observer_synteny(df_no_feat)
+
+    # 5. group_by not in df columns (fallback to "All Features")
+    fig = plot_observer_synteny(df_repro, group_by="missing_family")
+    assert fig is not None
+    plt.close(fig)
+
+    # 6. Empty dataframe after filtering (n == 0)
+    empty_df = pd.DataFrame(columns=["feature", "icc"])
+    with pytest.raises(ValueError, match="No features available to plot"):
+        plot_observer_synteny(empty_df)
+
+    # 7. n > 50 features (to hit tick_labels is None, etc.)
+    features_large = [f"f{i}" for i in range(55)]
+    df_large = pd.DataFrame(
+        {
+            "feature": features_large,
+            "icc": [0.9] * 55,
+        }
+    )
+    fig = plot_observer_synteny(df_large)
+    assert fig is not None
+    plt.close(fig)
+

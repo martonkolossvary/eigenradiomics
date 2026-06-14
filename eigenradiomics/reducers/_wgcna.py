@@ -21,6 +21,7 @@ from scipy.cluster.hierarchy import cut_tree, leaves_list, linkage
 from scipy.spatial.distance import squareform
 from sklearn.utils.validation import check_is_fitted
 
+from eigenradiomics._utils import check_constant_features
 from eigenradiomics.reducers._base import BaseReducer
 from eigenradiomics.reducers._wgcna_utils import (
     _wgcna_compute_eigengene,
@@ -249,7 +250,8 @@ class WGCNAReducer(BaseReducer):
 
         # Constant features cannot correlate with anything and are left unassigned
         # (grey). Surface them so a silently-degenerate input does not go unnoticed.
-        constant = np.where(X_arr.std(axis=0) == 0)[0]
+        constant_mask = check_constant_features(X_arr, threshold=0.0)
+        constant = np.flatnonzero(constant_mask)
         if constant.size > 0:
             names = ", ".join(str(feature_names[i]) for i in constant[:5])
             suffix = " ..." if constant.size > 5 else ""

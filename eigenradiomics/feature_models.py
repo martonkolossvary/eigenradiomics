@@ -30,7 +30,11 @@ from eigenradiomics.catalog import FeatureCatalog
 from eigenradiomics.dataset import RadiomicsDataset
 
 if TYPE_CHECKING:
-    from eigenradiomics.plotting import Bar
+    from pathlib import Path
+
+    import matplotlib.pyplot as plt
+
+    from eigenradiomics.plotting import Bar, CorrPanel, Strip
 
 #: Columns every fitted row carries (before FDR and catalog annotation).
 _RESULT_FIELDS = (
@@ -881,3 +885,339 @@ def _draw_volcano_panel(
     ax.axhline(-np.log10(fdr_alpha), color="black", linestyle=":", linewidth=0.9, alpha=0.7)
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
+
+
+def plot_rwas_manhattan(
+    result: FeatureAssociationResult | pd.DataFrame,
+    catalog: FeatureCatalog | pd.DataFrame | None = None,
+    *,
+    tier: str | None = None,
+    group_by: str = "family",
+    order: Sequence[str] | None = None,
+    strips: Sequence[Strip] | None = None,
+    bars: Sequence[Bar] | None = None,
+    corr_panel: CorrPanel | None = None,
+    fdr_alpha: float = 0.05,
+    figsize: tuple[float, float] | None = None,
+    title: str | None = None,
+    path: str | Path | None = None,
+) -> plt.Figure:
+    """Plot an RWAS Manhattan plot of feature associations.
+
+    Features are plotted on the horizontal axis grouped by their catalog family
+    or group, with alternating shading and labels. The vertical axis represents
+    the -log10 association p-value. Custom tracks (categorical strips, numeric
+    bars, and correlation panels) can be aligned horizontally under the plot.
+
+    Parameters
+    ----------
+    result : FeatureAssociationResult or pandas.DataFrame
+        Output of `compute_feature_associations`.
+    catalog : FeatureCatalog or pandas.DataFrame, optional
+        Used to resolve feature groups/families.
+    tier : str, optional
+        Which model tier to show (default: first tier in results).
+    group_by : str, default="family"
+        Catalog column to group features by on the horizontal axis.
+    order : sequence of str, optional
+        Custom ordering of features. If None, features are ordered by group_by
+        then by feature name.
+    strips : sequence of Strip, optional
+        Categorical annotation strips to draw below the plot.
+    bars : sequence of Bar, optional
+        Numeric annotation bars to draw below the plot.
+    corr_panel : CorrPanel, optional
+        A feature-by-variable correlation panel to draw transposed below the plot.
+    fdr_alpha : float, default=0.05
+        FDR threshold for "significant" points and the reference line.
+    figsize : tuple of float, optional
+        Figure size.
+    title : str, optional
+        Figure title.
+    path : str or Path, optional
+        If set, save the figure to this file path.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
+
+    from eigenradiomics._plotting import apply_science_style
+    from eigenradiomics.plotting import (
+        _assign_colors,
+        _draw_bottom_bars,
+        _draw_top_strips,
+    )
+
+    # Resolve DataFrame
+    df = result.table.copy() if isinstance(result, FeatureAssociationResult) else result.copy()
+
+    # Annotate catalog
+    if catalog is not None:
+        df = _annotate_catalog(df, catalog)
+
+    if group_by not in df.columns:
+        df[group_by] = "All Features"
+
+    # Handle tier
+    if "model" in df.columns:
+        if tier is None:
+            available_tiers = list(df["model"].dropna().unique())
+            if len(available_tiers) > 0:
+                tier = available_tiers[0]
+        if tier is not None:
+            df = df[df["model"] == tier]
+
+    df = df[df["status"].eq("ok") & df["p_value"].notna() & df["p_value"].gt(0)].copy()
+
+    if df.empty:
+        raise ValueError("No fitted features available to plot.")
+
+    # Determine unique features in this subset
+    all_features = df["feature"].unique()
+
+    # Determine ordering of features
+    if order is not None:
+        order_names = [feat for feat in order if feat in all_features]
+    else:
+        # Sort by group_by first, then by feature name
+        df_sorted = df.sort_values(by=[group_by, "feature"])
+        order_names = list(df_sorted["feature"].unique())
+
+    if not order_names:
+        raise ValueError("No features match the specified order or are present in results.")
+
+    n = len(order_names)
+
+    # Reindex df to order_names
+    df_ordered = df.set_index("feature").reindex(order_names).reset_index()
+    df_ordered["_y"] = -np.log10(df_ordered["p_value"].clip(lower=np.nextafter(0, 1)))
+    df_ordered["_sig"] = df_ordered["p_fdr"].lt(fdr_alpha)
+
+    # Assign group colors
+    unique_groups = sorted(df_ordered[group_by].dropna().unique())
+    group_colors = _assign_colors(unique_groups, None)
+
+    # Color map for the points
+    colors = []
+    for _, row in df_ordered.iterrows():
+        if row["_sig"]:
+            colors.append(group_colors.get(row[group_by], "#B8B8B8"))
+        else:
+            colors.append("#B8B8B8")
+
+    # Layout dimensions
+    n_strips = len(strips) if strips else 0
+    n_bars = len(bars) if bars else 0
+    has_corr = corr_panel is not None
+
+    # Calculate grid ratios
+    height_ratios = [10.0]  # Manhattan plot
+    for _ in range(n_strips):
+        height_ratios.append(0.32)
+    for _ in range(n_bars):
+        height_ratios.append(1.1)
+    if corr_panel is not None:
+        n_vars = corr_panel.data.shape[1]
+        height_ratios.append(max(1.0, 0.3 * n_vars))
+    height_ratios.append(1.0)  # spacing for colorbar/ticks
+
+    # Determine grid columns (main + legend)
+    strip_color_maps: list[dict[Any, Any]] = []
+    legend_blocks: list[tuple[str, dict[Any, Any]]] = []
+    if strips:
+        for index, strip in enumerate(strips):
+            ordered_cats = strip.data.reindex(order_names)
+            unique_cats = list(dict.fromkeys(ordered_cats.dropna()))
+            color_map = _assign_colors(unique_cats, strip.colors)
+            strip_color_maps.append(color_map)
+            legend_blocks.append((strip.title or f"strip {index + 1}", color_map))
+
+    if group_colors:
+        legend_blocks.append((group_by.capitalize(), group_colors))
+
+    has_legend = bool(legend_blocks)
+    width_ratios = [10.0]
+    if has_legend:
+        width_ratios.append(2.6)
+
+    # Subplots configuration
+    apply_science_style()
+    if figsize is None:
+        width = 7.0 + (2.6 if has_legend else 0.0)
+        height = 4.0 + 0.32 * n_strips + 1.1 * n_bars + (1.5 if has_corr else 0.0)
+        figsize = (width, height)
+
+    fig = plt.figure(figsize=figsize)
+    grid = fig.add_gridspec(
+        len(height_ratios),
+        len(width_ratios),
+        width_ratios=width_ratios,
+        height_ratios=height_ratios,
+        wspace=0.02,
+        hspace=0.08,
+    )
+
+    # 1. Main Manhattan Plot
+    ax_main = fig.add_subplot(grid[0, 0])
+
+    # Shade alternating groups (contiguous blocks of family)
+    boundaries = []
+    current_family = None
+    start_idx = 0
+    for idx, _name in enumerate(order_names):
+        fam = df_ordered.loc[idx, group_by]
+        if idx == 0:
+            current_family = fam
+        elif fam != current_family:
+            boundaries.append((current_family, start_idx, idx - 1))
+            current_family = fam
+            start_idx = idx
+    boundaries.append((current_family, start_idx, n - 1))
+
+    for i, (_fam, start, end) in enumerate(boundaries):
+        if i % 2 == 1:
+            ax_main.axvspan(start - 0.5, end + 0.5, color="#F5F5F5", alpha=0.6, zorder=1)
+
+    # Plot scatter
+    x_coords = np.arange(n)
+    y_coords = df_ordered["_y"].to_numpy()
+
+    ax_main.scatter(
+        x_coords,
+        y_coords,
+        c=colors,
+        s=18,
+        alpha=0.8,
+        edgecolors="none",
+        zorder=3,
+    )
+
+    # Draw reference lines
+    ax_main.axhline(-np.log10(0.05), color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
+
+    sig_df = df_ordered[df_ordered["_sig"]]
+    if not sig_df.empty:
+        max_sig_p = sig_df["p_value"].max()
+        ax_main.axhline(
+            -np.log10(max_sig_p), color="black", linestyle=":", linewidth=1.0, alpha=0.8
+        )
+
+    # Decoration
+    ax_main.set_xlim(-0.5, n - 0.5)
+    ax_main.set_ylim(0, max(1.5, float(df_ordered["_y"].max()) * 1.1))
+    ax_main.set_ylabel(r"$-\log_{10}$(p-value)")
+
+    # Ticks for families (centered on each block)
+    tick_positions = [(start + end) / 2 for _, start, end in boundaries]
+    tick_labels_main = [str(fam) for fam, _, _ in boundaries]
+    ax_main.set_xticks(tick_positions)
+    ax_main.set_xticklabels(tick_labels_main, fontsize=8)
+
+    # Hide ticks and bottom spine if there are bottom tracks to avoid overlap
+    if n_strips > 0 or n_bars > 0 or has_corr:
+        ax_main.tick_params(labelbottom=False)
+
+    ax_main.spines["top"].set_visible(False)
+    ax_main.spines["right"].set_visible(False)
+
+    # Determine tick labels for features (if small enough)
+    tick_labels = order_names if n <= 60 else None
+
+    # 2. Draw categorical strips
+    if strips is not None and len(strips) > 0:
+        _draw_top_strips(
+            fig=fig,
+            grid=grid,
+            strips=strips,
+            strip_color_maps=strip_color_maps,
+            order_names=order_names,
+            col_idx=0,
+            row_offset=1,
+        )
+
+    # 3. Draw numeric bars
+    if bars is not None and len(bars) > 0:
+        tick_labels_bars = tick_labels if corr_panel is None else None
+        _draw_bottom_bars(
+            fig=fig,
+            grid=grid,
+            row_offset=1 + n_strips,
+            bars=bars,
+            labels_series=None,
+            module_color_map=None,
+            order_names=order_names,
+            col_idx=0,
+            tick_labels=tick_labels_bars,
+        )
+
+    # 4. Draw correlation panel (feature-by-variable correlation heatmap)
+    if corr_panel is not None:
+        corr_row = 1 + n_strips + n_bars
+        panel = corr_panel.data.reindex(order_names).T
+        ax_corr = fig.add_subplot(grid[corr_row, 0])
+        corr_image = ax_corr.imshow(
+            panel.to_numpy(dtype=float),
+            aspect="auto",
+            cmap=corr_panel.cmap,
+            vmin=corr_panel.vmin,
+            vmax=corr_panel.vmax,
+            interpolation="nearest",
+            origin="upper",
+        )
+        ax_corr.set_yticks(range(panel.shape[0]))
+        ax_corr.set_yticklabels(list(panel.index), fontsize=7)
+        ax_corr.set_xlim(-0.5, n - 0.5)
+
+        if tick_labels is not None:
+            ax_corr.set_xticks(range(n))
+            ax_corr.set_xticklabels(tick_labels, rotation=90, fontsize=6)
+        else:
+            ax_corr.set_xticks([])
+
+        # Colorbar for correlation panel
+        cbar_row = len(height_ratios) - 1
+        corr_cbar_host = grid[cbar_row, 0].subgridspec(1, 3, width_ratios=[0.4, 0.2, 0.4])
+        ax_corr_cbar = fig.add_subplot(corr_cbar_host[0, 1])
+        fig.colorbar(
+            corr_image,
+            cax=ax_corr_cbar,
+            orientation="horizontal",
+            label=corr_panel.label,
+        )
+
+    # 5. Right-side stacked legend column
+    if has_legend:
+        legend_gs = grid[:, 1].subgridspec(
+            len(legend_blocks),
+            1,
+            height_ratios=[len(block_map) + 1.5 for _, block_map in legend_blocks],
+        )
+        for block_index, (block_title, color_map) in enumerate(legend_blocks):
+            ax_legend = fig.add_subplot(legend_gs[block_index])
+            handles = [
+                Patch(facecolor=color, edgecolor="0.3", label=str(category))
+                for category, color in color_map.items()
+            ]
+            ax_legend.legend(
+                handles=handles,
+                title=block_title,
+                loc="center left",
+                frameon=False,
+                fontsize=7,
+                title_fontsize=8,
+                handlelength=1.0,
+            )
+            ax_legend.axis("off")
+
+    if title:
+        fig.suptitle(title, weight="bold")
+
+    fig.tight_layout()
+    if path:
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+
+    return fig
+

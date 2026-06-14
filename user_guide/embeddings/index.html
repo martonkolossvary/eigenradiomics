@@ -12,31 +12,27 @@
         <meta name="author" content="Márton Kolossváry">
       
       
-        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/quality/">
+        <link rel="canonical" href="https://martonkolossvary.github.io/eigenradiomics/user_guide/embeddings/">
       
       
-        <link rel="prev" href="../api/utils/">
-      
-      
-        <link rel="next" href="../changelog/">
       
       
         
       
       
-      <link rel="icon" href="../assets/favicon.svg">
+      <link rel="icon" href="../../assets/favicon.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Quality Report - eigenradiomics</title>
+        <title>Manifold Learning and Embeddings - eigenradiomics</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -55,21 +51,21 @@
       
     
     
-      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
     
     
 
-<link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
-<link rel="icon" type="image/png" href="../assets/favicon.png">
-<link rel="shortcut icon" href="../assets/favicon.ico">
-<link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="../../assets/favicon.svg">
+<link rel="icon" type="image/png" href="../../assets/favicon.png">
+<link rel="shortcut icon" href="../../assets/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="../../assets/apple-touch-icon.png">
 <meta property="og:image" content="https://martonkolossvary.github.io/eigenradiomics/assets/social-preview.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
@@ -98,7 +94,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#code-quality-report" class="md-skip">
+        <a href="#manifold-learning-and-embeddings" class="md-skip">
           Skip to content
         </a>
       
@@ -112,9 +108,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="eigenradiomics" class="md-header__button md-logo" aria-label="eigenradiomics" data-md-component="logo">
+    <a href="../.." title="eigenradiomics" class="md-header__button md-logo" aria-label="eigenradiomics" data-md-component="logo">
       
-  <img src="../assets/logo.svg" alt="logo">
+  <img src="../../assets/logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -131,7 +127,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Quality Report
+              Manifold Learning and Embeddings
             
           </span>
         </div>
@@ -244,7 +240,7 @@
   
   
     <li class="md-tabs__item">
-      <a href=".." class="md-tabs__link">
+      <a href="../.." class="md-tabs__link">
         
   
   
@@ -265,7 +261,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../user_guide/installation/" class="md-tabs__link">
+        <a href="../installation/" class="md-tabs__link">
           
   
   
@@ -285,7 +281,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../user_guide/data_ingestion/" class="md-tabs__link">
+        <a href="../data_ingestion/" class="md-tabs__link">
           
   
   
@@ -305,7 +301,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../user_guide/best_practices/" class="md-tabs__link">
+        <a href="../best_practices/" class="md-tabs__link">
           
   
   
@@ -325,7 +321,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../api/package/" class="md-tabs__link">
+        <a href="../../api/package/" class="md-tabs__link">
           
   
   
@@ -341,13 +337,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../quality/" class="md-tabs__link">
           
   
   
@@ -381,9 +375,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="eigenradiomics" class="md-nav__button md-logo" aria-label="eigenradiomics" data-md-component="logo">
+    <a href="../.." title="eigenradiomics" class="md-nav__button md-logo" aria-label="eigenradiomics" data-md-component="logo">
       
-  <img src="../assets/logo.svg" alt="logo">
+  <img src="../../assets/logo.svg" alt="logo">
 
     </a>
     eigenradiomics
@@ -410,7 +404,7 @@
   
   
     <li class="md-nav__item">
-      <a href=".." class="md-nav__link">
+      <a href="../.." class="md-nav__link">
         
   
   
@@ -489,7 +483,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/installation/" class="md-nav__link">
+      <a href="../installation/" class="md-nav__link">
         
   
   
@@ -517,7 +511,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/quick_start/" class="md-nav__link">
+      <a href="../quick_start/" class="md-nav__link">
         
   
   
@@ -545,7 +539,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/end_to_end/" class="md-nav__link">
+      <a href="../end_to_end/" class="md-nav__link">
         
   
   
@@ -632,7 +626,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/data_ingestion/" class="md-nav__link">
+      <a href="../data_ingestion/" class="md-nav__link">
         
   
   
@@ -660,7 +654,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/reproducibility/" class="md-nav__link">
+      <a href="../reproducibility/" class="md-nav__link">
         
   
   
@@ -688,7 +682,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/batch_effects/" class="md-nav__link">
+      <a href="../batch_effects/" class="md-nav__link">
         
   
   
@@ -716,7 +710,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/harmonization/" class="md-nav__link">
+      <a href="../harmonization/" class="md-nav__link">
         
   
   
@@ -744,7 +738,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/radiomics_preprocessing/" class="md-nav__link">
+      <a href="../radiomics_preprocessing/" class="md-nav__link">
         
   
   
@@ -772,7 +766,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reducers/wgcna/" class="md-nav__link">
+      <a href="../../reducers/wgcna/" class="md-nav__link">
         
   
   
@@ -800,7 +794,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reducers/pca/" class="md-nav__link">
+      <a href="../../reducers/pca/" class="md-nav__link">
         
   
   
@@ -828,7 +822,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/clustered_heatmap/" class="md-nav__link">
+      <a href="../clustered_heatmap/" class="md-nav__link">
         
   
   
@@ -856,7 +850,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/downstream_analysis/" class="md-nav__link">
+      <a href="../downstream_analysis/" class="md-nav__link">
         
   
   
@@ -884,7 +878,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/feature_models/" class="md-nav__link">
+      <a href="../feature_models/" class="md-nav__link">
         
   
   
@@ -912,7 +906,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/pipelines_and_grid_search/" class="md-nav__link">
+      <a href="../pipelines_and_grid_search/" class="md-nav__link">
         
   
   
@@ -940,7 +934,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/recipes/" class="md-nav__link">
+      <a href="../recipes/" class="md-nav__link">
         
   
   
@@ -1027,7 +1021,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/best_practices/" class="md-nav__link">
+      <a href="../best_practices/" class="md-nav__link">
         
   
   
@@ -1055,7 +1049,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/input_data_model/" class="md-nav__link">
+      <a href="../input_data_model/" class="md-nav__link">
         
   
   
@@ -1083,7 +1077,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../reducers/" class="md-nav__link">
+      <a href="../../reducers/" class="md-nav__link">
         
   
   
@@ -1111,7 +1105,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/scalability/" class="md-nav__link">
+      <a href="../scalability/" class="md-nav__link">
         
   
   
@@ -1139,7 +1133,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../user_guide/troubleshooting/" class="md-nav__link">
+      <a href="../troubleshooting/" class="md-nav__link">
         
   
   
@@ -1226,7 +1220,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/package/" class="md-nav__link">
+      <a href="../../api/package/" class="md-nav__link">
         
   
   
@@ -1254,7 +1248,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/ingestion/" class="md-nav__link">
+      <a href="../../api/ingestion/" class="md-nav__link">
         
   
   
@@ -1282,7 +1276,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/preprocessing/" class="md-nav__link">
+      <a href="../../api/preprocessing/" class="md-nav__link">
         
   
   
@@ -1310,7 +1304,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/reducers/" class="md-nav__link">
+      <a href="../../api/reducers/" class="md-nav__link">
         
   
   
@@ -1338,7 +1332,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/reproducibility/" class="md-nav__link">
+      <a href="../../api/reproducibility/" class="md-nav__link">
         
   
   
@@ -1366,7 +1360,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/batch_effects/" class="md-nav__link">
+      <a href="../../api/batch_effects/" class="md-nav__link">
         
   
   
@@ -1394,7 +1388,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/plotting/" class="md-nav__link">
+      <a href="../../api/plotting/" class="md-nav__link">
         
   
   
@@ -1422,7 +1416,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/clinical/" class="md-nav__link">
+      <a href="../../api/clinical/" class="md-nav__link">
         
   
   
@@ -1450,7 +1444,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/feature_models/" class="md-nav__link">
+      <a href="../../api/feature_models/" class="md-nav__link">
         
   
   
@@ -1478,7 +1472,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../api/utils/" class="md-nav__link">
+      <a href="../../api/utils/" class="md-nav__link">
         
   
   
@@ -1510,31 +1504,26 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
@@ -1552,7 +1541,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1567,37 +1556,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Quality Report
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../quality/" class="md-nav__link">
         
   
   
@@ -1613,81 +1575,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#test-coverage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Test Coverage
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#static-type-checking-mypy" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Static Type Checking (Mypy)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#linting-ruff" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Linting (Ruff)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sklearn-estimator-checks" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        sklearn Estimator Checks
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#package-build" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Package Build
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1700,7 +1587,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../changelog/" class="md-nav__link">
+      <a href="../../changelog/" class="md-nav__link">
         
   
   
@@ -1728,7 +1615,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../license/" class="md-nav__link">
+      <a href="../../license/" class="md-nav__link">
         
   
   
@@ -1783,10 +1670,49 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#test-coverage" class="md-nav__link">
+  <a href="#default-vs-optional-reducers" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Test Coverage
+        Default vs Optional Reducers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Default vs Optional Reducers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-default-scikit-learn-native" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Default (scikit-learn Native)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-optional-advanced-embeddings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Optional (Advanced Embeddings)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inductive-vs-transductive-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inductive vs Transductive Limitations
       
     </span>
   </a>
@@ -1794,43 +1720,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#static-type-checking-mypy" class="md-nav__link">
+  <a href="#code-example" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Static Type Checking (Mypy)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#linting-ruff" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Linting (Ruff)
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#sklearn-estimator-checks" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        sklearn Estimator Checks
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#package-build" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Package Build
+        Code Example
       
     </span>
   </a>
@@ -1857,54 +1750,86 @@
   
 
 
-<h1 id="code-quality-report">Code Quality Report</h1>
-<p>This page is generated automatically by <code>dev/generate_docs.py</code>.</p>
-<h2 id="test-coverage">Test Coverage</h2>
-<p><strong>Status:</strong> ✅ Pass (100.00% Coverage)</p>
-<h2 id="static-type-checking-mypy">Static Type Checking (Mypy)</h2>
-<p><strong>Status:</strong> ✅ Pass (0 Errors)</p>
-<h2 id="linting-ruff">Linting (Ruff)</h2>
-<p><strong>Status:</strong> ✅ Pass (0 issues)</p>
-<h2 id="sklearn-estimator-checks">sklearn Estimator Checks</h2>
-<p><strong>Status:</strong> ✅ Pass (5/5 estimators passed)</p>
-<table>
-<thead>
-<tr>
-<th style="text-align: left;">Estimator</th>
-<th style="text-align: center;">Status</th>
-<th style="text-align: left;">Detail</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align: left;">RadiomicsFeatureRemover</td>
-<td style="text-align: center;">✅ Pass</td>
-<td style="text-align: left;">OK</td>
-</tr>
-<tr>
-<td style="text-align: left;">RadiomicsPrepTransformer</td>
-<td style="text-align: center;">✅ Pass</td>
-<td style="text-align: left;">OK</td>
-</tr>
-<tr>
-<td style="text-align: left;">WGCNAReducer</td>
-<td style="text-align: center;">✅ Pass</td>
-<td style="text-align: left;">OK (failed safely on synthetic network size limits).</td>
-</tr>
-<tr>
-<td style="text-align: left;">PCAReducer</td>
-<td style="text-align: center;">✅ Pass</td>
-<td style="text-align: left;">OK</td>
-</tr>
-<tr>
-<td style="text-align: left;">SparsePCAReducer</td>
-<td style="text-align: center;">✅ Pass</td>
-<td style="text-align: left;">OK</td>
-</tr>
-</tbody>
-</table>
-<h2 id="package-build">Package Build</h2>
-<p><strong>Status:</strong> ✅ Pass (- Built eigenradiomics-0.1.0-py3-none-any.whl)</p>
+<h1 id="manifold-learning-and-embeddings">Manifold Learning and Embeddings</h1>
+<p>This page guide explains how to use the default and optional manifold learning and embedding reducers in <code>eigenradiomics</code> to visualize and inspect high-dimensional radiomic feature spaces.</p>
+<pre class="mermaid"><code>flowchart TD
+    subgraph Default (Scikit-Learn Native)
+        TSNE[TSNEReducer&lt;br/&gt;Transductive-only]
+        MDS[MDSReducer&lt;br/&gt;Transductive-only]
+        Spectral[SpectralReducer&lt;br/&gt;Transductive-only]
+        Isomap[IsomapReducer&lt;br/&gt;Inductive]
+        LLE[LLEReducer&lt;br/&gt;Inductive]
+    end
+    subgraph Optional (Lazy Imports)
+        UMAP[UMAPReducer&lt;br/&gt;Inductive / densMAP]
+        PaCMAP[PaCMAPReducer&lt;br/&gt;Inductive]
+        TriMAP[TriMAPReducer&lt;br/&gt;Inductive]
+    end</code></pre>
+<hr />
+<h2 id="default-vs-optional-reducers">Default vs Optional Reducers</h2>
+<h3 id="1-default-scikit-learn-native">1. Default (scikit-learn Native)</h3>
+<p>These are available out of the box without any extra dependencies:
+- <strong><code>TSNEReducer</code></strong>: t-Distributed Stochastic Neighbor Embedding, excellent for capturing local cluster structure.
+- <strong><code>MDSReducer</code></strong>: Multidimensional Scaling, preserves global pairwise distances.
+- <strong><code>SpectralReducer</code></strong>: Spectral Embedding, uses graph Laplacian eigenvalues to find non-linear structure.
+- <strong><code>IsomapReducer</code></strong>: Isometric Feature Mapping, preserves geodesic distances on a neighborhood graph.
+- <strong><code>LLEReducer</code></strong>: Locally Linear Embedding, preserves local linear relationships.</p>
+<h3 id="2-optional-advanced-embeddings">2. Optional (Advanced Embeddings)</h3>
+<p>These require installing additional optional packages:
+- <strong><code>UMAPReducer</code></strong>: Uniform Manifold Approximation and Projection (requires <code>umap-learn</code>). Supports preserving local densities via <code>densmap=True</code>.
+- <strong><code>PaCMAPReducer</code></strong>: Pairwise Controlled Manifold Approximation (requires <code>pacmap</code>), optimizes global and local structure preservation.
+- <strong><code>TriMAPReducer</code></strong>: Trilet-based dimensionality reduction (requires <code>trimap</code>), preserves global structure using triplet constraints.</p>
+<p>To use optional reducers, install the corresponding packages:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>umap-learn<span class="w"> </span>pacmap<span class="w"> </span>trimap
+</code></pre></div></p>
+<hr />
+<h2 id="inductive-vs-transductive-limitations">Inductive vs Transductive Limitations</h2>
+<p>Dimensionality reduction methods fall into two categories regarding how they handle new, unseen test data:</p>
+<ol>
+<li>
+<p><strong>Inductive (Out-of-sample mapping supported)</strong>:
+   Methods like <code>IsomapReducer</code>, <code>LLEReducer</code>, <code>UMAPReducer</code>, <code>PaCMAPReducer</code>, and <code>TriMAPReducer</code> support the standard <code>.transform()</code> method. You can fit them on training data and project new test data into the exact same embedding space:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">IsomapReducer</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">reducer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">Y_train</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">Y_test</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>  <span class="c1"># Safe out-of-sample projection</span>
+</code></pre></div></p>
+</li>
+<li>
+<p><strong>Transductive (No out-of-sample mapping)</strong>:
+   Methods like <code>TSNEReducer</code>, <code>MDSReducer</code>, and <code>SpectralReducer</code> do not support projecting new points into an existing embedding space. Attempting to call <code>.transform()</code> on them will raise a <code>NotImplementedError</code>. Instead, you must use <code>.fit_transform()</code> to embed all data points together:
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">reducer</span> <span class="o">=</span> <span class="n">TSNEReducer</span><span class="p">(</span><span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">perplexity</span><span class="o">=</span><span class="mf">15.0</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">Y_all</span> <span class="o">=</span> <span class="n">reducer</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X_all</span><span class="p">)</span>  <span class="c1"># Transformed all at once</span>
+</code></pre></div></p>
+</li>
+</ol>
+<hr />
+<h2 id="code-example">Code Example</h2>
+<p>Here is how you can initialize, tune, and run a manifold learning reducer in <code>eigenradiomics</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics.reducers</span><span class="w"> </span><span class="kn">import</span> <span class="n">TSNEReducer</span><span class="p">,</span> <span class="n">UMAPReducer</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># 1. Using a default reducer (t-SNE)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">tsne</span> <span class="o">=</span> <span class="n">TSNEReducer</span><span class="p">(</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">perplexity</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">)</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># t-SNE is transductive, so we fit_transform all at once:</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">Y_tsne</span> <span class="o">=</span> <span class="n">tsne</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># 2. Using an optional reducer (UMAP with densMAP enabled)</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="c1"># Ensure `umap-learn` is installed!</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="n">umap_reducer</span> <span class="o">=</span> <span class="n">UMAPReducer</span><span class="p">(</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>    <span class="n">n_components</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>    <span class="n">densmap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>       <span class="c1"># Preserves local density information</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="p">)</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="n">umap_reducer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="n">Y_train</span> <span class="o">=</span> <span class="n">umap_reducer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="n">Y_test</span> <span class="o">=</span> <span class="n">umap_reducer</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+</code></pre></div>
 
 
 
@@ -1966,12 +1891,12 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
       
-        <script src="../javascripts/mathjax.js"></script>
+        <script src="../../javascripts/mathjax.js"></script>
       
         <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
       

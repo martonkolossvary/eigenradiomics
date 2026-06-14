@@ -52,6 +52,69 @@ mtr["p_fdr"]   # Benjamini-Hochberg FDR
 `mtr["r"]` (with `mtr["p_fdr"]` for significance) is a compact summary linking the
 reduced space to outcomes.
 
+## Feature Hubness and Module Membership
+
+To identify the central drivers representing each module's holistic co-expression score, use:
+- **`compute_module_membership`**: Calculates Module Membership ($k_{\text{ME}}$) for every raw feature against the module eigengenes.
+- **`identify_hub_features`**: Pinpoints the raw radiomic features that are the absolute most central "hubs" of their assigned modules.
+
+```python
+from eigenradiomics import compute_module_membership, identify_hub_features
+
+# Calculate k_ME matrix (features x modules)
+k_me = compute_module_membership(X, reducer=reducer)
+
+# Find top hub feature representing each module
+hubs_df = identify_hub_features(X, cluster_labels=reducer.get_reduction_artifacts().cluster_labels, reducer=reducer, top_n=1)
+print(hubs_df)  # Columns: cluster, feature, k_ME, rank
+```
+
+You can plot this relationship dynamically and accessibly (complying with OUP science figure guidelines):
+
+```python
+from eigenradiomics.plotting import plot_hub_significance
+
+# Plot k_ME vs. raw association strength
+fig = plot_hub_significance(
+    k_me, feature_significance=clinical_assoc,
+    cluster_labels=reducer.get_reduction_artifacts().cluster_labels,
+    target_cluster="blue",
+    path="accessible_hub_plot.png"
+)
+```
+
+## Radiomics Feature Group Over-Representation Analysis (ORA)
+
+In multi-observer or multi-scale radiomics pipelines, checking if specific modules are clustered by extraction settings, observers, or shape vs. texture feature families is crucial. 
+`compute_group_enrichment` performs a hypergeometric over-representation test (Fisher's Exact) and corrects for multiple testing.
+
+```python
+from eigenradiomics import compute_group_enrichment
+
+# Map each feature key to custom observer or catalog groups
+catalog_family = catalog.annotate(X).set_index("feature")["family"]
+
+enrichment_df = compute_group_enrichment(
+    cluster_labels=reducer.get_reduction_artifacts().cluster_labels,
+    group_assignments=catalog_family
+)
+print(enrichment_df.head()) # Columns: cluster, group, n_overlap, p_value, fdr_q_value, odds_ratio
+```
+
+## Eigengene Profiles across Target Groups
+
+To display the level or trajectory of module co-expression throughout disease progression or patient grades:
+
+```python
+from eigenradiomics.plotting import plot_eigengene_profiles
+
+# Grouped Boxplot (with accessible hatching and strip overlay)
+fig_box = plot_eigengene_profiles(eigengenes, dataset.data["Grade"], trait_name="Grade")
+
+# Continuous Scatter (with regression fit line and Pearson r score annotation)
+fig_scatter = plot_eigengene_profiles(eigengenes, dataset.data["SurvivalTime"], trait_name="Survival Days")
+```
+
 !!! tip "Per-feature outcome models"
     To model individual **features** (not module eigengenes) against an outcome —
     survival, binary, or continuous, with clinical adjustment and repeated-measures

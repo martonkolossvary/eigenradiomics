@@ -4,7 +4,7 @@ This page is generated automatically by `dev/generate_docs.py`.
 
 ## Test Coverage
 
-**Status:** ✅ Pass (100.00% Coverage)
+**Status:** ✅ Pass (99.97% Coverage)
 
 ## Static Type Checking (Mypy)
 
@@ -16,13 +16,15 @@ This page is generated automatically by `dev/generate_docs.py`.
 
 ## sklearn Estimator Checks
 
-**Status:** ✅ Pass (3/3 estimators passed)
+**Status:** ✅ Pass (5/5 estimators passed)
 
 | Estimator | Status | Detail |
 |:--|:--:|:--|
 | RadiomicsFeatureRemover | ✅ Pass | OK |
 | RadiomicsPrepTransformer | ✅ Pass | OK |
 | WGCNAReducer | ✅ Pass | OK (failed safely on synthetic network size limits). |
+| PCAReducer | ✅ Pass | OK |
+| SparsePCAReducer | ✅ Pass | OK |
 
 ## Package Build
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -488,5 +489,409 @@ def plot_clustered_heatmap(
                 frameon=False, fontsize=7, title_fontsize=8, handlelength=1.0,
             )
             ax_legend.axis("off")
+
+    return fig
+
+
+def plot_hub_significance(
+    k_me_df: pd.DataFrame,
+    feature_significance: pd.Series,
+    cluster_labels: pd.Series | dict[str, str | int],
+    target_cluster: str | int,
+    *,
+    top_n_labels: int = 5,
+    title: str | None = None,
+    path: str | Path | None = None,
+) -> plt.Figure:
+    """Plot Module Membership (k_ME) vs. Feature Significance (GS/GS-Trait).
+
+    X-axis represents feature correlation with eigengene (membership strength),
+    while Y-axis represents feature significance to a trait or outcome.
+    Highly accessible rendering: target cluster uses solid circles, secondary
+    features use open triangles.
+
+    Parameters
+    ----------
+    k_me_df : pandas.DataFrame
+        Module membership table (features x components) e.g., from compute_module_membership.
+    feature_significance : pandas.Series
+        Association metrics indexed by feature name.
+    cluster_labels : pd.Series or dict
+        Cluster assignment per feature.
+    target_cluster : str or int
+        Target cluster/color.
+    top_n_labels : int, default=5
+        Number of top hub features to label.
+    title : str, optional
+        Figure title.
+    path : str or Path, optional
+        Destination path.
+    """
+    from scipy import stats
+
+    from eigenradiomics._plotting import apply_science_style
+    apply_science_style()
+
+    # Align inputs
+    if str(target_cluster) in k_me_df.columns:
+        k_me_series = k_me_df[str(target_cluster)]
+    else:
+        k_me_series = k_me_df.iloc[:, 0]
+
+    common_idx = k_me_series.index.intersection(feature_significance.index)
+    k_me_series = k_me_series.loc[common_idx]
+    sig_series = feature_significance.loc[common_idx]
+
+    lbl_series = (
+        pd.Series(cluster_labels) if isinstance(cluster_labels, dict) else cluster_labels
+    )
+    lbl_series = lbl_series.reindex(common_idx)
+
+    fig, ax = plt.subplots(figsize=(6, 5), layout="constrained")
+
+    # Split into target and secondary
+    in_target = lbl_series == target_cluster
+
+    # Target cluster: solid circles, colorblind-safe Vermillion or specific hex
+    ax.scatter(
+        k_me_series[in_target],
+        sig_series[in_target],
+        color="#D55E00",  # Vermillion
+        marker="o",
+        s=45,
+        alpha=0.85,
+        label=f"In Module ({target_cluster})",
+        edgecolors="#7f2e00",
+        linewidths=0.5
+    )
+
+    # Outside target: open triangles, dark slate
+    ax.scatter(
+        k_me_series[~in_target],
+        sig_series[~in_target],
+        color="none",
+        marker="^",
+        s=35,
+        alpha=0.6,
+        label="Out of Module",
+        edgecolors="#222222",
+        linewidths=0.8
+    )
+
+    # Label top hubs
+    target_kme = k_me_series[in_target]
+    sorted_target = target_kme.abs().sort_values(ascending=False)
+    top_hubs = sorted_target.index[:top_n_labels]
+
+    for _idx, feat in enumerate(top_hubs):
+        x = k_me_series.loc[feat]
+        y = sig_series.loc[feat]
+        short_name = feat.split("__")[-1] if "__" in feat else feat
+        ax.annotate(
+            short_name,
+            xy=(x, y),
+            xytext=(x + 0.02 * np.sign(x), y + 0.02 * np.sign(y)),
+            fontsize=8,
+            fontweight="bold",
+            bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="0.7"),
+            arrowprops=dict(arrowstyle="->", color="#333333", lw=0.6)
+        )
+
+    # Calculate correlation metric for the module
+    if len(k_me_series[in_target]) > 1:
+        r, p = stats.spearmanr(k_me_series[in_target], sig_series[in_target])
+        ax.text(
+            0.05, 0.95,
+            f"Module Hub-Significance:\np = {r:.2f} (p = {p:.1e})",
+            transform=ax.transAxes,
+            fontsize=9,
+            verticalalignment="top",
+            bbox=dict(boxstyle="square", fc="white", alpha=0.9, ec="0.8")
+        )
+
+    ax.set_xlabel(f"Module Membership ($k_{{ME}}$) for {target_cluster}", fontsize=11)
+    ax.set_ylabel("Feature-Trait Significance", fontsize=11)
+
+    if title:
+        ax.set_title(title, fontsize=12, pad=10)
+    else:
+        # Avoid long line E501
+        ax.set_title(
+            f"Hub Features & Significance in Module {target_cluster}",
+            fontsize=12,
+            pad=10,
+        )
+
+    ax.legend(loc="lower left", frameon=True, facecolor="white", edgecolor="0.8")
+    ax.grid(True, linestyle=":", alpha=0.5)
+
+    if path:
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+
+    return fig
+
+
+def plot_eigengene_profiles(
+    eigengenes: pd.DataFrame | NDArray,
+    trait: pd.Series | NDArray,
+    *,
+    trait_name: str = "Trait",
+    component_idx: int = 0,
+    title: str | None = None,
+    path: str | Path | None = None,
+) -> plt.Figure:
+    """Plot eigengene profiles/trajectories grouped by a clinical variable.
+
+    Automatically handles both categorical grouped boxplots (with distinct hatches
+    for high accessibility) and continuous scatter plots with linear regression lines.
+
+    Parameters
+    ----------
+    eigengenes : array-like of shape (n_samples, n_components)
+        Exposed module eigengenes or component scores.
+    trait : array-like of shape (n_samples,)
+        Clinical trait/outcome to partition or regress across.
+    trait_name : str, default="Trait"
+        Display label for the trait.
+    component_idx : int, default=0
+        Index of the component/eigengene to plot.
+    """
+    from scipy import stats
+
+    from eigenradiomics._plotting import apply_science_style
+    apply_science_style()
+
+    # Align data
+    if isinstance(eigengenes, pd.DataFrame):
+        y_vals = eigengenes.iloc[:, component_idx].to_numpy()
+        comp_name = eigengenes.columns[component_idx]
+    else:
+        y_vals = np.asarray(eigengenes)[:, component_idx]
+        comp_name = f"Component {component_idx}"
+
+    x_vals = trait.to_numpy() if isinstance(trait, pd.Series) else np.asarray(trait)
+
+    # Detect if trait is discrete/categorical vs continuous
+    unique_vals = np.unique(x_vals[~pd.isna(x_vals)])
+    is_categorical = (
+        isinstance(unique_vals[0], (str, bool))
+        or len(unique_vals) <= 6
+    )
+
+    fig, ax = plt.subplots(figsize=(6, 4.5), layout="constrained")
+
+    if is_categorical:
+        categories = sorted(list(unique_vals))
+        groups_data = [y_vals[x_vals == cat] for cat in categories]
+
+        colors = ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2"][:len(categories)]
+        hatches = ["", "//", "\\\\", "xx", ".."][:len(categories)]
+
+        box = ax.boxplot(
+            groups_data,
+            patch_artist=True,
+            medianprops=dict(color="black", linewidth=1.5),
+            boxprops=dict(linewidth=1.0)
+        )
+
+        for b_patch, color, hatch in zip(box["boxes"], colors, hatches, strict=False):
+            b_patch.set_facecolor(to_rgba(color, alpha=0.7))
+            b_patch.set_edgecolor("black")
+            b_patch.set_hatch(hatch)
+
+        for i, grp in enumerate(groups_data):
+            jitter = np.random.default_rng(i).uniform(-0.15, 0.15, size=len(grp))
+            ax.scatter(
+                np.full_like(grp, i + 1) + jitter,
+                grp,
+                color="#333333",
+                alpha=0.4,
+                s=15,
+                edgecolors="none"
+            )
+
+        ax.set_xticks(range(1, len(categories) + 1))
+        ax.set_xticklabels([str(cat) for cat in categories], fontsize=10)
+        ax.set_xlabel(trait_name, fontsize=11)
+    else:
+        valid_mask = ~(np.isnan(x_vals) | np.isnan(y_vals))
+        x_clean = x_vals[valid_mask].astype(float)
+        y_clean = y_vals[valid_mask].astype(float)
+
+        ax.scatter(
+            x_clean,
+            y_clean,
+            color="#56B4E9",
+            marker="o",
+            s=25,
+            edgecolors="#004477",
+            alpha=0.7,
+            label="Patients"
+        )
+
+        slope, intercept, r_val, p_val, _ = stats.linregress(x_clean, y_clean)
+        x_line = np.linspace(x_clean.min(), x_clean.max(), 100)
+        y_line = slope * x_line + intercept
+
+        ax.plot(
+            x_line,
+            y_line,
+            color="#D55E00",
+            linestyle="--",
+            linewidth=1.5,
+            label="Linear Fit"
+        )
+
+        ax.text(
+            0.05, 0.95,
+            f"Fit Summary:\nr = {r_val:.2f}\np = {p_val:.1e}",
+            transform=ax.transAxes,
+            fontsize=9.5,
+            verticalalignment="top",
+            bbox=dict(boxstyle="round", fc="white", alpha=0.9, ec="0.8")
+        )
+        ax.set_xlabel(trait_name, fontsize=11)
+        ax.legend(loc="lower right", frameon=True, facecolor="white", edgecolor="0.8")
+
+    ax.set_ylabel(f"{comp_name} Score", fontsize=11)
+    ax.grid(True, linestyle=":", alpha=0.5)
+
+    if title:
+        ax.set_title(title, fontsize=12, pad=10)
+    else:
+        ax.set_title(f"Profile: {comp_name} across {trait_name}", fontsize=12, pad=10)
+
+    if path:
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+
+    return fig
+
+
+def plot_batch_distributions(
+    X_before: pd.DataFrame | NDArray,
+    X_after: pd.DataFrame | NDArray,
+    batch: pd.Series | NDArray,
+    feature_name: str | int,
+    *,
+    batch_name: str = "Batch",
+    title: str | None = None,
+    path: str | Path | None = None,
+) -> plt.Figure:
+    """Plot probability density of a feature before and after harmonization.
+
+    Useful for evaluating ComBat or other normalization effects side-by-side.
+    Accessible design relies on distinct linestyles and Okabe-Ito colors.
+
+    Parameters
+    ----------
+    X_before, X_after : array-like
+        Feature matrices before and after correction.
+    batch : array-like
+        Batch/center identifier per sample.
+    feature_name : str or int
+        Column name or index of the feature to plot.
+    """
+    from scipy import stats
+
+    from eigenradiomics._plotting import apply_science_style
+    apply_science_style()
+
+    if isinstance(X_before, pd.DataFrame):
+        vals_before = X_before[feature_name].to_numpy()
+        feat_label = str(feature_name)
+    else:
+        vals_before = np.asarray(X_before)[:, int(feature_name)]
+        feat_label = f"Feature {feature_name}"
+
+    if isinstance(X_after, pd.DataFrame):
+        vals_after = X_after[feature_name].to_numpy()
+    else:
+        vals_after = np.asarray(X_after)[:, int(feature_name)]
+
+    batches = batch.to_numpy() if isinstance(batch, pd.Series) else np.asarray(batch)
+
+    unique_batches = np.unique(batches[~pd.isna(batches)])
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.5), sharey=True, layout="constrained")
+
+    linestyles = ["-", "--", ":", "-."]
+    colors = ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2"]
+
+    for idx, b_id in enumerate(unique_batches):
+        mask = batches == b_id
+
+        ls = linestyles[idx % len(linestyles)]
+        color = colors[idx % len(colors)]
+
+        b_vals_before = vals_before[mask]
+        b_clean_before = b_vals_before[~np.isnan(b_vals_before)]
+
+        b_vals_after = vals_after[mask]
+        b_clean_after = b_vals_after[~np.isnan(b_vals_after)]
+
+        # Before
+        if len(b_clean_before) > 1 and np.std(b_clean_before) > 1e-12:
+            kde_before = stats.gaussian_kde(b_clean_before)
+            grid_before = np.linspace(b_clean_before.min(), b_clean_before.max(), 150)
+            ax1.plot(
+                grid_before,
+                kde_before(grid_before),
+                linestyle=ls,
+                color=color,
+                linewidth=2.0,
+                label=f"{batch_name} {b_id}",
+            )
+        else:
+            ax1.hist(
+                b_clean_before,
+                alpha=0.3,
+                color=color,
+                label=f"{batch_name} {b_id}",
+                density=True,
+            )
+
+        # After
+        if len(b_clean_after) > 1 and np.std(b_clean_after) > 1e-12:
+            kde_after = stats.gaussian_kde(b_clean_after)
+            grid_after = np.linspace(b_clean_after.min(), b_clean_after.max(), 150)
+            ax2.plot(
+                grid_after,
+                kde_after(grid_after),
+                linestyle=ls,
+                color=color,
+                linewidth=2.0,
+                label=f"{batch_name} {b_id}",
+            )
+        else:
+            ax2.hist(
+                b_clean_after,
+                alpha=0.3,
+                color=color,
+                label=f"{batch_name} {b_id}",
+                density=True,
+            )
+
+    ax1.set_title("Before Harmonization", fontsize=11)
+    ax1.set_xlabel(f"Value of {feat_label}", fontsize=10)
+    ax1.set_ylabel("Probability Density", fontsize=11)
+    ax1.grid(True, linestyle=":", alpha=0.5)
+
+    ax2.set_title("After Harmonization", fontsize=11)
+    ax2.set_xlabel(f"Value of {feat_label}", fontsize=10)
+    ax2.grid(True, linestyle=":", alpha=0.5)
+
+    ax1.legend(loc="upper right", frameon=True, facecolor="white", edgecolor="0.8", fontsize=9)
+
+    if title:
+        fig.suptitle(title, fontsize=12, fontweight="bold")
+    else:
+        fig.suptitle(
+            f"Batch Effect Harmonization Diagnostics for {feat_label}",
+            fontsize=12,
+            fontweight="bold",
+        )
+
+    if path:
+        plt.savefig(path, dpi=300, bbox_inches="tight")
 
     return fig

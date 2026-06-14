@@ -6,7 +6,7 @@ import sys
 from sklearn.utils.estimator_checks import check_estimator
 
 from eigenradiomics.preprocessing import RadiomicsFeatureRemover, RadiomicsPrepTransformer
-from eigenradiomics.reducers import WGCNAReducer
+from eigenradiomics.reducers import PCAReducer, SparsePCAReducer, WGCNAReducer
 
 
 def run_estimator_checks() -> tuple[bool, list[tuple[str, bool, str]]]:
@@ -14,6 +14,8 @@ def run_estimator_checks() -> tuple[bool, list[tuple[str, bool, str]]]:
         RadiomicsFeatureRemover(),
         RadiomicsPrepTransformer(),
         WGCNAReducer(soft_power=6, min_module_size=2, verbose=0),
+        PCAReducer(n_components=2),
+        SparsePCAReducer(n_components=2, random_state=42),
     ]
     results: list[tuple[str, bool, str]] = []
     for estimator in estimators:

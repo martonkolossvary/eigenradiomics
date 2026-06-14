@@ -66,3 +66,5 @@ consumes a `ReductionArtifacts` directly.
 | Reducer | Technique | Reference |
 |---------|-----------|-----------|
 | [`WGCNAReducer`](wgcna.md) | Weighted Gene Co-expression Network Analysis | [Langfelder & Horvath, 2008](https://pubmed.ncbi.nlm.nih.gov/19114008/); [PyWGCNA](https://pubmed.ncbi.nlm.nih.gov/37399090/) |
+| [`PCAReducer`](pca.md) | Principal Component Analysis (PCA) | [Pearson, 1901](https://doi.org/10.1080/14786440109462720); scikit-learn |
+| [`SparsePCAReducer`](pca.md) | Sparse Principal Component Analysis | [Zou et al., 2006](https://doi.org/10.1198/106186006X113430); scikit-learn |

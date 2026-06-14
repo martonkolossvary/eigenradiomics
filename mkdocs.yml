@@ -90,6 +90,7 @@ nav:
       - Harmonize batch effects (ComBat): user_guide/harmonization.md
       - Preprocess feature tables: user_guide/radiomics_preprocessing.md
       - Reduce with WGCNA: reducers/wgcna.md
+      - Reduce with PCA &amp; Sparse PCA: reducers/pca.md
       - Visualize the clustered heatmap: user_guide/clustered_heatmap.md
       - Downstream statistical analysis: user_guide/downstream_analysis.md
       - Feature–outcome models &amp; volcano: user_guide/feature_models.md

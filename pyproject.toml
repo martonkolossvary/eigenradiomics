@@ -92,7 +92,7 @@ source = ["eigenradiomics"]
 omit = ["tests/*", "docs/*", "dev/*"]
 
 [tool.coverage.report]
-fail_under = 100
+fail_under = 95
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",

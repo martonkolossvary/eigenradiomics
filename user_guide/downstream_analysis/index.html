@@ -805,6 +805,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reducers/pca/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reduce with PCA &amp; Sparse PCA
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../clustered_heatmap/" class="md-nav__link">
         
   
@@ -908,6 +936,39 @@
     <span class="md-ellipsis">
       
         Module–trait relationships
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-hubness-and-module-membership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Hubness and Module Membership
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#radiomics-feature-group-over-representation-analysis-ora" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Radiomics Feature Group Over-Representation Analysis (ORA)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eigengene-profiles-across-target-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eigengene Profiles across Target Groups
       
     </span>
   </a>
@@ -1766,6 +1827,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#feature-hubness-and-module-membership" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Hubness and Module Membership
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#radiomics-feature-group-over-representation-analysis-ora" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Radiomics Feature Group Over-Representation Analysis (ORA)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#eigengene-profiles-across-target-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eigengene Profiles across Target Groups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#qc-driven-feature-selection-in-a-pipeline" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1846,6 +1940,54 @@ relationship</em>. Mixed-type traits are encoded automatically.</p>
 </code></pre></div>
 <p><code>mtr["r"]</code> (with <code>mtr["p_fdr"]</code> for significance) is a compact summary linking the
 reduced space to outcomes.</p>
+<h2 id="feature-hubness-and-module-membership">Feature Hubness and Module Membership</h2>
+<p>To identify the central drivers representing each module's holistic co-expression score, use:
+- <strong><code>compute_module_membership</code></strong>: Calculates Module Membership (<span class="arithmatex">\(k_{\text{ME}}\)</span>) for every raw feature against the module eigengenes.
+- <strong><code>identify_hub_features</code></strong>: Pinpoints the raw radiomic features that are the absolute most central "hubs" of their assigned modules.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_module_membership</span><span class="p">,</span> <span class="n">identify_hub_features</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1"># Calculate k_ME matrix (features x modules)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">k_me</span> <span class="o">=</span> <span class="n">compute_module_membership</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">reducer</span><span class="o">=</span><span class="n">reducer</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1"># Find top hub feature representing each module</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">hubs_df</span> <span class="o">=</span> <span class="n">identify_hub_features</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="o">=</span><span class="n">reducer</span><span class="o">.</span><span class="n">get_reduction_artifacts</span><span class="p">()</span><span class="o">.</span><span class="n">cluster_labels</span><span class="p">,</span> <span class="n">reducer</span><span class="o">=</span><span class="n">reducer</span><span class="p">,</span> <span class="n">top_n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">hubs_df</span><span class="p">)</span>  <span class="c1"># Columns: cluster, feature, k_ME, rank</span>
+</code></pre></div>
+<p>You can plot this relationship dynamically and accessibly (complying with OUP science figure guidelines):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_hub_significance</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Plot k_ME vs. raw association strength</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_hub_significance</span><span class="p">(</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">k_me</span><span class="p">,</span> <span class="n">feature_significance</span><span class="o">=</span><span class="n">clinical_assoc</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">cluster_labels</span><span class="o">=</span><span class="n">reducer</span><span class="o">.</span><span class="n">get_reduction_artifacts</span><span class="p">()</span><span class="o">.</span><span class="n">cluster_labels</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">target_cluster</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">path</span><span class="o">=</span><span class="s2">&quot;accessible_hub_plot.png&quot;</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="p">)</span>
+</code></pre></div>
+<h2 id="radiomics-feature-group-over-representation-analysis-ora">Radiomics Feature Group Over-Representation Analysis (ORA)</h2>
+<p>In multi-observer or multi-scale radiomics pipelines, checking if specific modules are clustered by extraction settings, observers, or shape vs. texture feature families is crucial. 
+<code>compute_group_enrichment</code> performs a hypergeometric over-representation test (Fisher's Exact) and corrects for multiple testing.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_group_enrichment</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># Map each feature key to custom observer or catalog groups</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">catalog_family</span> <span class="o">=</span> <span class="n">catalog</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;feature&quot;</span><span class="p">)[</span><span class="s2">&quot;family&quot;</span><span class="p">]</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">enrichment_df</span> <span class="o">=</span> <span class="n">compute_group_enrichment</span><span class="p">(</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">cluster_labels</span><span class="o">=</span><span class="n">reducer</span><span class="o">.</span><span class="n">get_reduction_artifacts</span><span class="p">()</span><span class="o">.</span><span class="n">cluster_labels</span><span class="p">,</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">group_assignments</span><span class="o">=</span><span class="n">catalog_family</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="p">)</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">enrichment_df</span><span class="o">.</span><span class="n">head</span><span class="p">())</span> <span class="c1"># Columns: cluster, group, n_overlap, p_value, fdr_q_value, odds_ratio</span>
+</code></pre></div>
+<h2 id="eigengene-profiles-across-target-groups">Eigengene Profiles across Target Groups</h2>
+<p>To display the level or trajectory of module co-expression throughout disease progression or patient grades:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_eigengene_profiles</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="c1"># Grouped Boxplot (with accessible hatching and strip overlay)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">fig_box</span> <span class="o">=</span> <span class="n">plot_eigengene_profiles</span><span class="p">(</span><span class="n">eigengenes</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;Grade&quot;</span><span class="p">],</span> <span class="n">trait_name</span><span class="o">=</span><span class="s2">&quot;Grade&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="c1"># Continuous Scatter (with regression fit line and Pearson r score annotation)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">fig_scatter</span> <span class="o">=</span> <span class="n">plot_eigengene_profiles</span><span class="p">(</span><span class="n">eigengenes</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;SurvivalTime&quot;</span><span class="p">],</span> <span class="n">trait_name</span><span class="o">=</span><span class="s2">&quot;Survival Days&quot;</span><span class="p">)</span>
+</code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Per-feature outcome models</p>
 <p>To model individual <strong>features</strong> (not module eigengenes) against an outcome —
@@ -1858,17 +2000,17 @@ handling — and render volcano plots, see
 readers / a batch label). Compute the scores once, then drop weak features inside
 the pipeline with <code>FeatureScoreSelector</code> — so selection is part of the fitted,
 leakage-safe transform:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_reproducibility</span><span class="p">,</span> <span class="n">FeatureScoreSelector</span><span class="p">,</span> <span class="n">WGCNAReducer</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">repro</span> <span class="o">=</span> <span class="n">compute_reproducibility</span><span class="p">([</span><span class="n">reader1</span><span class="p">,</span> <span class="n">reader2</span><span class="p">])</span>          <span class="c1"># per-feature ICC</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">icc</span> <span class="o">=</span> <span class="n">repro</span><span class="p">[</span><span class="s2">&quot;ICC&quot;</span><span class="p">]</span>                                            <span class="c1"># has &#39;feature&#39; + &#39;icc_2_1&#39;</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="p">(</span><span class="s2">&quot;prep&quot;</span><span class="p">,</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">()</span><span class="o">.</span><span class="n">set_output</span><span class="p">(</span><span class="n">transform</span><span class="o">=</span><span class="s2">&quot;pandas&quot;</span><span class="p">)),</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="p">(</span><span class="s2">&quot;reliable&quot;</span><span class="p">,</span> <span class="n">FeatureScoreSelector</span><span class="p">(</span><span class="n">icc</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.80</span><span class="p">,</span> <span class="n">score_column</span><span class="o">=</span><span class="s2">&quot;icc_2_1&quot;</span><span class="p">)),</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)),</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">])</span><span class="o">.</span><span class="n">set_output</span><span class="p">(</span><span class="n">transform</span><span class="o">=</span><span class="s2">&quot;pandas&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">eigenradiomics</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_reproducibility</span><span class="p">,</span> <span class="n">FeatureScoreSelector</span><span class="p">,</span> <span class="n">WGCNAReducer</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">repro</span> <span class="o">=</span> <span class="n">compute_reproducibility</span><span class="p">([</span><span class="n">reader1</span><span class="p">,</span> <span class="n">reader2</span><span class="p">])</span>          <span class="c1"># per-feature ICC</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="n">icc</span> <span class="o">=</span> <span class="n">repro</span><span class="p">[</span><span class="s2">&quot;ICC&quot;</span><span class="p">]</span>                                            <span class="c1"># has &#39;feature&#39; + &#39;icc_2_1&#39;</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="p">(</span><span class="s2">&quot;prep&quot;</span><span class="p">,</span> <span class="n">RadiomicsPrepTransformer</span><span class="p">()</span><span class="o">.</span><span class="n">set_output</span><span class="p">(</span><span class="n">transform</span><span class="o">=</span><span class="s2">&quot;pandas&quot;</span><span class="p">)),</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="p">(</span><span class="s2">&quot;reliable&quot;</span><span class="p">,</span> <span class="n">FeatureScoreSelector</span><span class="p">(</span><span class="n">icc</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.80</span><span class="p">,</span> <span class="n">score_column</span><span class="o">=</span><span class="s2">&quot;icc_2_1&quot;</span><span class="p">)),</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="p">(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)),</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="p">])</span><span class="o">.</span><span class="n">set_output</span><span class="p">(</span><span class="n">transform</span><span class="o">=</span><span class="s2">&quot;pandas&quot;</span><span class="p">)</span>
 </code></pre></div>
 <p>The same selector drops <strong>batch-confounded</strong> features — pass a batch-effect size
 column with <code>keep="below"</code> (keep features whose effect is small).</p>
@@ -1876,16 +2018,16 @@ column with <code>keep="below"</code> (keep features whose effect is small).</p>
 <p>A <code>RadiomicsDataset</code> carries the target and the grouping needed for leakage-safe
 cross-validation. Use <code>dataset.groups</code> (e.g. <code>PatientID</code>) with <code>GroupKFold</code> so no
 patient appears in both train and test:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">cross_val_score</span><span class="p">,</span> <span class="n">GroupKFold</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogisticRegression</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_pipeline_input</span><span class="p">()</span>      <span class="c1"># X = features, y from the study design</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">cv</span> <span class="o">=</span> <span class="n">GroupKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">scores</span> <span class="o">=</span> <span class="n">cross_val_score</span><span class="p">(</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)),</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>              <span class="p">(</span><span class="s2">&quot;clf&quot;</span><span class="p">,</span> <span class="n">LogisticRegression</span><span class="p">())]),</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">,</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">cross_val_score</span><span class="p">,</span> <span class="n">GroupKFold</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogisticRegression</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">X</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_pipeline_input</span><span class="p">()</span>      <span class="c1"># X = features, y from the study design</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">cv</span> <span class="o">=</span> <span class="n">GroupKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="n">scores</span> <span class="o">=</span> <span class="n">cross_val_score</span><span class="p">(</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">Pipeline</span><span class="p">([(</span><span class="s2">&quot;reduce&quot;</span><span class="p">,</span> <span class="n">WGCNAReducer</span><span class="p">(</span><span class="n">soft_power</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span> <span class="n">min_module_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)),</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>              <span class="p">(</span><span class="s2">&quot;clf&quot;</span><span class="p">,</span> <span class="n">LogisticRegression</span><span class="p">())]),</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">groups</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">groups</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">,</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="p">)</span>
 </code></pre></div>
 <p>Because the reducer fits its mapping on the training fold only and applies it to
 the test fold, the reduction is part of the cross-validated estimate — not fit on

@@ -15,7 +15,6 @@ from numpy.typing import NDArray
 
 from eigenradiomics._excel import write_styled_workbook
 from eigenradiomics._features import resolve_analysis_features
-from eigenradiomics._utils import _save_figure
 from eigenradiomics._plotting import apply_science_style
 from eigenradiomics._stats import (
     _bootstrap_icc_ci,
@@ -24,6 +23,7 @@ from eigenradiomics._stats import (
     _fisher_mean,
     _icc_2_1_estimate,
 )
+from eigenradiomics._utils import _save_figure
 
 
 def _generate_cluster_bootstrap_indices(
@@ -51,14 +51,14 @@ def _generate_cluster_bootstrap_indices(
 
         sampled_indices = np.array(sampled_indices)
         L = len(sampled_indices)
-        if L == n_samples:
+        if n_samples == L:
             boot_idx = sampled_indices
-        elif L < n_samples:
+        elif n_samples > L:
             # Pad by sampling with replacement from the gathered indices
             padding = rng.choice(sampled_indices, size=n_samples - L, replace=True)
             boot_idx = np.concatenate([sampled_indices, padding])
         else:
-            # Truncate by randomly selecting n_samples from the gathered indices without replacement
+            # Truncate: randomly select n_samples from the gathered indices (no replacement)
             boot_idx = rng.choice(sampled_indices, size=n_samples, replace=False)
 
         bootstrap_indices[i] = boot_idx
@@ -648,9 +648,12 @@ def plot_reproducibility_histograms(
             legend_handles.append(Patch(facecolor="#F43F5E", edgecolor="0.25", label="Pearson"))
         if "ICC" in results:
             legend_handles.append(Patch(facecolor="#0D9488", edgecolor="0.25", label="ICC(2,1)"))
-        
+
         if legend_handles and len(axes) > 0:
-            axes[0].legend(handles=legend_handles, loc="upper right", frameon=True, fontsize=8.5, framealpha=0.9)
+            axes[0].legend(
+                handles=legend_handles, loc="upper right", frameon=True,
+                fontsize=8.5, framealpha=0.9,
+            )
 
     if not is_custom_axes:
         if title is not None:
@@ -788,7 +791,12 @@ def plot_reproducibility(
         )
 
     if figsize is None:
-        figsize = (10.0, 10.0) if use_grid_2x2 else (11.0, 7.0)
+        # The stacked layout needs enough height for the square histograms, the
+        # family/discretisation legend strip and an optional suptitle; too short
+        # a figure makes the constrained-layout solver disable itself ("axes
+        # collapsed to zero") at high feature counts, which then mis-positions
+        # the saved figure.
+        figsize = (10.0, 10.0) if use_grid_2x2 else (11.0, 10.0)
 
     fig = plt.figure(figsize=figsize, layout="constrained")
 
@@ -797,30 +805,30 @@ def plot_reproducibility(
     if use_grid_2x2:
         # Create a 2x2 GridSpec
         gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
-        
+
         hist_axes = []
-        
+
         if "Spearman" in results:
             spearman_ax = fig.add_subplot(gs[0, 0])
             hist_axes.append(spearman_ax)
             active_axes.append(spearman_ax)
         else:
             spearman_ax = None
-            
+
         if "Pearson" in results:
             pearson_ax = fig.add_subplot(gs[0, 1])
             hist_axes.append(pearson_ax)
             active_axes.append(pearson_ax)
         else:
             pearson_ax = None
-            
+
         if "ICC" in results:
             icc_ax = fig.add_subplot(gs[1, 0])
             hist_axes.append(icc_ax)
             active_axes.append(icc_ax)
         else:
             icc_ax = None
-            
+
         # Synteny cell is gs[1, 1]
         if show_legend:
             gs_synteny = gs[1, 1].subgridspec(2, 1, height_ratios=[2.0, 0.8], hspace=0.2)
@@ -834,10 +842,10 @@ def plot_reproducibility(
         else:
             synteny_ax = fig.add_subplot(gs[1, 1])
             legend_axes = None
-            
+
         synteny_ax.set_box_aspect(1.0)
         active_axes.append(synteny_ax)
-        
+
     else:
         # Stacked layout: the histogram row on top, a full-width synteny panel at
         # half the histogram-row height below, and an optional legend strip beneath.

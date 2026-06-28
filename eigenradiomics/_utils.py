@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import os
 import warnings
 from collections import Counter
+from pathlib import Path
 from typing import Any, Protocol, cast
 
 import numpy as np
@@ -247,8 +249,6 @@ def _save_figure(
     """
     if path is None:
         return
-    from pathlib import Path
-    import os
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -256,10 +256,10 @@ def _save_figure(
     env_pdf = os.environ.get("SAVE_PDF", "false").lower() in ("true", "1", "yes")
     env_tiff = os.environ.get("SAVE_TIFF", "false").lower() in ("true", "1", "yes")
     env_dpi = os.environ.get("TIFF_DPI")
-    
+
     do_pdf = save_pdf or env_pdf
     do_tiff = save_tiff or env_tiff
-    
+
     if env_dpi is not None:
         try:
             tiff_dpi = int(env_dpi)

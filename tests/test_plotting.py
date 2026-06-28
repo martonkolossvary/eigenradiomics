@@ -415,9 +415,10 @@ def test_plot_reproducibility_synteny_coverage_gaps(tmp_path):
 
 
 def test_plot_reproducibility(tmp_path):
-    from eigenradiomics.reproducibility import plot_reproducibility
-    import pandas as pd
     import numpy as np
+    import pandas as pd
+
+    from eigenradiomics.reproducibility import plot_reproducibility
 
     # Create dummy replicate datasets
     features = [f"f{i}" for i in range(10)]
@@ -465,9 +466,10 @@ def test_plot_reproducibility(tmp_path):
 
 
 def test_plot_reproducibility_options(tmp_path):
-    from eigenradiomics.reproducibility import plot_reproducibility
-    import pandas as pd
     import numpy as np
+    import pandas as pd
+
+    from eigenradiomics.reproducibility import plot_reproducibility
 
     features = [f"f{i}" for i in range(10)]
     df1 = pd.DataFrame(np.random.rand(10, 10), columns=features)

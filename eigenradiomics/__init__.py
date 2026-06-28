@@ -62,9 +62,9 @@ from eigenradiomics.reducers import (
 )
 from eigenradiomics.reproducibility import (
     compute_reproducibility,
+    plot_reproducibility,
     plot_reproducibility_histograms,
     write_reproducibility_excel,
-    plot_reproducibility,
 )
 
 __all__ = [

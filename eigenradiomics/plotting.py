@@ -20,8 +20,8 @@ from matplotlib.ticker import MaxNLocator
 from numpy.typing import NDArray
 from scipy.cluster.hierarchy import dendrogram, leaves_list
 
-from eigenradiomics.artifacts import ReductionArtifacts
 from eigenradiomics._utils import _format_family_name, _save_figure
+from eigenradiomics.artifacts import ReductionArtifacts
 
 #: EIGEN_VIBRANT: brand-signature qualitative palette (default for categorical strips).
 EIGEN_VIBRANT: list[str] = [
@@ -1085,7 +1085,7 @@ def plot_reproducibility_synteny(
                 key = "Pearson"
             elif "icc" in metric_lower:
                 key = "ICC"
-        
+
         if key is None or key not in reproducibility_results:
             if "ICC" in reproducibility_results:
                 key = "ICC"
@@ -1097,7 +1097,7 @@ def plot_reproducibility_synteny(
                 key = list(reproducibility_results.keys())[0]
 
         df = reproducibility_results[key].copy()
-        
+
         # Infer column name
         if key == "ICC":
             inferred_metric = "icc_2_1" if "icc_2_1" in df.columns else "icc"
@@ -1149,8 +1149,14 @@ def plot_reproducibility_synteny(
         from eigenradiomics.feature_models import _annotate_catalog
         df = _annotate_catalog(df, catalog)
         from eigenradiomics.catalog import FeatureCatalog
-        cat_frame = catalog.frame if isinstance(catalog, FeatureCatalog) else FeatureCatalog(catalog).frame
-        disc_cols = [c for c in ("is_discretised", "discretisation_param") if c in cat_frame.columns]
+        cat_frame = (
+            catalog.frame
+            if isinstance(catalog, FeatureCatalog)
+            else FeatureCatalog(catalog).frame
+        )
+        disc_cols = [
+            c for c in ("is_discretised", "discretisation_param") if c in cat_frame.columns
+        ]
         if disc_cols:
             df = df.drop(columns=[c for c in disc_cols if c in df.columns], errors="ignore")
             df = df.merge(cat_frame[["feature"] + disc_cols], on="feature", how="left")
@@ -1211,7 +1217,9 @@ def plot_reproducibility_synteny(
 
         if group_by == "family":
             existing_cats = [c for c in IBSI_FAMILY_ORDER if c in df[group_by].dropna().unique()]
-            other_cats = sorted([c for c in df[group_by].dropna().unique() if c not in existing_cats])
+            other_cats = sorted(
+                c for c in df[group_by].dropna().unique() if c not in existing_cats
+            )
             full_order = existing_cats + other_cats
             df[group_by] = pd.Categorical(df[group_by], categories=full_order, ordered=True)
             df = df.sort_values(by=sort_cols, na_position="first").reset_index(drop=True)
@@ -1229,7 +1237,8 @@ def plot_reproducibility_synteny(
     else:
         unique_groups = sorted(df[group_by].dropna().unique())
 
-    # Map groups dynamically to cool color pool (no reds/greens to avoid overlap with ICC/metric lines)
+    # Map groups dynamically to a cool colour pool (no reds/greens to avoid
+    # overlap with ICC/metric lines)
     FAMILY_COLORS_POOL = [
         "#8B5CF6",  # Violet
         "#EC4899",  # Hot Pink
@@ -1271,11 +1280,12 @@ def plot_reproducibility_synteny(
     # Slate colors for discretization parameters to avoid overlaps
     disc_colors = {"None": "#E2E8F0"}  # slate gray
     if show_discretisation_ribbon:
-        unique_params = df[df["is_discretised"] == True]["discretisation_param"].dropna().unique()
+        unique_params = df[df["is_discretised"]]["discretisation_param"].dropna().unique()
         unique_params = sorted(list(unique_params))
         n_vals = len(unique_params)
         if n_vals == 1:
-            val_str = str(int(unique_params[0]) if float(unique_params[0]).is_integer() else unique_params[0])
+            first = unique_params[0]
+            val_str = str(int(first) if float(first).is_integer() else first)
             disc_colors[val_str] = "#94A3B8"  # Medium-Light Slate
         elif n_vals == 2:
             vals = [str(int(v) if float(v).is_integer() else v) for v in unique_params]
@@ -1333,7 +1343,10 @@ def plot_reproducibility_synteny(
         fig = ax.figure
         if show_legend:
             if legend_axes is None or len(legend_axes) != 3:
-                raise ValueError("Must provide 3 legend_axes when passing custom ax and show_legend=True to plot_reproducibility_synteny")
+                raise ValueError(
+                    "Must provide 3 legend_axes when passing custom ax and "
+                    "show_legend=True to plot_reproducibility_synteny"
+                )
             ax_leg_cutoffs, ax_leg_families, ax_leg_discs = legend_axes
         else:
             ax_leg_cutoffs = ax_leg_families = ax_leg_discs = None
@@ -1373,8 +1386,18 @@ def plot_reproducibility_synteny(
             if not grp_idx.empty:
                 y_min = grp_idx.min() - 0.51
                 y_max = grp_idx.max() + 0.51
-                ax.add_patch(Rectangle((w_l, y_min), 0.03, y_max - y_min, color=group_colors[grp], alpha=0.8, ec="none", zorder=2))
-                ax.add_patch(Rectangle((w_r, y_min), 0.03, y_max - y_min, color=group_colors[grp], alpha=0.8, ec="none", zorder=2))
+                ax.add_patch(
+                    Rectangle(
+                        (w_l, y_min), 0.03, y_max - y_min,
+                        color=group_colors[grp], alpha=0.8, ec="none", zorder=2,
+                    )
+                )
+                ax.add_patch(
+                    Rectangle(
+                        (w_r, y_min), 0.03, y_max - y_min,
+                        color=group_colors[grp], alpha=0.8, ec="none", zorder=2,
+                    )
+                )
 
     # Draw discretization ribbons
     if show_discretisation_ribbon:
@@ -1419,7 +1442,7 @@ def plot_reproducibility_synteny(
     # Build legend blocks and place them in 3 separate columns side-by-side
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
-    
+
     # 1. ICC / Metric thresholds
     cutoff_handles = []
     if "icc" in metric.lower():
@@ -1433,7 +1456,12 @@ def plot_reproducibility_synteny(
     else:
         metric_label = metric.upper()
     if num_categories == 1:
-        cutoff_handles.append(Line2D([0], [0], color=colors_list[0], lw=lw_list[0], linestyle="-", label=metric_label))
+        cutoff_handles.append(
+            Line2D(
+                [0], [0], color=colors_list[0], lw=lw_list[0],
+                linestyle="-", label=metric_label,
+            )
+        )
     else:
         for i in range(num_categories - 1, -1, -1):
             color = colors_list[i]
@@ -1459,7 +1487,11 @@ def plot_reproducibility_synteny(
         present_labels = set(df["_disc_label"].unique())
         for val_str, col in disc_colors.items():
             if val_str in present_labels:
-                lbl = f"Bin count: {val_str}" if val_str != "None" else "Bin count: None (non-textural)"
+                lbl = (
+                    f"Bin count: {val_str}"
+                    if val_str != "None"
+                    else "Bin count: None (non-textural)"
+                )
                 disc_handles.append(Patch(facecolor=col, edgecolor="0.3", label=lbl))
 
     if show_legend:

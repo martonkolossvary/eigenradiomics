@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,18 +21,20 @@ from numpy.typing import NDArray
 from scipy.cluster.hierarchy import dendrogram, leaves_list
 
 from eigenradiomics.artifacts import ReductionArtifacts
+from eigenradiomics._utils import _format_family_name, _save_figure
 
-#: Okabe-Ito colourblind-safe qualitative palette (default for categorical strips).
-OKABE_ITO: list[str] = [
-    "#E69F00",  # orange
-    "#56B4E9",  # sky blue
-    "#009E73",  # bluish green
-    "#F0E442",  # yellow
-    "#0072B2",  # blue
-    "#D55E00",  # vermillion
-    "#CC79A7",  # reddish purple
-    "#000000",  # black
+#: EIGEN_VIBRANT: brand-signature qualitative palette (default for categorical strips).
+EIGEN_VIBRANT: list[str] = [
+    "#4F46E5",  # indigo
+    "#F43F5E",  # rose/coral
+    "#0D9488",  # teal
+    "#D97706",  # amber
+    "#10B981",  # emerald
+    "#0EA5E9",  # sky blue
+    "#8B5CF6",  # violet
+    "#1E293B",  # slate
 ]
+OKABE_ITO = EIGEN_VIBRANT
 
 #: Default bar colour when "by_module" is requested but no modules are available.
 _DEFAULT_BAR_COLOR = "#4477AA"
@@ -180,6 +183,10 @@ def plot_clustered_heatmap(
     colorbar_label: str = "Similarity",
     figsize: tuple[float, float] | None = None,
     title: str | None = None,
+    path: str | Path | None = None,
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
 ) -> plt.Figure:
     """Plot a clustered feature-by-feature similarity heatmap.
 
@@ -222,6 +229,17 @@ def plot_clustered_heatmap(
         Figure size; auto-sized from the feature count otherwise.
     title : str, optional
         Figure title.
+    path : str or Path, optional
+        Destination file path to save the generated figure.
+    dpi : int, default=300
+        The resolution in dots per inch (DPI) for saving the image.
+    save_pdf : bool, default=False
+        Whether to also save a PDF copy of the plot. Enabled globally by the
+        ``SAVE_PDF`` environment variable.
+    save_tiff : bool, default=False
+        Whether to also save a TIFF copy of the plot. Enabled globally by the
+        ``SAVE_TIFF`` environment variable. DPI is set by the ``TIFF_DPI`` environment
+        variable (falling back to ``dpi``).
 
     Returns
     -------
@@ -470,6 +488,7 @@ def plot_clustered_heatmap(
             )
             ax_legend.axis("off")
 
+    _save_figure(fig, path, dpi, save_pdf, save_tiff)
     return fig
 
 
@@ -482,6 +501,9 @@ def plot_hub_significance(
     top_n_labels: int = 5,
     title: str | None = None,
     path: str | Path | None = None,
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
 ) -> plt.Figure:
     """Plot Module Membership (k_ME) vs. Feature Significance (GS/GS-Trait).
 
@@ -506,6 +528,15 @@ def plot_hub_significance(
         Figure title.
     path : str or Path, optional
         Destination path.
+    dpi : int, default=300
+        The resolution in dots per inch (DPI) for saving the image.
+    save_pdf : bool, default=False
+        Whether to also save a PDF copy of the plot. Enabled globally by the
+        ``SAVE_PDF`` environment variable.
+    save_tiff : bool, default=False
+        Whether to also save a TIFF copy of the plot. Enabled globally by the
+        ``SAVE_TIFF`` environment variable. DPI is set by the ``TIFF_DPI`` environment
+        variable (falling back to ``dpi``).
     """
     from scipy import stats
 
@@ -532,16 +563,16 @@ def plot_hub_significance(
     # Split into target and secondary
     in_target = lbl_series == target_cluster
 
-    # Target cluster: solid circles, colorblind-safe Vermillion or specific hex
+    # Target cluster: solid circles, brand signature Rose/Coral or specific hex
     ax.scatter(
         k_me_series[in_target],
         sig_series[in_target],
-        color="#D55E00",  # Vermillion
+        color="#F43F5E",  # Vibrant Rose/Coral (Brand Signature)
         marker="o",
         s=45,
         alpha=0.85,
         label=f"In Module ({target_cluster})",
-        edgecolors="#7f2e00",
+        edgecolors="#1E293B",
         linewidths=0.5
     )
 
@@ -554,7 +585,7 @@ def plot_hub_significance(
         s=35,
         alpha=0.6,
         label="Out of Module",
-        edgecolors="#222222",
+        edgecolors="#94A3B8",
         linewidths=0.8
     )
 
@@ -605,8 +636,7 @@ def plot_hub_significance(
     ax.legend(loc="lower left", frameon=True, facecolor="white", edgecolor="0.8")
     ax.grid(True, linestyle=":", alpha=0.5)
 
-    if path:
-        plt.savefig(path, dpi=300, bbox_inches="tight")
+    _save_figure(fig, path, dpi, save_pdf, save_tiff)
 
     return fig
 
@@ -619,6 +649,9 @@ def plot_eigengene_profiles(
     component_idx: int = 0,
     title: str | None = None,
     path: str | Path | None = None,
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
 ) -> plt.Figure:
     """Plot eigengene profiles/trajectories grouped by a clinical variable.
 
@@ -635,6 +668,19 @@ def plot_eigengene_profiles(
         Display label for the trait.
     component_idx : int, default=0
         Index of the component/eigengene to plot.
+    title : str, optional
+        Figure title.
+    path : str or Path, optional
+        Destination path.
+    dpi : int, default=300
+        The resolution in dots per inch (DPI) for saving the image.
+    save_pdf : bool, default=False
+        Whether to also save a PDF copy of the plot. Enabled globally by the
+        ``SAVE_PDF`` environment variable.
+    save_tiff : bool, default=False
+        Whether to also save a TIFF copy of the plot. Enabled globally by the
+        ``SAVE_TIFF`` environment variable. DPI is set by the ``TIFF_DPI`` environment
+        variable (falling back to ``dpi``).
     """
     from scipy import stats
 
@@ -664,7 +710,7 @@ def plot_eigengene_profiles(
         categories = sorted(list(unique_vals))
         groups_data = [y_vals[x_vals == cat] for cat in categories]
 
-        colors = ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2"][:len(categories)]
+        colors = EIGEN_VIBRANT[:len(categories)]
         hatches = ["", "//", "\\\\", "xx", ".."][:len(categories)]
 
         box = ax.boxplot(
@@ -684,7 +730,7 @@ def plot_eigengene_profiles(
             ax.scatter(
                 np.full_like(grp, i + 1) + jitter,
                 grp,
-                color="#333333",
+                color="#1E293B",
                 alpha=0.4,
                 s=15,
                 edgecolors="none"
@@ -701,10 +747,10 @@ def plot_eigengene_profiles(
         ax.scatter(
             x_clean,
             y_clean,
-            color="#56B4E9",
+            color="#4F46E5",  # Vibrant Indigo (Brand Signature)
             marker="o",
             s=25,
-            edgecolors="#004477",
+            edgecolors="#1E293B",
             alpha=0.7,
             label="Patients"
         )
@@ -716,7 +762,7 @@ def plot_eigengene_profiles(
         ax.plot(
             x_line,
             y_line,
-            color="#D55E00",
+            color="#F43F5E",  # Vibrant Rose/Coral (Brand Signature)
             linestyle="--",
             linewidth=1.5,
             label="Linear Fit"
@@ -741,8 +787,7 @@ def plot_eigengene_profiles(
     else:
         ax.set_title(f"Profile: {comp_name} across {trait_name}", fontsize=12, pad=10)
 
-    if path:
-        plt.savefig(path, dpi=300, bbox_inches="tight")
+    _save_figure(fig, path, dpi, save_pdf, save_tiff)
 
     return fig
 
@@ -756,6 +801,9 @@ def plot_batch_distributions(
     batch_name: str = "Batch",
     title: str | None = None,
     path: str | Path | None = None,
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
 ) -> plt.Figure:
     """Plot probability density of a feature before and after harmonization.
 
@@ -770,6 +818,21 @@ def plot_batch_distributions(
         Batch/center identifier per sample.
     feature_name : str or int
         Column name or index of the feature to plot.
+    batch_name : str, default="Batch"
+        Display name for the batch.
+    title : str, optional
+        Figure title.
+    path : str or Path, optional
+        Destination path.
+    dpi : int, default=300
+        The resolution in dots per inch (DPI) for saving the image.
+    save_pdf : bool, default=False
+        Whether to also save a PDF copy of the plot. Enabled globally by the
+        ``SAVE_PDF`` environment variable.
+    save_tiff : bool, default=False
+        Whether to also save a TIFF copy of the plot. Enabled globally by the
+        ``SAVE_TIFF`` environment variable. DPI is set by the ``TIFF_DPI`` environment
+        variable (falling back to ``dpi``).
     """
     from scipy import stats
 
@@ -795,7 +858,7 @@ def plot_batch_distributions(
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.5), sharey=True, layout="constrained")
 
     linestyles = ["-", "--", ":", "-."]
-    colors = ["#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2"]
+    colors = EIGEN_VIBRANT
 
     for idx, b_id in enumerate(unique_batches):
         mask = batches == b_id
@@ -871,8 +934,7 @@ def plot_batch_distributions(
             fontweight="bold",
         )
 
-    if path:
-        plt.savefig(path, dpi=300, bbox_inches="tight")
+    _save_figure(fig, path, dpi, save_pdf, save_tiff)
 
     return fig
 
@@ -941,7 +1003,7 @@ def _draw_bottom_bars(
             ax_bar.set_xticks([])
 
 
-def plot_observer_synteny(
+def plot_reproducibility_synteny(
     reproducibility_results: pd.DataFrame | dict[str, pd.DataFrame],
     catalog: FeatureCatalog | pd.DataFrame | None = None,
     *,
@@ -951,8 +1013,18 @@ def plot_observer_synteny(
     figsize: tuple[float, float] | None = None,
     title: str | None = None,
     path: str | Path | None = None,
+    show_family_ribbon: bool = True,
+    show_discretisation_ribbon: bool = True,
+    observer_labels: Sequence[str] = ("Observer A", "Observer B"),
+    thresholds: Sequence[float] = (0.5, 0.8),
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
+    ax: plt.Axes | None = None,
+    legend_axes: Sequence[plt.Axes] | None = None,
+    show_legend: bool = True,
 ) -> plt.Figure:
-    """Plot an observer reproducibility synteny-style comparison plot.
+    """Plot a feature reproducibility synteny-style comparison plot in landscape.
 
     Features are aligned on parallel left and right axes. Connection lines
     are drawn between corresponding features, with color and thickness
@@ -974,11 +1046,28 @@ def plot_observer_synteny(
         Metric column to plot (e.g. "icc" or "correlation"). If None, is automatically
         inferred from the columns of the results.
     figsize : tuple, optional
-        Figure size.
+        Figure size. Defaults to (11.0, 7.5) (landscape).
     title : str, optional
         Figure title.
     path : str or Path, optional
         If set, save the figure to this file path.
+    show_family_ribbon : bool, default=True
+        Whether to show the feature family vertical ribbon.
+    show_discretisation_ribbon : bool, default=True
+        Whether to show the discretization parameter vertical ribbon.
+    observer_labels : sequence of str, default=("Observer A", "Observer B")
+        Observer names displayed on the x-axis.
+    thresholds : sequence of float, default=(0.5, 0.8)
+        Custom thresholds (up to 4, defining up to 5 categories) for color coding.
+    dpi : int, default=300
+        The resolution in dots per inch (DPI) for saving the image.
+    save_pdf : bool, default=False
+        Whether to also save a PDF copy of the plot. Enabled globally by the
+        ``SAVE_PDF`` environment variable.
+    save_tiff : bool, default=False
+        Whether to also save a TIFF copy of the plot. Enabled globally by the
+        ``SAVE_TIFF`` environment variable. DPI is set by the ``TIFF_DPI`` environment
+        variable (falling back to ``dpi``).
 
     Returns
     -------
@@ -986,20 +1075,49 @@ def plot_observer_synteny(
     """
 
     # Resolve reproducibility DataFrame
+    key = None
     if isinstance(reproducibility_results, dict):
-        if "ICC" in reproducibility_results:
-            df = reproducibility_results["ICC"].copy()
-            inferred_metric = "icc"
-        elif "Spearman" in reproducibility_results:
-            df = reproducibility_results["Spearman"].copy()
-            inferred_metric = "correlation"
+        if metric is not None:
+            metric_lower = metric.lower()
+            if "spearman" in metric_lower:
+                key = "Spearman"
+            elif "pearson" in metric_lower:
+                key = "Pearson"
+            elif "icc" in metric_lower:
+                key = "ICC"
+        
+        if key is None or key not in reproducibility_results:
+            if "ICC" in reproducibility_results:
+                key = "ICC"
+            elif "Spearman" in reproducibility_results:
+                key = "Spearman"
+            elif "Pearson" in reproducibility_results:
+                key = "Pearson"
+            else:
+                key = list(reproducibility_results.keys())[0]
+
+        df = reproducibility_results[key].copy()
+        
+        # Infer column name
+        if key == "ICC":
+            inferred_metric = "icc_2_1" if "icc_2_1" in df.columns else "icc"
         else:
-            df = list(reproducibility_results.values())[0].copy()
-            inferred_metric = "correlation" if "correlation" in df.columns else "icc"
+            if "estimate" in df.columns:
+                inferred_metric = "estimate"
+            elif "mean" in df.columns:
+                inferred_metric = "mean"
+            else:
+                inferred_metric = "correlation" if "correlation" in df.columns else "icc"
     else:
         df = reproducibility_results.copy()
-        if "icc" in df.columns:
+        if "icc_2_1" in df.columns:
+            inferred_metric = "icc_2_1"
+        elif "icc" in df.columns:
             inferred_metric = "icc"
+        elif "estimate" in df.columns:
+            inferred_metric = "estimate"
+        elif "mean" in df.columns:
+            inferred_metric = "mean"
         elif "correlation" in df.columns:
             inferred_metric = "correlation"
         else:
@@ -1007,6 +1125,19 @@ def plot_observer_synteny(
 
     if metric is None:
         metric = inferred_metric
+
+    # Resolve metric column from name or fallbacks
+    if metric not in df.columns:
+        if metric.lower() in ("spearman", "pearson", "correlation"):
+            for col in ("estimate", "mean", "correlation"):
+                if col in df.columns:
+                    metric = col
+                    break
+        elif metric.lower() == "icc":
+            for col in ("icc_2_1", "icc"):
+                if col in df.columns:
+                    metric = col
+                    break
 
     if metric not in df.columns:
         raise ValueError(f"Metric column {metric!r} not found in reproducibility results.")
@@ -1017,40 +1148,200 @@ def plot_observer_synteny(
     if catalog is not None:
         from eigenradiomics.feature_models import _annotate_catalog
         df = _annotate_catalog(df, catalog)
+        from eigenradiomics.catalog import FeatureCatalog
+        cat_frame = catalog.frame if isinstance(catalog, FeatureCatalog) else FeatureCatalog(catalog).frame
+        disc_cols = [c for c in ("is_discretised", "discretisation_param") if c in cat_frame.columns]
+        if disc_cols:
+            df = df.drop(columns=[c for c in disc_cols if c in df.columns], errors="ignore")
+            df = df.merge(cat_frame[["feature"] + disc_cols], on="feature", how="left")
 
     if group_by not in df.columns:
         df[group_by] = "All Features"
 
+    # IBSI ordering definition
+    IBSI_FAMILY_ORDER = [
+        "morphology",
+        "intensity",
+        "histogram",
+        "ivh",
+        "glcm",
+        "glrlm",
+        "glszm",
+        "gldzm",
+        "ngtdm",
+        "ngldm",
+    ]
+
+    # Validate thresholds
+    thresholds_list = sorted(list(thresholds))
+    if len(thresholds_list) > 4:
+        raise ValueError("At most 4 thresholds (defining 5 categories) are supported.")
+
+    # Mutually Exclusive Color Palette & Line Width maps
+    # Connection lines (reproducibility metrics): Tailwind-inspired warm-to-cool scale
+    COLOR_MAPS = {
+        1: ["#15803D"],
+        2: ["#DC2626", "#15803D"],
+        3: ["#DC2626", "#F59E0B", "#15803D"],
+        4: ["#DC2626", "#F97316", "#10B981", "#15803D"],
+        5: ["#DC2626", "#F97316", "#F59E0B", "#10B981", "#15803D"],
+    }
+    LW_MAPS = {
+        1: [1.5],
+        2: [1.0, 1.5],
+        3: [1.0, 1.2, 1.5],
+        4: [0.9, 1.1, 1.3, 1.5],
+        5: [0.8, 1.0, 1.2, 1.4, 1.6],
+    }
+
+    num_categories = len(thresholds_list) + 1
+    colors_list = COLOR_MAPS[num_categories]
+    lw_list = LW_MAPS[num_categories]
+
     # Sort features
     if order is not None:
         order_list = list(order)
-        # Reorder df to match order_list
         df = df.set_index("feature").reindex(order_list).reset_index()
-        # Drop nan rows (features not in order)
         df = df.dropna(subset=["feature"])
     else:
-        df = df.sort_values(by=[group_by, "feature"]).reset_index(drop=True)
+        sort_cols = [group_by]
+        if "discretisation_param" in df.columns:
+            sort_cols.append("discretisation_param")
+        sort_cols.append("feature")
+
+        if group_by == "family":
+            existing_cats = [c for c in IBSI_FAMILY_ORDER if c in df[group_by].dropna().unique()]
+            other_cats = sorted([c for c in df[group_by].dropna().unique() if c not in existing_cats])
+            full_order = existing_cats + other_cats
+            df[group_by] = pd.Categorical(df[group_by], categories=full_order, ordered=True)
+            df = df.sort_values(by=sort_cols, na_position="first").reset_index(drop=True)
+        else:
+            df = df.sort_values(by=sort_cols, na_position="first").reset_index(drop=True)
 
     n = len(df)
     if n == 0:
         raise ValueError("No features available to plot.")
 
-    unique_groups = sorted(df[group_by].dropna().unique())
-    group_colors = _assign_colors(unique_groups, None)
+    if isinstance(df[group_by].dtype, pd.CategoricalDtype):
+        unique_groups = list(df[group_by].dropna().unique().categories)
+        present = set(df[group_by].dropna().unique())
+        unique_groups = [g for g in unique_groups if g in present]
+    else:
+        unique_groups = sorted(df[group_by].dropna().unique())
 
-    # Plot
+    # Map groups dynamically to cool color pool (no reds/greens to avoid overlap with ICC/metric lines)
+    FAMILY_COLORS_POOL = [
+        "#8B5CF6",  # Violet
+        "#EC4899",  # Hot Pink
+        "#06B6D4",  # Cyan
+        "#3B82F6",  # Royal Blue
+        "#7C3AED",  # Deep Violet
+        "#0D9488",  # Teal
+        "#A855F7",  # Purple
+        "#6366F1",  # Indigo
+        "#D946EF",  # Fuchsia
+        "#0EA5E9",  # Sky Blue
+        "#A21CAF",  # Dark Magenta
+        "#2563EB",  # Cobalt Blue
+        "#C084FC",  # Light Purple
+        "#4F46E5",  # Vibrant Indigo
+        "#1D4ED8",  # Navy Blue
+        "#4338CA",  # Dark Indigo
+    ]
+    group_colors = {
+        grp: FAMILY_COLORS_POOL[idx % len(FAMILY_COLORS_POOL)]
+        for idx, grp in enumerate(unique_groups)
+    }
+
+    # If only 1 group exists (e.g. All Features), hide the family ribbon dynamically
+    if len(unique_groups) <= 1:
+        show_family_ribbon = False
+
+    # Resolve discretization data
+    has_disc_info = "is_discretised" in df.columns and "discretisation_param" in df.columns
+    if show_discretisation_ribbon and not has_disc_info:
+        warnings.warn(
+            "Discretization columns ('is_discretised', 'discretisation_param') not found. "
+            "Skipping discretization ribbon.",
+            UserWarning,
+            stacklevel=2,
+        )
+        show_discretisation_ribbon = False
+
+    # Slate colors for discretization parameters to avoid overlaps
+    disc_colors = {"None": "#E2E8F0"}  # slate gray
+    if show_discretisation_ribbon:
+        unique_params = df[df["is_discretised"] == True]["discretisation_param"].dropna().unique()
+        unique_params = sorted(list(unique_params))
+        n_vals = len(unique_params)
+        if n_vals == 1:
+            val_str = str(int(unique_params[0]) if float(unique_params[0]).is_integer() else unique_params[0])
+            disc_colors[val_str] = "#94A3B8"  # Medium-Light Slate
+        elif n_vals == 2:
+            vals = [str(int(v) if float(v).is_integer() else v) for v in unique_params]
+            disc_colors[vals[0]] = "#94A3B8"  # Medium-Light Slate
+            disc_colors[vals[1]] = "#475569"  # Dark Slate
+        elif n_vals == 3:
+            vals = [str(int(v) if float(v).is_integer() else v) for v in unique_params]
+            disc_colors[vals[0]] = "#94A3B8"  # Medium-Light Slate
+            disc_colors[vals[1]] = "#64748B"  # Medium Slate
+            disc_colors[vals[2]] = "#475569"  # Dark Slate
+        elif n_vals >= 4:
+            slate_tones = ["#94A3B8", "#64748B", "#475569", "#1E293B"]
+            for idx, val in enumerate(unique_params):
+                val_str = str(int(val) if float(val).is_integer() else val)
+                disc_colors[val_str] = slate_tones[idx % len(slate_tones)]
+
+        disc_labels = []
+        for _, row in df.iterrows():
+            if pd.isna(row.get("is_discretised")) or not row["is_discretised"]:
+                disc_labels.append("None")
+            else:
+                param = row.get("discretisation_param")
+                if pd.isna(param):
+                    disc_labels.append("None")
+                else:
+                    p_str = str(int(param) if float(param).is_integer() else param)
+                    disc_labels.append(p_str)
+        df["_disc_label"] = disc_labels
+
+    # Plot Setup. Skip global styling when drawing into a caller-supplied axis
+    # (the caller has already applied the style) to avoid redundant rcParam churn.
     from eigenradiomics._plotting import apply_science_style
-    apply_science_style()
-    if figsize is None:
-        figsize = (6.0, float(np.clip(n * 0.15, 5.0, 12.0)))
+    if ax is None:
+        apply_science_style()
 
-    fig, ax = plt.subplots(figsize=figsize)
+    is_custom_ax = ax is not None
+    if not is_custom_ax:
+        if figsize is None:
+            figsize = (11.0, 4.8)  # Compact landscape by default
+        fig = plt.figure(figsize=figsize, layout="constrained")
+        if show_legend:
+            # GridSpec: top for main plot, bottom for legend area
+            gs = fig.add_gridspec(2, 1, height_ratios=[2.0, 0.8], hspace=0.1)
+            ax = fig.add_subplot(gs[0, 0])
+            # Partitioned Sub-Gridspec for separate legends (symmetric equal width ratios)
+            gs_leg = gs[1, 0].subgridspec(1, 3)
+            ax_leg_cutoffs = fig.add_subplot(gs_leg[0, 0])
+            ax_leg_families = fig.add_subplot(gs_leg[0, 1])
+            ax_leg_discs = fig.add_subplot(gs_leg[0, 2])
+        else:
+            gs = fig.add_gridspec(1, 1)
+            ax = fig.add_subplot(gs[0, 0])
+            ax_leg_cutoffs = ax_leg_families = ax_leg_discs = None
+    else:
+        fig = ax.figure
+        if show_legend:
+            if legend_axes is None or len(legend_axes) != 3:
+                raise ValueError("Must provide 3 legend_axes when passing custom ax and show_legend=True to plot_reproducibility_synteny")
+            ax_leg_cutoffs, ax_leg_families, ax_leg_discs = legend_axes
+        else:
+            ax_leg_cutoffs = ax_leg_families = ax_leg_discs = None
 
     # Draw lines and ribbons
-    y_coords = np.arange(n)
-    df["_y"] = y_coords
+    df["_y"] = n - 1 - np.arange(n)
 
-    # Draw connection lines
+    # Draw connection lines between 0 and 1
     for _, row in df.iterrows():
         y = row["_y"]
         val = row[metric]
@@ -1058,115 +1349,162 @@ def plot_observer_synteny(
             color = "lightgrey"
             alpha = 0.2
             lw = 0.5
-        elif val >= 0.8:
-            color = "#0072B2"  # deep blue (reproducible)
-            alpha = 0.8
-            lw = 1.5
-        elif val >= 0.5:
-            color = "#E69F00"  # orange (moderate)
-            alpha = 0.5
-            lw = 1.0
         else:
-            color = "#D55E00"  # vermillion (poor)
-            alpha = 0.3
-            lw = 0.8
+            cat_idx = sum(val >= t for t in thresholds_list)
+            color = colors_list[cat_idx]
+            lw = lw_list[cat_idx]
+            alpha = 0.4 + 0.4 * (cat_idx / (num_categories - 1)) if num_categories > 1 else 0.8
 
-        ax.plot([0, 1], [y, y], color=color, alpha=alpha, lw=lw, zorder=1)
+        ax.plot([0, 1], [y, y], color=color, alpha=alpha, lw=lw, linestyle="-", zorder=1)
+
+    # Calculate ribbon coordinates dynamically to avoid gaps
+    from matplotlib.patches import Rectangle
+    left_edge = 0.0
+    right_edge = 1.0
 
     # Draw ideogram bars
-    from matplotlib.patches import Rectangle
-    for grp in unique_groups:
-        grp_idx = df[df[group_by] == grp]["_y"]
-        if not grp_idx.empty:
-            y_min = grp_idx.min() - 0.45
-            y_max = grp_idx.max() + 0.45
-            # Left bar
-            ax.add_patch(
-                Rectangle(
-                    (-0.03, y_min),
-                    0.03,
-                    y_max - y_min,
-                    color=group_colors[grp],
-                    alpha=0.8,
-                    ec="none",
-                    zorder=2,
-                )
-            )
-            # Right bar
-            ax.add_patch(
-                Rectangle(
-                    (1.0, y_min),
-                    0.03,
-                    y_max - y_min,
-                    color=group_colors[grp],
-                    alpha=0.8,
-                    ec="none",
-                    zorder=2,
-                )
-            )
+    if show_family_ribbon:
+        w_l = left_edge - 0.03
+        w_r = right_edge
+        left_edge -= 0.03
+        right_edge += 0.03
+        for grp in unique_groups:
+            grp_idx = df[df[group_by] == grp]["_y"]
+            if not grp_idx.empty:
+                y_min = grp_idx.min() - 0.51
+                y_max = grp_idx.max() + 0.51
+                ax.add_patch(Rectangle((w_l, y_min), 0.03, y_max - y_min, color=group_colors[grp], alpha=0.8, ec="none", zorder=2))
+                ax.add_patch(Rectangle((w_r, y_min), 0.03, y_max - y_min, color=group_colors[grp], alpha=0.8, ec="none", zorder=2))
 
-    # Axis decoration
-    ax.set_xlim(-0.1, 1.1)
+    # Draw discretization ribbons
+    if show_discretisation_ribbon:
+        w_l = left_edge - 0.03
+        w_r = right_edge
+        left_edge -= 0.03
+        right_edge += 0.03
+        for _, row in df.iterrows():
+            y = row["_y"]
+            label = row["_disc_label"]
+            col = disc_colors.get(label, "#E0E0E0")
+            ax.add_patch(Rectangle((w_l, y - 0.51), 0.03, 1.02, color=col, ec="none", zorder=2))
+            ax.add_patch(Rectangle((w_r, y - 0.51), 0.03, 1.02, color=col, ec="none", zorder=2))
+
+    # Axis decoration based on dynamic bounds
+    ax.set_xlim(left_edge - 0.02, right_edge + 0.02)
     ax.set_ylim(-0.5, n - 0.5)
 
-    # If small number of features, label them on left/right axes
     if n <= 50:
-        ax.set_yticks(y_coords)
-        ax.set_yticklabels(df["feature"], fontsize=8)
-        # Add labels to the right axis too
+        ticks = np.arange(n)
+        labels = df["feature"].values[::-1]
+        ax.set_yticks(ticks)
+        ax.set_yticklabels(labels, fontsize=8)
         ax2 = ax.twinx()
         ax2.set_ylim(ax.get_ylim())
-        ax2.set_yticks(y_coords)
-        ax2.set_yticklabels(df["feature"], fontsize=8)
+        ax2.set_yticks(ticks)
+        ax2.set_yticklabels(labels, fontsize=8)
     else:
         ax.set_yticks([])
         ax2 = ax.twinx()
         ax2.set_yticks([])
 
     ax.set_xticks([0, 1])
-    ax.set_xticklabels(["Observer A", "Observer B"], fontsize=10, weight="bold")
+    ax.set_xticklabels(observer_labels, fontsize=10, weight="bold")
 
-    ax.spines["top"].set_visible(False)
-    ax.spines["bottom"].set_visible(False)
-    ax.spines["left"].set_visible(False)
-    ax.spines["right"].set_visible(False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
     if 'ax2' in locals():
-        ax2.spines["top"].set_visible(False)
-        ax2.spines["bottom"].set_visible(False)
-        ax2.spines["left"].set_visible(False)
-        ax2.spines["right"].set_visible(False)
+        for spine in ax2.spines.values():
+            spine.set_visible(False)
 
-    # Legend for groups
+    # Build legend blocks and place them in 3 separate columns side-by-side
     from matplotlib.lines import Line2D
     from matplotlib.patches import Patch
-    handles: list[Any] = []
-    for grp in unique_groups:
-        handles.append(Patch(facecolor=group_colors[grp], label=str(grp)))
+    
+    # 1. ICC / Metric thresholds
+    cutoff_handles = []
+    if "icc" in metric.lower():
+        metric_label = "ICC(2,1)"
+    elif key == "Pearson":
+        metric_label = "Pearson r"
+    elif key == "Spearman":
+        metric_label = "Spearman ρ"
+    elif metric.lower() in ("estimate", "mean", "correlation"):
+        metric_label = "Correlation"
+    else:
+        metric_label = metric.upper()
+    if num_categories == 1:
+        cutoff_handles.append(Line2D([0], [0], color=colors_list[0], lw=lw_list[0], linestyle="-", label=metric_label))
+    else:
+        for i in range(num_categories - 1, -1, -1):
+            color = colors_list[i]
+            lw = lw_list[i]
+            if i == num_categories - 1:
+                lbl = f"{metric_label} ≥ {thresholds_list[i-1]:.2g}"
+            elif i > 0:
+                lbl = f"{thresholds_list[i-1]:.2g} ≤ {metric_label} < {thresholds_list[i]:.2g}"
+            else:
+                lbl = f"{metric_label} < {thresholds_list[0]:.2g}"
+            cutoff_handles.append(Line2D([0], [0], color=color, lw=lw, linestyle="-", label=lbl))
 
-    handles.append(
-        Line2D([0], [0], color="#0072B2", lw=1.5, label=f"{metric.upper()} >= 0.8")
-    )
-    handles.append(
-        Line2D([0], [0], color="#E69F00", lw=1.0, label=f"0.5 <= {metric.upper()} < 0.8")
-    )
-    handles.append(
-        Line2D([0], [0], color="#D55E00", lw=0.8, label=f"{metric.upper()} < 0.5")
-    )
+    # 2. Families
+    family_handles = []
+    if show_family_ribbon:
+        for grp in unique_groups:
+            formatted_label = _format_family_name(str(grp))
+            family_handles.append(Patch(facecolor=group_colors[grp], label=formatted_label))
 
-    ax.legend(
-        handles=handles,
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.05),
-        ncol=min(len(handles), 4),
-        frameon=False,
-        fontsize=9,
-    )
+    # 3. Discretization
+    disc_handles = []
+    if show_discretisation_ribbon:
+        present_labels = set(df["_disc_label"].unique())
+        for val_str, col in disc_colors.items():
+            if val_str in present_labels:
+                lbl = f"Bin count: {val_str}" if val_str != "None" else "Bin count: None (non-textural)"
+                disc_handles.append(Patch(facecolor=col, edgecolor="0.3", label=lbl))
 
-    if title:
-        fig.suptitle(title, weight="bold", fontsize=12)
+    if show_legend:
+        # Column 1: Cut-offs
+        ax_leg_cutoffs.axis("off")
+        ax_leg_cutoffs.legend(
+            handles=cutoff_handles,
+            title=metric_label,
+            loc="upper center",
+            frameon=False,
+            ncol=1,
+            fontsize=8.5,
+            title_fontsize=9.5,
+        )
 
-    fig.tight_layout()
-    if path:
-        plt.savefig(path, dpi=300, bbox_inches="tight")
+        # Column 2: Families
+        ax_leg_families.axis("off")
+        if show_family_ribbon:
+            family_cols = 2 if len(unique_groups) > 5 else 1
+            ax_leg_families.legend(
+                handles=family_handles,
+                title="Feature Families",
+                loc="upper center",
+                frameon=False,
+                ncol=family_cols,
+                fontsize=8.5,
+                title_fontsize=9.5,
+            )
+
+        # Column 3: Discretization
+        ax_leg_discs.axis("off")
+        if show_discretisation_ribbon:
+            ax_leg_discs.legend(
+                handles=disc_handles,
+                title="Discretization",
+                loc="upper center",
+                frameon=False,
+                ncol=1,
+                fontsize=8.5,
+                title_fontsize=9.5,
+            )
+
+    if not is_custom_ax:
+        if title:
+            fig.suptitle(title, weight="bold", fontsize=12)
+        _save_figure(fig, path, dpi, save_pdf, save_tiff)
 
     return fig

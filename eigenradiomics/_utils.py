@@ -203,3 +203,78 @@ def check_constant_features(X: NDArray, threshold: float = 1e-12) -> NDArray:
     # Treat entirely-NaN columns as not constant here (handled by missing warnings)
     mask[np.isnan(std)] = False
     return mask
+
+
+def _format_family_name(name: str) -> str:
+    """Format a radiomic family name.
+
+    Abbreviations are formatted as all-caps (e.g. GLCM, GLRLM), and standard
+    words are capitalized (e.g. Morphology, Intensity).
+    """
+    name_lower = name.strip().lower()
+    abbreviations = {"glcm", "glrlm", "glszm", "gldzm", "ngtdm", "ngldm", "ivh"}
+    if name_lower in abbreviations:
+        return name_lower.upper()
+    return name.strip().capitalize()
+
+
+def _save_figure(
+    fig: Any,
+    path: str | Path | None = None,
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
+    bbox_inches: str | None = "tight",
+) -> None:
+    """Save a figure to disk in multiple formats.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        Figure object to save.
+    path : str or Path, optional
+        Save path.
+    dpi : int, default=300
+        Resolution of the saved image.
+    save_pdf : bool, default=False
+        Whether to also save a PDF copy.
+    save_tiff : bool, default=False
+        Whether to also save a TIFF copy.
+    bbox_inches : str or None, default="tight"
+        Passed to ``fig.savefig``. Use ``None`` for figures using the
+        constrained layout engine, which manages margins itself (mixing with
+        ``"tight"`` can shift margins and clip out-of-axes artists).
+    """
+    if path is None:
+        return
+    from pathlib import Path
+    import os
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Determine save flags with env fallback
+    env_pdf = os.environ.get("SAVE_PDF", "false").lower() in ("true", "1", "yes")
+    env_tiff = os.environ.get("SAVE_TIFF", "false").lower() in ("true", "1", "yes")
+    env_dpi = os.environ.get("TIFF_DPI")
+    
+    do_pdf = save_pdf or env_pdf
+    do_tiff = save_tiff or env_tiff
+    
+    if env_dpi is not None:
+        try:
+            tiff_dpi = int(env_dpi)
+        except ValueError:
+            tiff_dpi = dpi
+    else:
+        tiff_dpi = dpi
+
+    # Save original format
+    fig.savefig(path, dpi=dpi, bbox_inches=bbox_inches)
+
+    # Save PDF
+    if do_pdf and path.suffix.lower() != ".pdf":
+        fig.savefig(path.with_suffix(".pdf"), dpi=dpi, bbox_inches=bbox_inches)
+
+    # Save TIFF
+    if do_tiff and path.suffix.lower() not in (".tiff", ".tif"):
+        fig.savefig(path.with_suffix(".tiff"), dpi=tiff_dpi, bbox_inches=bbox_inches)

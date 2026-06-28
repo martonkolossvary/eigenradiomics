@@ -291,8 +291,8 @@ def test_invalid_right_type_raises():
         plot_clustered_heatmap(df, right=123)
 
 
-def test_plot_observer_synteny(tmp_path):
-    from eigenradiomics.plotting import plot_observer_synteny
+def test_plot_reproducibility_synteny(tmp_path):
+    from eigenradiomics.plotting import plot_reproducibility_synteny
 
     features = [f"f{i}" for i in range(10)]
     df_repro = pd.DataFrame(
@@ -305,11 +305,11 @@ def test_plot_observer_synteny(tmp_path):
 
     catalog = pd.DataFrame({"feature": features, "family": ["firstorder"] * 5 + ["glcm"] * 5})
 
-    fig1 = plot_observer_synteny(df_repro, catalog=catalog)
+    fig1 = plot_reproducibility_synteny(df_repro, catalog=catalog)
     assert fig1 is not None
     plt.close(fig1)
 
-    fig2 = plot_observer_synteny(
+    fig2 = plot_reproducibility_synteny(
         df_repro,
         catalog=catalog,
         metric="correlation",
@@ -322,8 +322,8 @@ def test_plot_observer_synteny(tmp_path):
     plt.close(fig2)
 
 
-def test_plot_observer_synteny_coverage_gaps(tmp_path):
-    from eigenradiomics.plotting import plot_observer_synteny
+def test_plot_reproducibility_synteny_coverage_gaps(tmp_path):
+    from eigenradiomics.plotting import plot_reproducibility_synteny
 
     features = [f"f{i}" for i in range(10)]
     df_repro = pd.DataFrame(
@@ -335,11 +335,23 @@ def test_plot_observer_synteny_coverage_gaps(tmp_path):
     )
 
     # 1. reproducibility_results as dict
-    fig = plot_observer_synteny({"ICC": df_repro})
+    fig = plot_reproducibility_synteny({"ICC": df_repro})
     assert fig is not None
     plt.close(fig)
 
-    fig = plot_observer_synteny({"Spearman": df_repro})
+    fig = plot_reproducibility_synteny({"Spearman": df_repro})
+    assert fig is not None
+    plt.close(fig)
+
+    fig = plot_reproducibility_synteny({"Pearson": df_repro}, metric="pearson")
+    assert fig is not None
+    plt.close(fig)
+
+    fig = plot_reproducibility_synteny({"ICC": df_repro, "Pearson": df_repro}, metric="pearson")
+    assert fig is not None
+    plt.close(fig)
+
+    fig = plot_reproducibility_synteny({"ICC": df_repro, "Spearman": df_repro}, metric="spearman")
     assert fig is not None
     plt.close(fig)
 
@@ -350,12 +362,12 @@ def test_plot_observer_synteny_coverage_gaps(tmp_path):
             "custom_val": [0.9] * 10,
         }
     )
-    fig = plot_observer_synteny({"Pearson": df_custom}, metric="custom_val")
+    fig = plot_reproducibility_synteny({"Pearson": df_custom}, metric="custom_val")
     assert fig is not None
     plt.close(fig)
 
     # 2. DataFrame without "icc" or "correlation" (inferred_metric = df.columns[1])
-    fig = plot_observer_synteny(df_custom)
+    fig = plot_reproducibility_synteny(df_custom)
     assert fig is not None
     plt.close(fig)
 
@@ -366,28 +378,28 @@ def test_plot_observer_synteny_coverage_gaps(tmp_path):
             "correlation": [0.9] * 10,
         }
     )
-    fig = plot_observer_synteny(df_corr_only)
+    fig = plot_reproducibility_synteny(df_corr_only)
     assert fig is not None
     plt.close(fig)
 
     # 3. raise ValueError: metric not found
     with pytest.raises(ValueError, match="Metric column 'missing' not found"):
-        plot_observer_synteny(df_repro, metric="missing")
+        plot_reproducibility_synteny(df_repro, metric="missing")
 
     # 4. raise ValueError: "feature" column not found
     df_no_feat = df_repro.drop(columns=["feature"])
     with pytest.raises(ValueError, match="must contain a 'feature' column"):
-        plot_observer_synteny(df_no_feat)
+        plot_reproducibility_synteny(df_no_feat)
 
     # 5. group_by not in df columns (fallback to "All Features")
-    fig = plot_observer_synteny(df_repro, group_by="missing_family")
+    fig = plot_reproducibility_synteny(df_repro, group_by="missing_family")
     assert fig is not None
     plt.close(fig)
 
     # 6. Empty dataframe after filtering (n == 0)
     empty_df = pd.DataFrame(columns=["feature", "icc"])
     with pytest.raises(ValueError, match="No features available to plot"):
-        plot_observer_synteny(empty_df)
+        plot_reproducibility_synteny(empty_df)
 
     # 7. n > 50 features (to hit tick_labels is None, etc.)
     features_large = [f"f{i}" for i in range(55)]
@@ -397,7 +409,101 @@ def test_plot_observer_synteny_coverage_gaps(tmp_path):
             "icc": [0.9] * 55,
         }
     )
-    fig = plot_observer_synteny(df_large)
+    fig = plot_reproducibility_synteny(df_large)
     assert fig is not None
     plt.close(fig)
+
+
+def test_plot_reproducibility(tmp_path):
+    from eigenradiomics.reproducibility import plot_reproducibility
+    import pandas as pd
+    import numpy as np
+
+    # Create dummy replicate datasets
+    features = [f"f{i}" for i in range(10)]
+    df1 = pd.DataFrame(np.random.rand(10, 10), columns=features)
+    df2 = pd.DataFrame(df1.values + 0.05 * np.random.rand(10, 10), columns=features)
+
+    # 1. Run with datasets directly
+    excel_file = tmp_path / "report.xlsx"
+    plot_file = tmp_path / "combined_repro.png"
+    csv_dir = tmp_path / "csv_out"
+
+    results, fig = plot_reproducibility(
+        datasets=[df1, df2],
+        path=plot_file,
+        excel_path=excel_file,
+        csv_dir=csv_dir,
+        compute_kws={"bootstrap_iterations": 5},
+        save_pdf=True,
+        save_tiff=True,
+    )
+
+    assert results is not None
+    assert "ICC" in results
+    assert "Spearman" in results
+    assert "Pearson" in results
+    assert fig is not None
+    assert plot_file.exists()
+    assert excel_file.exists()
+    assert csv_dir.exists()
+    assert (csv_dir / "ICC.csv").exists()
+    assert (csv_dir / "Spearman.csv").exists()
+    assert (csv_dir / "Pearson.csv").exists()
+
+    plt.close(fig)
+
+    # 2. Run with precomputed results
+    fig2 = plot_reproducibility(
+        reproducibility_results=results,
+        path=tmp_path / "precomputed_repro.png",
+        show_subplot_titles=False,
+        title=None,
+    )[1]
+    assert fig2 is not None
+    plt.close(fig2)
+
+
+def test_plot_reproducibility_options(tmp_path):
+    from eigenradiomics.reproducibility import plot_reproducibility
+    import pandas as pd
+    import numpy as np
+
+    features = [f"f{i}" for i in range(10)]
+    df1 = pd.DataFrame(np.random.rand(10, 10), columns=features)
+    df2 = pd.DataFrame(df1.values + 0.05 * np.random.rand(10, 10), columns=features)
+
+    # 1. Run 2x2 grid option with legends
+    results, fig_grid = plot_reproducibility(
+        datasets=[df1, df2],
+        path=tmp_path / "grid_2x2_legend.png",
+        compute_kws={"bootstrap_iterations": 5},
+        grid_2x2=True,
+        show_legend=True,
+    )
+    assert fig_grid is not None
+    assert (tmp_path / "grid_2x2_legend.png").exists()
+    plt.close(fig_grid)
+
+    # 2. Run 2x2 grid option without legends
+    results, fig_grid_noleg = plot_reproducibility(
+        reproducibility_results=results,
+        path=tmp_path / "grid_2x2_noleg.png",
+        grid_2x2=True,
+        show_legend=False,
+    )
+    assert fig_grid_noleg is not None
+    assert (tmp_path / "grid_2x2_noleg.png").exists()
+    plt.close(fig_grid_noleg)
+
+    # 3. Run default layout without legends
+    results, fig_noleg = plot_reproducibility(
+        reproducibility_results=results,
+        path=tmp_path / "default_noleg.png",
+        grid_2x2=False,
+        show_legend=False,
+    )
+    assert fig_noleg is not None
+    assert (tmp_path / "default_noleg.png").exists()
+    plt.close(fig_noleg)
 

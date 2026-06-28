@@ -147,6 +147,35 @@ features, each with summary statistics and the retention threshold:
 
 ---
 
+## Unified Analysis and Combined Visualization
+
+Instead of calling the calculation, excel export, and individual plotting functions separately, `eigenradiomics` provides a unified wrapper function `plot_reproducibility`.
+
+This function:
+1. Performs the statistical calculations (`compute_reproducibility`).
+2. Optionally exports results to an Excel workbook (`excel_path`) and CSV files (`csv_dir`).
+3. Generates a publication-ready multi-panel figure containing the metric histograms on top and the landscape synteny plot on the bottom.
+4. Auto-labels the subfigures as **A**, **B**, **C**, **D**... dynamically based on the calculated sheets.
+5. Saves the combined figure in multiple formats (PNG, PDF, TIFF) with customizable DPI resolution.
+
+```python
+from eigenradiomics import plot_reproducibility
+
+results, fig = plot_reproducibility(
+    datasets=[df_reader1, df_reader2],
+    catalog=catalog,
+    path="combined_reproducibility.png",
+    excel_path="reproducibility_report.xlsx",
+    primary_threshold=0.80,
+    synteny_kws={"observer_labels": ["Diastolic", "Systolic"]},
+    save_pdf=True,
+    save_tiff=True,
+    dpi=400
+)
+```
+
+---
+
 ## End-to-End scikit-learn Pipeline Integration
 
 A standard workflow consists of running a reproducibility analysis, identifying features that fail to meet a reliability threshold (e.g. $ICC < 0.80$), and excluding them before downstream training:

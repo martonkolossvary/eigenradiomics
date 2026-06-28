@@ -38,7 +38,7 @@ from eigenradiomics.plotting import (
     plot_clustered_heatmap,
     plot_eigengene_profiles,
     plot_hub_significance,
-    plot_observer_synteny,
+    plot_reproducibility_synteny,
 )
 from eigenradiomics.preprocessing import (
     ComBatHarmonizer,
@@ -64,6 +64,7 @@ from eigenradiomics.reproducibility import (
     compute_reproducibility,
     plot_reproducibility_histograms,
     write_reproducibility_excel,
+    plot_reproducibility,
 )
 
 __all__ = [
@@ -96,6 +97,7 @@ __all__ = [
     "compute_reproducibility",
     "plot_reproducibility_histograms",
     "write_reproducibility_excel",
+    "plot_reproducibility",
     "compute_batch_effects",
     "plot_batch_effects",
     "write_batch_effects_excel",
@@ -106,7 +108,7 @@ __all__ = [
     "plot_hub_significance",
     "plot_eigengene_profiles",
     "plot_batch_distributions",
-    "plot_observer_synteny",
+    "plot_reproducibility_synteny",
     "plot_rwas_manhattan",
     "compute_clinical_correlations",
     "compute_module_trait_associations",

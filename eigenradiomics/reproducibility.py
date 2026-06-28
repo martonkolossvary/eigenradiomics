@@ -15,6 +15,7 @@ from numpy.typing import NDArray
 
 from eigenradiomics._excel import write_styled_workbook
 from eigenradiomics._features import resolve_analysis_features
+from eigenradiomics._utils import _save_figure
 from eigenradiomics._plotting import apply_science_style
 from eigenradiomics._stats import (
     _bootstrap_icc_ci,
@@ -23,6 +24,46 @@ from eigenradiomics._stats import (
     _fisher_mean,
     _icc_2_1_estimate,
 )
+
+
+def _generate_cluster_bootstrap_indices(
+    groups: NDArray,
+    iterations: int = 1000,
+    seed: int = 42,
+) -> NDArray:
+    """Generate a (iterations, n_samples) matrix of bootstrap indices clustered by groups."""
+    rng = np.random.default_rng(seed)
+    n_samples = len(groups)
+    unique_groups, group_inverse = np.unique(groups, return_inverse=True)
+    n_groups = len(unique_groups)
+
+    # Pre-group the row indices for each unique group
+    group_to_indices = [np.where(group_inverse == i)[0] for i in range(n_groups)]
+
+    bootstrap_indices = np.zeros((iterations, n_samples), dtype=int)
+    for i in range(iterations):
+        # Sample unique groups with replacement
+        sampled_group_indices = rng.choice(n_groups, size=n_groups, replace=True)
+        # Gather all row indices belonging to these groups
+        sampled_indices = []
+        for g_idx in sampled_group_indices:
+            sampled_indices.extend(group_to_indices[g_idx])
+
+        sampled_indices = np.array(sampled_indices)
+        L = len(sampled_indices)
+        if L == n_samples:
+            boot_idx = sampled_indices
+        elif L < n_samples:
+            # Pad by sampling with replacement from the gathered indices
+            padding = rng.choice(sampled_indices, size=n_samples - L, replace=True)
+            boot_idx = np.concatenate([sampled_indices, padding])
+        else:
+            # Truncate by randomly selecting n_samples from the gathered indices without replacement
+            boot_idx = rng.choice(sampled_indices, size=n_samples, replace=False)
+
+        bootstrap_indices[i] = boot_idx
+
+    return bootstrap_indices
 
 
 def compute_reproducibility(
@@ -36,6 +77,7 @@ def compute_reproducibility(
     min_valid_samples: int = 3,
     bootstrap_iterations: int = 1000,
     primary_threshold: float = 0.80,
+    groups: Any = None,
 ) -> dict[str, pd.DataFrame]:
     """Evaluate feature-by-feature reproducibility across multiple reader datasets.
 
@@ -151,6 +193,34 @@ def compute_reproducibility(
     if len(features_to_analyze) == 0:
         raise ValueError("No features selected for reproducibility analysis.")
 
+    # Resolve groups parameter for cluster-robust bootstrapping
+    groups_arr = None
+    if groups is not None:
+        if isinstance(groups, str):
+            ref_df = datasets[0]
+            if isinstance(ref_df, pd.DataFrame):
+                if groups in ref_df.columns:
+                    groups_arr = ref_df[groups].to_numpy()
+                elif ref_df.index.names and groups in ref_df.index.names:
+                    groups_arr = ref_df.index.get_level_values(groups).to_numpy()
+                else:
+                    raise ValueError(f"groups column/level {groups!r} not found in dataset.")
+            else:
+                raise ValueError("groups as string only supported when datasets are DataFrames.")
+        else:
+            groups_arr = np.asarray(groups)
+    else:
+        ref_df = datasets[0]
+        if isinstance(ref_df, pd.DataFrame) and isinstance(ref_df.index, pd.MultiIndex):
+            groups_arr = ref_df.index.get_level_values(0).to_numpy()
+
+    # Precompute global bootstrap indices if possible
+    global_bootstrap_indices = None
+    if groups_arr is not None:
+        global_bootstrap_indices = _generate_cluster_bootstrap_indices(
+            groups_arr, iterations=bootstrap_iterations, seed=42
+        )
+
     # 3. Core Reproducibility Calculations
     n_features = len(features_to_analyze)
     k_observers = len(aligned_datasets)
@@ -213,9 +283,25 @@ def compute_reproducibility(
 
         # A. Calculate ICC(2,1)
         icc_est = _icc_2_1_estimate(Y_clean)
-        ci_low, ci_high = _bootstrap_icc_ci(
-            Y_clean, f_name, iterations=bootstrap_iterations, base_seed=42
-        )
+        if groups_arr is not None:
+            if n_valid == len(groups_arr):
+                boot_indices = global_bootstrap_indices
+            else:
+                groups_clean = groups_arr[valid_mask]
+                boot_indices = _generate_cluster_bootstrap_indices(
+                    groups_clean, iterations=bootstrap_iterations, seed=42
+                )
+            ci_low, ci_high = _bootstrap_icc_ci(
+                Y_clean,
+                f_name,
+                iterations=bootstrap_iterations,
+                base_seed=42,
+                bootstrap_indices=boot_indices,
+            )
+        else:
+            ci_low, ci_high = _bootstrap_icc_ci(
+                Y_clean, f_name, iterations=bootstrap_iterations, base_seed=42
+            )
 
         icc_rows.append(
             {
@@ -369,6 +455,13 @@ def plot_reproducibility_histograms(
     results: dict[str, pd.DataFrame],
     path: str | Path | None = None,
     primary_threshold: float = 0.80,
+    title: str | None = None,
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
+    axes: Sequence[plt.Axes] | None = None,
+    show_subplot_titles: bool = True,
+    show_legend: bool = True,
 ) -> plt.Figure:
     """Generate accessible, high-contrast scientific histograms for reproducibility metrics.
 
@@ -380,14 +473,34 @@ def plot_reproducibility_histograms(
         If provided, saves the figure to the specified path.
     primary_threshold : float
         The cutoff line to display on the ICC histogram.
+    title : str, optional
+        Figure title.
+    dpi : int, default=300
+        The resolution in dots per inch (DPI) for saving the image.
+    save_pdf : bool, default=False
+        Whether to also save a PDF copy of the plot. Enabled globally by the
+        ``SAVE_PDF`` environment variable.
+    save_tiff : bool, default=False
+        Whether to also save a TIFF copy of the plot. Enabled globally by the
+        ``SAVE_TIFF`` environment variable. DPI is set by the ``TIFF_DPI`` environment
+        variable (falling back to ``dpi``).
+    axes : sequence of Axes, optional
+        Custom axes to plot into.
+    show_subplot_titles : bool, default=True
+        Whether to show subplot titles.
+    show_legend : bool, default=True
+        Whether to show the legend of correlation types.
 
     Returns
     -------
     fig : matplotlib.pyplot.Figure
         The created figure object.
     """
-    # 1. Apply science plots formatting rules with sans-serif fonts and clean styling
-    apply_science_style(figure_titlesize=13)
+    # 1. Apply science plots formatting rules with sans-serif fonts and clean
+    #    styling. Skip when drawing into caller-supplied axes (the caller has
+    #    already applied the style) to avoid redundant global rcParam churn.
+    if axes is None:
+        apply_science_style(figure_titlesize=13)
 
     # 2. Check which sheets exist and extract data
     sheets_to_plot = []
@@ -402,7 +515,7 @@ def plot_reproducibility_histograms(
         val = df[metric_col].dropna().to_numpy()
         sheets_to_plot.append("Spearman")
         data_to_plot.append(val)
-        colors.append("#4682B4")  # Steel Blue
+        colors.append("#4F46E5")  # Vibrant Indigo (Brand Signature)
         titles.append("Spearman Correlation")
 
     if "Pearson" in results:
@@ -411,7 +524,7 @@ def plot_reproducibility_histograms(
         val = df[metric_col].dropna().to_numpy()
         sheets_to_plot.append("Pearson")
         data_to_plot.append(val)
-        colors.append("#CD5C5C")  # Warm Indian Red
+        colors.append("#F43F5E")  # Vibrant Rose/Coral (Brand Signature)
         titles.append("Pearson Correlation")
 
     if "ICC" in results:
@@ -419,7 +532,7 @@ def plot_reproducibility_histograms(
         val = df["icc_2_1"].dropna().to_numpy()
         sheets_to_plot.append("ICC")
         data_to_plot.append(val)
-        colors.append("#008080")  # Muted Teal
+        colors.append("#0D9488")  # Vibrant Teal (Brand Signature)
         titles.append("Intraclass Correlation (ICC(2,1))")
 
     n_plots = len(sheets_to_plot)
@@ -427,9 +540,15 @@ def plot_reproducibility_histograms(
         raise ValueError("Results dict contains no plottable data sheets.")
 
     # Create figure subplots
-    fig, axes = plt.subplots(1, n_plots, figsize=(4 * n_plots, 4), sharey=False)
-    if n_plots == 1:
-        axes = [axes]
+    is_custom_axes = axes is not None
+    if not is_custom_axes:
+        fig, axes = plt.subplots(1, n_plots, figsize=(4 * n_plots, 4), sharey=False)
+        if n_plots == 1:
+            axes = [axes]
+    else:
+        fig = axes[0].figure
+        if len(axes) != n_plots:
+            raise ValueError(f"Expected {n_plots} axes, but got {len(axes)}")
 
     # Helper for bounding boxes
     text_bbox = dict(
@@ -442,8 +561,11 @@ def plot_reproducibility_histograms(
     for idx, ax in enumerate(axes):
         val = data_to_plot[idx]
         color = colors[idx]
-        title = titles[idx]
+        t_val = titles[idx]
         sheet = sheets_to_plot[idx]
+
+        # Enforce 1:1 physical aspect ratio for the plot box
+        ax.set_box_aspect(1.0)
 
         # Guard against empty / all-NaN sheets (np.min has no identity on empty).
         vmin = float(np.min(val)) if val.size else 0.0
@@ -458,7 +580,8 @@ def plot_reproducibility_histograms(
             alpha=0.85,
         )
 
-        ax.set_title(title, weight="bold", pad=12)
+        if show_subplot_titles:
+            ax.set_title(t_val, weight="bold", pad=12)
         ax.set_xlabel("Value", labelpad=6)
         if idx == 0:
             ax.set_ylabel("Feature Count", labelpad=6)
@@ -470,16 +593,18 @@ def plot_reproducibility_histograms(
         # Summary box calculations
         mean_val = np.mean(val) if len(val) > 0 else np.nan
         median_val = np.median(val) if len(val) > 0 else np.nan
+        n_total = len(val)
 
         if sheet == "ICC":
-            pass_rate = np.mean(val >= primary_threshold) * 100 if len(val) > 0 else np.nan
+            n_pass = np.sum(val >= primary_threshold) if n_total > 0 else 0
+            pass_rate = (n_pass / n_total) * 100 if n_total > 0 else np.nan
             stats_str = (
                 f"Mean: {mean_val:.3f}\n"
                 f"Median: {median_val:.3f}\n"
-                f"Pass Rate: {pass_rate:.1f}%"
+                f"Pass Rate: {pass_rate:.1f}% ({n_pass}/{n_total})"
             )
         else:
-            stats_str = f"Mean: {mean_val:.3f}\nMedian: {median_val:.3f}\nFeatures: {len(val)}"
+            stats_str = f"Mean: {mean_val:.3f}\nMedian: {median_val:.3f}\nFeatures: {n_total}"
 
         # Display summary box in top-left
         ax.text(
@@ -494,30 +619,304 @@ def plot_reproducibility_histograms(
 
         # Annotate reference threshold line on the ICC plot (or correlation plots if desired)
         if sheet == "ICC":
-            ax.axvline(primary_threshold, color="#D32F2F", linestyle="--", linewidth=1.5)
+            ax.axvline(primary_threshold, color="#CC3311", linestyle="--", linewidth=1.5)
             # Find a nice vertical height for the label to avoid overlap
             ylim = ax.get_ylim()
             ax.text(
                 primary_threshold - 0.03,
                 ylim[1] * 0.5,
                 f"Threshold ({primary_threshold:.2f})",
-                color="#D32F2F",
+                color="#CC3311",
                 weight="bold",
                 fontsize=9,
                 horizontalalignment="right",
                 bbox=dict(
                     facecolor="white",
-                    edgecolor="#D32F2F",
+                    edgecolor="#CC3311",
                     boxstyle="round,pad=0.2",
                     alpha=0.9,
                 ),
             )
 
-    fig.tight_layout()
+    # Render a legend of correlation types on the first axis if requested
+    if show_legend:
+        from matplotlib.patches import Patch
+        legend_handles = []
+        if "Spearman" in results:
+            legend_handles.append(Patch(facecolor="#4F46E5", edgecolor="0.25", label="Spearman"))
+        if "Pearson" in results:
+            legend_handles.append(Patch(facecolor="#F43F5E", edgecolor="0.25", label="Pearson"))
+        if "ICC" in results:
+            legend_handles.append(Patch(facecolor="#0D9488", edgecolor="0.25", label="ICC(2,1)"))
+        
+        if legend_handles and len(axes) > 0:
+            axes[0].legend(handles=legend_handles, loc="upper right", frameon=True, fontsize=8.5, framealpha=0.9)
 
-    if path is not None:
-        # Create output directories if needed
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(path, dpi=300, bbox_inches="tight")
+    if not is_custom_axes:
+        if title is not None:
+            fig.suptitle(title, weight="bold", fontsize=12)
+        fig.tight_layout()
+        _save_figure(fig, path, dpi, save_pdf, save_tiff)
 
     return fig
+
+
+def plot_reproducibility(
+    datasets: Sequence[pd.DataFrame | NDArray] | None = None,
+    *,
+    reproducibility_results: dict[str, pd.DataFrame] | None = None,
+    catalog: Any = None,
+    primary_threshold: float = 0.80,
+    compute_kws: dict[str, Any] | None = None,
+    synteny_kws: dict[str, Any] | None = None,
+    grid_2x2: bool = False,
+    figsize: tuple[float, float] | None = None,
+    title: str | None = None,
+    show_legend: bool = True,
+    show_subplot_titles: bool = True,
+    path: str | Path | None = None,
+    excel_path: str | Path | None = None,
+    csv_dir: str | Path | None = None,
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
+) -> tuple[dict[str, pd.DataFrame], plt.Figure]:
+    """Unified wrapper to compute reproducibility and plot combined histograms + synteny.
+
+    The call runs a four-stage pipeline and each parameter belongs to one stage:
+
+    1. **Input** -- supply *either* ``datasets`` (raw replicates) *or*
+       ``reproducibility_results`` (precomputed); ``catalog`` is shared.
+    2. **Compute** (only when ``datasets`` is given) -- forwarded to
+       :func:`compute_reproducibility`.
+    3. **Plot** -- histogram panels, the synteny panel, and overall layout.
+    4. **Export / save** -- tabular reports and the figure image.
+
+    Parameters
+    ----------
+    datasets : sequence of pd.DataFrame or ndarray, optional
+        [input] Replicate datasets (e.g. Reader 1, Reader 2). If None,
+        ``reproducibility_results`` must be provided. If both are given,
+        ``datasets`` takes precedence.
+    reproducibility_results : dict of pd.DataFrame, optional
+        [input] Precomputed results dictionary. Ignored when ``datasets`` is given.
+    catalog : FeatureCatalog or pd.DataFrame, optional
+        [input] Resolves feature groups/families and discretization params; shared
+        by the compute and synteny stages.
+    primary_threshold : float, default=0.80
+        [compute + plot] Cutoff for reproducibility retention; also drawn on the
+        ICC histogram.
+    compute_kws : dict, optional
+        [compute] Extra keyword arguments forwarded to
+        :func:`compute_reproducibility` (e.g. ``features``, ``configs``,
+        ``families``, ``family_groups``, ``groups``, ``min_valid_samples``,
+        ``bootstrap_iterations``). Ignored when ``datasets`` is None.
+    synteny_kws : dict, optional
+        [synteny] Extra keyword arguments forwarded to
+        :func:`~eigenradiomics.plotting.plot_reproducibility_synteny` (e.g.
+        ``metric``, ``order``, ``group_by``, ``thresholds``,
+        ``show_family_ribbon``, ``show_discretisation_ribbon``,
+        ``observer_labels``).
+    grid_2x2 : bool, default=False
+        [layout] Arrange panels in a 2x2 grid. Requires all three metrics
+        (Spearman, Pearson, ICC); otherwise falls back to the stacked layout.
+    figsize : tuple, optional
+        [layout] Figure size.
+    title : str, optional
+        [layout] Overall figure title.
+    show_legend : bool, default=True
+        [layout] Show the legends for histograms and synteny plots.
+    show_subplot_titles : bool, default=True
+        [layout] Show histogram subplot titles.
+    path : str or Path, optional
+        [output] Save path for the combined plot image.
+    excel_path : str or Path, optional
+        [output] Save path for the Excel workbook report.
+    csv_dir : str or Path, optional
+        [output] Save directory for CSV sheets.
+    dpi : int, default=300
+        [output] Save resolution in DPI.
+    save_pdf : bool, default=False
+        [output] Also save a PDF copy.
+    save_tiff : bool, default=False
+        [output] Also save a TIFF copy.
+
+    Returns
+    -------
+    results : dict[str, pd.DataFrame]
+        The results dictionary containing Spearman, Pearson, and ICC metrics.
+    fig : matplotlib.pyplot.Figure
+        The created combined figure object.
+    """
+    if datasets is None and reproducibility_results is None:
+        raise ValueError("Either 'datasets' or 'reproducibility_results' must be provided.")
+    if datasets is not None and reproducibility_results is not None:
+        warnings.warn(
+            "Both 'datasets' and 'reproducibility_results' were provided; "
+            "'datasets' takes precedence and 'reproducibility_results' is ignored.",
+            stacklevel=2,
+        )
+
+    # 1. Compute reproducibility if datasets are provided
+    if datasets is not None:
+        results = compute_reproducibility(
+            datasets,
+            catalog=catalog,
+            primary_threshold=primary_threshold,
+            **(compute_kws or {}),
+        )
+    else:
+        results = reproducibility_results
+
+    # 2. Generate combined figure
+    apply_science_style()
+
+    # Count sheets to plot for histograms
+    sheets_to_plot = [name for name in ["Spearman", "Pearson", "ICC"] if name in results]
+    n_plots = len(sheets_to_plot)
+    if n_plots == 0:
+        raise ValueError("Results dict contains no plottable data sheets.")
+
+    # A 2x2 grid only fits cleanly with all three histograms + synteny; with
+    # fewer metrics it leaves an empty cell, so fall back to the stacked layout.
+    use_grid_2x2 = grid_2x2 and n_plots == 3
+    if grid_2x2 and not use_grid_2x2:
+        warnings.warn(
+            "grid_2x2=True requires all three metrics (Spearman, Pearson, ICC); "
+            f"only {n_plots} present. Falling back to the stacked layout.",
+            stacklevel=2,
+        )
+
+    if figsize is None:
+        figsize = (10.0, 10.0) if use_grid_2x2 else (11.0, 7.0)
+
+    fig = plt.figure(figsize=figsize, layout="constrained")
+
+    active_axes = []
+
+    if use_grid_2x2:
+        # Create a 2x2 GridSpec
+        gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+        
+        hist_axes = []
+        
+        if "Spearman" in results:
+            spearman_ax = fig.add_subplot(gs[0, 0])
+            hist_axes.append(spearman_ax)
+            active_axes.append(spearman_ax)
+        else:
+            spearman_ax = None
+            
+        if "Pearson" in results:
+            pearson_ax = fig.add_subplot(gs[0, 1])
+            hist_axes.append(pearson_ax)
+            active_axes.append(pearson_ax)
+        else:
+            pearson_ax = None
+            
+        if "ICC" in results:
+            icc_ax = fig.add_subplot(gs[1, 0])
+            hist_axes.append(icc_ax)
+            active_axes.append(icc_ax)
+        else:
+            icc_ax = None
+            
+        # Synteny cell is gs[1, 1]
+        if show_legend:
+            gs_synteny = gs[1, 1].subgridspec(2, 1, height_ratios=[2.0, 0.8], hspace=0.2)
+            synteny_ax = fig.add_subplot(gs_synteny[0, 0])
+            gs_leg = gs_synteny[1, 0].subgridspec(1, 3)
+            legend_axes = [
+                fig.add_subplot(gs_leg[0, 0]),
+                fig.add_subplot(gs_leg[0, 1]),
+                fig.add_subplot(gs_leg[0, 2]),
+            ]
+        else:
+            synteny_ax = fig.add_subplot(gs[1, 1])
+            legend_axes = None
+            
+        synteny_ax.set_box_aspect(1.0)
+        active_axes.append(synteny_ax)
+        
+    else:
+        # Stacked layout: the histogram row on top, a full-width synteny panel at
+        # half the histogram-row height below, and an optional legend strip beneath.
+        if show_legend:
+            gs = fig.add_gridspec(3, 1, height_ratios=[2.0, 1.0, 0.4], hspace=0.18)
+        else:
+            gs = fig.add_gridspec(2, 1, height_ratios=[2.0, 1.0], hspace=0.18)
+
+        gs_hist = gs[0, 0].subgridspec(1, n_plots, wspace=0.25)
+        hist_axes = [fig.add_subplot(gs_hist[0, i]) for i in range(n_plots)]
+        active_axes.extend(hist_axes)
+
+        synteny_ax = fig.add_subplot(gs[1, 0])  # full width, no side insets
+        active_axes.append(synteny_ax)
+
+        if show_legend:
+            gs_leg = gs[2, 0].subgridspec(1, 3)
+            legend_axes = [fig.add_subplot(gs_leg[0, i]) for i in range(3)]
+        else:
+            legend_axes = None
+
+    # Draw Histograms
+    plot_reproducibility_histograms(
+        results,
+        primary_threshold=primary_threshold,
+        axes=hist_axes,
+        show_subplot_titles=show_subplot_titles,
+        show_legend=show_legend,
+    )
+
+    # Draw Synteny Plot
+    from eigenradiomics.plotting import plot_reproducibility_synteny
+    plot_reproducibility_synteny(
+        results,
+        catalog=catalog,
+        ax=synteny_ax,
+        legend_axes=legend_axes,
+        show_legend=show_legend,
+        **(synteny_kws or {}),
+    )
+
+    # Label subfigures (A, B, C, D...). Anchor at each axis's top-left corner with
+    # a constant point offset rather than an axes-fraction offset: the latter
+    # scales with axis width and pushes the wide synteny panel's label off-canvas.
+    for i, ax in enumerate(active_axes):
+        if ax is not None:
+            ax.annotate(
+                chr(ord("A") + i),
+                xy=(0.0, 1.0),
+                xycoords="axes fraction",
+                xytext=(-2.0, 6.0),
+                textcoords="offset points",
+                fontsize=14,
+                fontweight="bold",
+                va="bottom",
+                ha="right",
+                annotation_clip=False,
+                in_layout=False,
+            )
+
+    # Overall title
+    if title:
+        fig.suptitle(title, weight="bold", fontsize=14)
+
+    # Save figure in desired formats. The figure uses the constrained layout
+    # engine, so disable bbox_inches="tight" (mixing the two shifts margins and
+    # can clip the out-of-axes subfigure letters).
+    _save_figure(fig, path, dpi, save_pdf, save_tiff, bbox_inches=None)
+
+    # Export tabular reports only after the figure is built and saved, so a
+    # plotting failure does not leave partial Excel/CSV outputs on disk.
+    if excel_path is not None:
+        write_reproducibility_excel(results, excel_path)
+
+    if csv_dir is not None:
+        csv_dir_path = Path(csv_dir)
+        csv_dir_path.mkdir(parents=True, exist_ok=True)
+        for sheet_name, df in results.items():
+            if isinstance(df, pd.DataFrame):
+                df.to_csv(csv_dir_path / f"{sheet_name}.csv", index=False)
+
+    return results, fig

@@ -933,11 +933,18 @@ def plot_reproducibility(
             xs = [c[0] for c in corners]
             ys = [c[1] for c in corners]
             pad = 0.012
+            x0, x1 = min(xs) - pad, max(xs) + pad
+            y0, y1 = min(ys) - pad, max(ys) + pad
+            # Centre the box on the image: use equal left/right margins (the
+            # smaller of the two side gaps), so the border sits the same distance
+            # from both edges while still enclosing every legend.
+            margin = min(x0, 1.0 - x1)
+            x0, x1 = margin, 1.0 - margin
             fig.add_artist(
                 Rectangle(
-                    (min(xs) - pad, min(ys) - pad),
-                    (max(xs) - min(xs)) + 2 * pad,
-                    (max(ys) - min(ys)) + 2 * pad,
+                    (x0, y0),
+                    x1 - x0,
+                    y1 - y0,
                     transform=fig.transFigure,
                     fill=False,
                     edgecolor="black",

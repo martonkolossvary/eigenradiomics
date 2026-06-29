@@ -63,16 +63,20 @@ def _get_deterministic_seed(feature_name: str, base_seed: int = 42) -> int:
 def _fisher_ci(r: float, n: int, is_spearman: bool = False) -> tuple[float, float]:
     """Fisher-transformed 95% confidence interval for a correlation coefficient.
 
-    For Spearman's rho the standard error is inflated by ``1.03`` (a common
-    Bonett-Wright-style approximation). Returns ``(nan, nan)`` when ``n <= 3`` or
-    ``|r| >= 1``: the Fisher z-transform diverges at ``|r| = 1``, so the interval
-    is not estimable (reporting a narrow band there would be misleading).
+    For Pearson's r the Fisher-z standard error is ``1 / sqrt(n - 3)``. For
+    Spearman's rho it uses the Bonett-Wright (2000) variance,
+    ``sqrt((1 + r**2 / 2) / (n - 3))``, which widens the interval as ``|r|``
+    grows (replacing the previous fixed ``1.03`` inflation factor). Returns
+    ``(nan, nan)`` when ``n <= 3`` or ``|r| >= 1``: the Fisher z-transform
+    diverges at ``|r| = 1``, so the interval is not estimable (reporting a narrow
+    band there would be misleading).
     """
     if n <= 3 or np.isnan(r) or abs(r) >= 1.0:
         return np.nan, np.nan
 
     z = np.arctanh(r)
-    se = (1.03 if is_spearman else 1.0) / np.sqrt(n - 3)
+    se_scale = np.sqrt(1.0 + r * r / 2.0) if is_spearman else 1.0
+    se = se_scale / np.sqrt(n - 3)
     return float(np.tanh(z - 1.96 * se)), float(np.tanh(z + 1.96 * se))
 
 
@@ -210,6 +214,7 @@ def _bootstrap_icc_ci(
     feature_name: str,
     iterations: int = 1000,
     base_seed: int = 42,
+    bootstrap_indices: NDArray | None = None,
 ) -> tuple[float, float]:
     """Deterministically estimate the 95% Confidence Interval for ICC(2,1) via bootstrapping.
 
@@ -221,13 +226,14 @@ def _bootstrap_icc_ci(
     if n < 3 or k < 2 or iterations <= 0:
         return np.nan, np.nan
 
-    seed = _get_deterministic_seed(feature_name, base_seed=base_seed)
-    rng = np.random.default_rng(seed)
+    if bootstrap_indices is not None:
+        estimates = _icc_2_1_batch(Y[bootstrap_indices])
+    else:
+        seed = _get_deterministic_seed(feature_name, base_seed=base_seed)
+        rng = np.random.default_rng(seed)
+        indices = np.array([rng.choice(n, size=n, replace=True) for _ in range(iterations)])
+        estimates = _icc_2_1_batch(Y[indices])
 
-    # Same per-iteration resampling stream as a scalar loop, but the ICC is then
-    # evaluated for every resample at once (vectorized) — much faster on wide data.
-    indices = np.array([rng.choice(n, size=n, replace=True) for _ in range(iterations)])
-    estimates = _icc_2_1_batch(Y[indices])
     boot_estimates = estimates[~np.isnan(estimates)]
 
     # Require at least half the resamples to yield a valid ICC; fewer means the

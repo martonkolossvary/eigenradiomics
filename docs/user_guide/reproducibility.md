@@ -6,6 +6,48 @@ Evaluating the robustness and reproducibility of machine learning features acros
 
 ---
 
+## How the pieces fit together
+
+One compute step produces a results dictionary that every plotter and the Excel
+exporter consume. The functions work **standalone or together**, on Pictologics
+data or plain DataFrames/ndarrays.
+
+```text
+datasets: [Reader 1, Reader 2, ...]        (DataFrames or ndarrays; min 2)
+        │
+        │  resolve feature columns  (all numeric by default, or a features= list /
+        │                            Pictologics catalog selector)
+        │  per feature → (N subjects × K observers) matrix,
+        │  drop rows with any NaN   (per-feature complete-case)
+        ▼
+┌───────────────────────────┐
+│  compute_reproducibility   │
+└───────────────────────────┘
+        │
+   dict { "Spearman", "Pearson", "ICC" }
+     ├─ ICC : icc_2_1, ci95_low/high, p_value, p_fdr, ms_*, primary_icc_pass
+     │        └ _icc_2_1_estimate (point) + _bootstrap_icc_ci → _icc_2_1_batch (CI)
+     ├─ K=2 : estimate, ci95_low/high, p_value, p_fdr        (Spearman/Pearson, _fisher_ci)
+     └─ K≥3 : mean, median, sd, q25, q75, min, max           (pairwise; mean pooled
+              in Fisher z-space via _fisher_mean — no p-value: pairs aren't independent)
+        │
+  ┌─────┴───────────────────────┬─────────────────────────────────┐
+  ▼                             ▼                                 ▼
+plot_reproducibility_histograms  plot_reproducibility_synteny   plot_reproducibility
+  (Spearman/Pearson/ICC            (per-feature metric ribbon       (wrapper: compute_kws →
+   distributions)                   between two observer axes)        compute, synteny_kws →
+                                                                      synteny; both layouts)
+```
+
+The cluster-robust ICC bootstrap (`groups=`) engages automatically on a
+MultiIndex (e.g. repeated measures such as Pictologics per-mask rows, clustered
+by patient) or with an explicit `groups=` column/level/array. The ICC `p_value`
+tests whether subjects are distinguishable (an F-test) — **not** whether the ICC
+clears a threshold — so judge reliability from the ICC estimate and its CI versus
+`primary_threshold`. The ICC is the principled inferential statistic for K ≥ 3.
+
+---
+
 ## Why ICC(2,1)?
 
 The framework implements the **two-way random-effects, absolute-agreement, single-measure Intraclass Correlation Coefficient (ICC(2,1))** (McGraw & Wong, 1996; Shrout & Fleiss, 1979). 
@@ -34,7 +76,7 @@ The framework implements the **two-way random-effects, absolute-agreement, singl
 
 For studies comparing exactly two readers, the framework reports detailed correlation metrics for every analyzed feature:
 * **Spearman's $\rho$ and Pearson's $r$**: Correlation estimates.
-* **95% Confidence Intervals**: Fisher-transformed confidence intervals for both metrics.
+* **95% Confidence Intervals**: Fisher-transformed confidence intervals — Pearson uses $1/\sqrt{n-3}$; Spearman uses the Bonett-Wright (2000) variance $\sqrt{(1 + \rho^2/2)/(n-3)}$.
 * **Multiple Testing Correction**: Raw $p$-values and FDR-corrected $p$-values (Benjamini-Hochberg procedure).
 
 ```python
@@ -83,18 +125,36 @@ print(results["Spearman"][["feature", "mean", "sd", "min", "max"]].head())
 
 ---
 
-## Feature Selector Filtering
+## Feature Selection
 
-You can calculate reproducibility over a subset of target features using standard Pictologics-style selectors (`features`, `configs`, `families`, `family_groups`, and `catalog`). This behaves exactly like `RadiomicsFeatureRemover`:
+Restrict the analysis to a subset of features in two ways.
+
+**Explicit column list — works on any DataFrame.** Pass `features=` a list of
+column names that exist in your data. The names are used directly, so generic
+(non-Pictologics) DataFrames can be subset without any catalog:
 
 ```python
-# Evaluate only first-order features belonging to the "original" config
 results = compute_reproducibility(
     datasets=[df_reader1, df_reader2],
-    features=["*Energy", "*Entropy"],
-    configs="original",
+    features=["shape_volume", "firstorder_energy", "glcm_contrast"],
 )
 ```
+
+**Pictologics catalog selectors.** `configs`, `families`, `family_groups` (and
+name *patterns* passed to `features`) resolve through `RadiomicsFeatureRemover`
+and therefore require Pictologics-style column names / a `FeatureCatalog`:
+
+```python
+# Only GLCM/GLRLM families from the "original" config
+results = compute_reproducibility(
+    datasets=[df_reader1, df_reader2],
+    families=["GLCM", "GLRLM"],
+    configs="original",
+    catalog=catalog,
+)
+```
+
+With no selector, every **numeric** column is analysed.
 
 ---
 
@@ -135,9 +195,10 @@ features, each with summary statistics and the retention threshold:
 
 !!! tip "Choosing a threshold"
     A common convention treats ICC ≥ 0.75 as *good* and ≥ 0.90 as *excellent*
-    reliability. The `primary_threshold` is what populates the `retained_*`
-    flags — pick it to match your study's tolerance, then drop the features that
-    fall below it before modeling (see the pipeline example below).
+    reliability. The `primary_threshold` is what populates the `primary_icc_pass`
+    flag (`ICC(2,1) >= threshold`) on the ICC sheet — pick it to match your
+    study's tolerance, then drop the features that fall below it before modeling
+    (see the pipeline example below).
 
 **Accessibility and Design features**:
 * **Color Independence**: High-contrast, colorblind-friendly colors (Steel Blue, Indian Red, Muted Teal) assigned to each metric.

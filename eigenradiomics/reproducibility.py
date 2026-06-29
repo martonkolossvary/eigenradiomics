@@ -44,12 +44,11 @@ def _generate_cluster_bootstrap_indices(
     for i in range(iterations):
         # Sample unique groups with replacement
         sampled_group_indices = rng.choice(n_groups, size=n_groups, replace=True)
-        # Gather all row indices belonging to these groups
-        sampled_indices = []
-        for g_idx in sampled_group_indices:
-            sampled_indices.extend(group_to_indices[g_idx])
-
-        sampled_indices = np.array(sampled_indices)
+        # Gather all row indices belonging to these groups (concatenating the
+        # pre-grouped arrays directly avoids per-row Python list growth).
+        sampled_indices = np.concatenate(
+            [group_to_indices[g_idx] for g_idx in sampled_group_indices]
+        )
         L = len(sampled_indices)
         if n_samples == L:
             boot_idx = sampled_indices
@@ -85,14 +84,26 @@ def compute_reproducibility(
     ----------
     datasets : sequence of pd.DataFrame or ndarray
         Replicate datasets (e.g. Reader 1, Reader 2, ...). Minimum length is 2.
-    features, configs, families, family_groups, catalog : selectors
-        Standard Pictologics selectors used to isolate target features.
+        Plain DataFrames (any column names) and ndarrays both work; with no
+        selector every numeric column is analysed.
+    features : list of str, optional
+        Explicit feature/column names to analyse. A list of names that are all
+        present in the data is used directly, so generic (non-Pictologics)
+        DataFrames can be subset by name. Names that are not literal columns fall
+        back to the Pictologics name-pattern resolver.
+    configs, families, family_groups, catalog : selectors, optional
+        Catalog-driven Pictologics selectors; these require Pictologics-style
+        column names / a :class:`FeatureCatalog`.
+    groups : str or array-like, optional
+        Cluster labels for a cluster-robust ICC bootstrap (e.g. one label per
+        subject when rows are repeated measures). A string names a column or
+        index level; when omitted, the first level of a MultiIndex is used.
     min_valid_samples : int
         Minimum number of complete paired subject measurements required.
     bootstrap_iterations : int
         Number of bootstrap iterations for ICC 95% CI estimation.
     primary_threshold : float
-        Threshold used to populate the `retained` flag.
+        Threshold for the ``primary_icc_pass`` flag (ICC(2,1) >= threshold).
 
     Returns
     -------

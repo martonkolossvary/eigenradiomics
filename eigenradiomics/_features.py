@@ -24,10 +24,15 @@ def resolve_analysis_features(
 
     Shared by :func:`compute_reproducibility` and :func:`compute_batch_effects`.
 
-    - If any Pictologics-style selector (``features``/``configs``/``families``/
-      ``family_groups``) is given, the matched columns are returned (resolved
-      with :class:`RadiomicsFeatureRemover`, where "removed" == "selected for
-      analysis").
+    - If ``features`` is an explicit list of column names that are all present in
+      *df* (and no catalog-driven selector is given), those columns are used
+      directly. This lets generic, non-Pictologics DataFrames be subset by name
+      without the Pictologics name-pattern remover.
+    - If any catalog-driven selector (``configs``/``families``/``family_groups``),
+      or a ``features`` pattern that is not a literal set of columns, is given,
+      the matched columns are resolved with :class:`RadiomicsFeatureRemover`
+      (where "removed" == "selected for analysis"). This path requires
+      Pictologics-style column names / a catalog.
     - Otherwise every **numeric** column is returned; non-numeric metadata
       columns (e.g. ``PatientID``) are skipped so they do not break downstream
       preprocessing or statistics.
@@ -37,9 +42,19 @@ def resolve_analysis_features(
     ndarray of str
         Feature-column names to analyze.
     """
-    has_selectors = any(
-        selector is not None for selector in (features, configs, families, family_groups)
+    catalog_selectors = any(
+        selector is not None for selector in (configs, families, family_groups)
     )
+
+    # Fast path: an explicit list of column names present in df is used as-is, so
+    # generic DataFrames work without the Pictologics-name-aware remover.
+    if features is not None and not catalog_selectors:
+        feat_list = [features] if isinstance(features, str) else list(features)
+        feat_list = [str(f) for f in feat_list]
+        if feat_list and all(f in df.columns for f in feat_list):
+            return np.asarray(feat_list)
+
+    has_selectors = features is not None or catalog_selectors
 
     if has_selectors:
         remover = RadiomicsFeatureRemover(

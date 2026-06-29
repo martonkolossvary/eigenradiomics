@@ -798,8 +798,15 @@ def plot_reproducibility(
     active_axes = []
 
     if use_grid_2x2:
-        # Create a 2x2 GridSpec
-        gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+        # 2x2 panel grid (A, B, C, D) with a full-width legend strip below, like
+        # the stacked layout. Giving the legends their own bottom row lets the
+        # synteny panel (D) fill its quadrant so it top-aligns with the ICC panel (C).
+        if show_legend:
+            gs = fig.add_gridspec(
+                3, 2, height_ratios=[1.0, 1.0, 0.45], hspace=0.12, wspace=0.3
+            )
+        else:
+            gs = fig.add_gridspec(2, 2, hspace=0.12, wspace=0.3)
 
         hist_axes = []
 
@@ -824,22 +831,16 @@ def plot_reproducibility(
         else:
             icc_ax = None
 
-        # Synteny cell is gs[1, 1]
-        if show_legend:
-            gs_synteny = gs[1, 1].subgridspec(2, 1, height_ratios=[2.0, 0.8], hspace=0.2)
-            synteny_ax = fig.add_subplot(gs_synteny[0, 0])
-            gs_leg = gs_synteny[1, 0].subgridspec(1, 3)
-            legend_axes = [
-                fig.add_subplot(gs_leg[0, 0]),
-                fig.add_subplot(gs_leg[0, 1]),
-                fig.add_subplot(gs_leg[0, 2]),
-            ]
-        else:
-            synteny_ax = fig.add_subplot(gs[1, 1])
-            legend_axes = None
-
+        synteny_ax = fig.add_subplot(gs[1, 1])
         synteny_ax.set_box_aspect(1.0)
         active_axes.append(synteny_ax)
+
+        # Full-width legend strip spanning both columns in its own bottom row.
+        if show_legend:
+            gs_leg = gs[2, :].subgridspec(1, 3)
+            legend_axes = [fig.add_subplot(gs_leg[0, i]) for i in range(3)]
+        else:
+            legend_axes = None
 
     else:
         # Stacked layout: the histogram row on top, a full-width synteny panel at
@@ -913,11 +914,10 @@ def plot_reproducibility(
     if title:
         fig.suptitle(title, weight="bold", fontsize=14)
 
-    # Draw a single black border tight around the legend block (stacked layout
-    # only). Finalise the constrained-layout positions first (so the box matches
-    # the rendered legend extents, including any suptitle reflow), then frame the
-    # union of the legends.
-    if show_legend and legend_axes and not use_grid_2x2:
+    # Draw a single black border tight around the legend block. Finalise the
+    # constrained-layout positions first (so the box matches the rendered legend
+    # extents, including any suptitle reflow), then frame the union of the legends.
+    if show_legend and legend_axes:
         from matplotlib.patches import Rectangle
 
         fig.draw_without_rendering()

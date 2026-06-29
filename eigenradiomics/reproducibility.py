@@ -791,12 +791,7 @@ def plot_reproducibility(
         )
 
     if figsize is None:
-        # The stacked layout needs enough height for the square histograms, the
-        # family/discretisation legend strip and an optional suptitle; too short
-        # a figure makes the constrained-layout solver disable itself ("axes
-        # collapsed to zero") at high feature counts, which then mis-positions
-        # the saved figure.
-        figsize = (10.0, 10.0) if use_grid_2x2 else (11.0, 10.0)
+        figsize = (10.0, 10.0) if use_grid_2x2 else (11.0, 7.5)
 
     fig = plt.figure(figsize=figsize, layout="constrained")
 
@@ -849,10 +844,12 @@ def plot_reproducibility(
     else:
         # Stacked layout: the histogram row on top, a full-width synteny panel at
         # half the histogram-row height below, and an optional legend strip beneath.
+        # The legend row needs a healthy share (0.9) so the family legend fits
+        # without the constrained-layout solver collapsing it at high feature counts.
         if show_legend:
-            gs = fig.add_gridspec(3, 1, height_ratios=[2.0, 1.0, 0.4], hspace=0.18)
+            gs = fig.add_gridspec(3, 1, height_ratios=[2.0, 1.0, 0.9], hspace=0.08)
         else:
-            gs = fig.add_gridspec(2, 1, height_ratios=[2.0, 1.0], hspace=0.18)
+            gs = fig.add_gridspec(2, 1, height_ratios=[2.0, 1.0], hspace=0.08)
 
         gs_hist = gs[0, 0].subgridspec(1, n_plots, wspace=0.25)
         hist_axes = [fig.add_subplot(gs_hist[0, i]) for i in range(n_plots)]
@@ -887,28 +884,68 @@ def plot_reproducibility(
         **(synteny_kws or {}),
     )
 
-    # Label subfigures (A, B, C, D...). Anchor at each axis's top-left corner with
-    # a constant point offset rather than an axes-fraction offset: the latter
-    # scales with axis width and pushes the wide synteny panel's label off-canvas.
-    for i, ax in enumerate(active_axes):
-        if ax is not None:
-            ax.annotate(
-                chr(ord("A") + i),
-                xy=(0.0, 1.0),
-                xycoords="axes fraction",
-                xytext=(-2.0, 6.0),
-                textcoords="offset points",
-                fontsize=14,
-                fontweight="bold",
-                va="bottom",
-                ha="right",
-                annotation_clip=False,
-                in_layout=False,
-            )
+    # Label subfigures (A, B, C, D...). Histograms hang the label in their left
+    # margin (ha="right") so it clears the centred subplot title. The full-width
+    # synteny panel has no y-axis margin and sits flush against the figure's left
+    # edge, so its label is anchored inside the top-left corner (ha="left") to
+    # avoid being pushed off-canvas.
+    letter_idx = 0
+    for ax in active_axes:
+        if ax is None:
+            continue
+        is_synteny = ax is synteny_ax
+        ax.annotate(
+            chr(ord("A") + letter_idx),
+            xy=(0.0, 1.0),
+            xycoords="axes fraction",
+            xytext=(0.0, 6.0) if is_synteny else (-2.0, 6.0),
+            textcoords="offset points",
+            fontsize=14,
+            fontweight="bold",
+            va="bottom",
+            ha="left" if is_synteny else "right",
+            annotation_clip=False,
+            in_layout=False,
+        )
+        letter_idx += 1
 
     # Overall title
     if title:
         fig.suptitle(title, weight="bold", fontsize=14)
+
+    # Draw a single black border tight around the legend block (stacked layout
+    # only). Finalise the constrained-layout positions first (so the box matches
+    # the rendered legend extents, including any suptitle reflow), then frame the
+    # union of the legends.
+    if show_legend and legend_axes and not use_grid_2x2:
+        from matplotlib.patches import Rectangle
+
+        fig.draw_without_rendering()
+        legends = [ax.get_legend() for ax in legend_axes]
+        legends = [lg for lg in legends if lg is not None]
+        if legends:
+            inv = fig.transFigure.inverted()
+            corners = []
+            for lg in legends:
+                ext = lg.get_window_extent()
+                corners.append(inv.transform((ext.x0, ext.y0)))
+                corners.append(inv.transform((ext.x1, ext.y1)))
+            xs = [c[0] for c in corners]
+            ys = [c[1] for c in corners]
+            pad = 0.012
+            fig.add_artist(
+                Rectangle(
+                    (min(xs) - pad, min(ys) - pad),
+                    (max(xs) - min(xs)) + 2 * pad,
+                    (max(ys) - min(ys)) + 2 * pad,
+                    transform=fig.transFigure,
+                    fill=False,
+                    edgecolor="black",
+                    linewidth=1.0,
+                    zorder=5,
+                    in_layout=False,
+                )
+            )
 
     # Save figure in desired formats. The figure uses the constrained layout
     # engine, so disable bbox_inches="tight" (mixing the two shifts margins and

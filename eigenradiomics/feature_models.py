@@ -5,12 +5,14 @@ clinical covariates) and collects the effect, confidence interval, p-value, and
 Benjamini-Hochberg FDR into a tidy table — the input to a volcano plot and to the
 clustered-heatmap annotation tracks.
 
-Supported outcomes: continuous (OLS + HC3 robust SE, dependency-free), survival
-(Cox PH, ``lifelines``), and binary (logistic, ``statsmodels``). When a cluster /
-repeated-measures identifier is given, each switches to a mixed/clustered variant
-(MixedLM, GLMM or GEE, cluster-robust Cox). :func:`plot_volcano` renders the
-results, and :class:`FeatureAssociationResult` bridges to the clustered heatmap
-and to Excel.
+Every model wraps a respected statistics package. Continuous outcomes use
+statsmodels OLS with HC3 robust standard errors (MacKinnon & White, 1985);
+survival uses lifelines Cox proportional hazards; binary uses statsmodels logistic
+regression. When a cluster / repeated-measures identifier is given, each switches
+to a mixed/clustered variant: statsmodels MixedLM (continuous), a conditional GLMM
+(statsmodels ``BinomialBayesMixedGLM``) or a marginal GEE (binary), and lifelines
+cluster-robust Cox. :func:`plot_volcano` renders the results, and
+:class:`FeatureAssociationResult` bridges to the clustered heatmap and to Excel.
 """
 
 from __future__ import annotations
@@ -166,38 +168,34 @@ class FeatureAssociationResult:
 
 
 def _fit_ols_hc3(y: NDArray, design: NDArray, feature_idx: int) -> dict[str, Any]:
-    """OLS with HC3 (heteroskedasticity-robust) inference for one coefficient."""
+    """OLS with HC3 heteroskedasticity-robust inference for one coefficient.
+
+    Wraps :class:`statsmodels.regression.linear_model.OLS` fitted with
+    ``cov_type="HC3", use_t=True``. HC3 is the MacKinnon & White (1985)
+    heteroskedasticity-consistent ("sandwich") covariance, recommended for small
+    samples; ``use_t`` uses the t(n - k) reference distribution for the p-value and
+    confidence interval. See statsmodels ``OLSResults.get_robustcov_results``.
+    """
+    sm = _import_statsmodels()
     n, k = design.shape
     if n < k + 2:
         return {"status": "not_enough_degrees_of_freedom"}
-    xtx = design.T @ design
     try:
-        xtx_inv = np.linalg.inv(xtx)
-    except np.linalg.LinAlgError:  # pragma: no cover - guarded by the constant/df checks
-        return {"status": "rank_deficient_design"}
-    beta = xtx_inv @ design.T @ y
-    resid = y - design @ beta
-    leverage = np.clip(np.diag(design @ xtx_inv @ design.T), None, 1 - 1e-10)
-    omega = resid**2 / (1 - leverage) ** 2  # HC3 weights
-    cov = xtx_inv @ (design.T * omega) @ design @ xtx_inv
-    se = np.sqrt(np.diag(cov))
-    df = n - k
-    coef = float(beta[feature_idx])
-    se_i = float(se[feature_idx])
-    statistic = coef / se_i if se_i > 0 else np.nan
-    p_value = float(2 * stats.t.sf(abs(statistic), df)) if np.isfinite(statistic) else np.nan
-    crit = float(stats.t.ppf(0.975, df))
+        res = sm.OLS(y, design).fit(cov_type="HC3", use_t=True)
+    except Exception as exc:  # pragma: no cover - rank-deficient / numerical failure
+        return {"status": "fit_failed", "error": _clean_error(exc)}
+    conf = np.asarray(res.conf_int())
     return {
         "status": "ok",
         "model_family": "ols_hc3",
-        "coef": coef,
-        "effect": coef,
+        "coef": float(res.params[feature_idx]),
+        "effect": float(res.params[feature_idx]),
         "effect_name": "beta",
-        "se": se_i,
-        "statistic": statistic,
-        "p_value": p_value,
-        "ci_low": coef - crit * se_i,
-        "ci_high": coef + crit * se_i,
+        "se": float(res.bse[feature_idx]),
+        "statistic": float(res.tvalues[feature_idx]),
+        "p_value": float(res.pvalues[feature_idx]),
+        "ci_low": float(conf[feature_idx, 0]),
+        "ci_high": float(conf[feature_idx, 1]),
         "n": int(n),
     }
 
@@ -268,6 +266,12 @@ def _ratio_result(family: str, coef: float, se: float, p: float, lo: float, hi: 
 def _fit_cox(
     subset: pd.DataFrame, feature: str, covariates: Sequence[str], spec: _OutcomeSpec
 ) -> dict:
+    """Cox proportional-hazards model via lifelines ``CoxPHFitter``.
+
+    With a cluster identifier, uses lifelines' cluster-robust sandwich standard
+    errors (``cluster_col`` + ``robust=True``). Reports the hazard ratio exp(coef)
+    and Harrell's concordance index.
+    """
     cox_cls = _import_lifelines()
     time_col, event_col = spec.outcome_cols
     keep = [time_col, event_col, feature, *covariates]
@@ -300,6 +304,13 @@ def _fit_cox(
 def _fit_binary(
     subset: pd.DataFrame, feature: str, covariates: Sequence[str], spec: _OutcomeSpec
 ) -> dict:
+    """Logistic regression via statsmodels ``Logit``.
+
+    With a cluster identifier, fits a marginal (population-averaged) GEE logit
+    (statsmodels ``GEE`` with a Binomial family and exchangeable working
+    correlation; Liang & Zeger, 1986), or a conditional random-intercept GLMM when
+    ``mixed_method="glmm"``. Reports the odds ratio exp(coef).
+    """
     if spec.groups_col and spec.mixed_method == "glmm":
         return _fit_glmm(subset, feature, covariates, spec)
     sm = _import_statsmodels()
@@ -336,6 +347,11 @@ def _fit_binary(
 def _fit_glmm(
     subset: pd.DataFrame, feature: str, covariates: Sequence[str], spec: _OutcomeSpec
 ) -> dict:
+    """Conditional (subject-specific) logistic GLMM with a per-cluster random
+    intercept via statsmodels ``BinomialBayesMixedGLM`` (``fit_vb`` variational
+    Bayes posterior); the fixed-effect posterior mean/SD give a Wald z, p, and
+    odds ratio.
+    """
     _import_statsmodels()
     from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
 
@@ -359,6 +375,9 @@ def _fit_glmm(
 def _fit_continuous(
     subset: pd.DataFrame, feature: str, covariates: Sequence[str], spec: _OutcomeSpec
 ) -> dict:
+    """Linear association: statsmodels ``MixedLM`` (REML random-intercept) for
+    clustered data, otherwise OLS with HC3 robust SE (see :func:`_fit_ols_hc3`).
+    """
     if spec.groups_col:
         sm = _import_statsmodels()
         design = _design(subset, feature, covariates)

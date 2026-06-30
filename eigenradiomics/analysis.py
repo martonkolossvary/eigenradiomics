@@ -87,21 +87,23 @@ def compute_module_membership(
         else:
             comp_names = [f"component_{i}" for i in range(Y.shape[1])]
 
-    if X_arr.shape[0] != Y.shape[0]:
+    Y_arr = np.asarray(Y)
+
+    if X_arr.shape[0] != Y_arr.shape[0]:
         raise ValueError(
             f"Row count mismatch: X has {X_arr.shape[0]} samples, "
-            f"but eigengenes have {Y.shape[0]} samples."
+            f"but eigengenes have {Y_arr.shape[0]} samples."
         )
 
     n_features = X_arr.shape[1]
-    n_components = Y.shape[1]
+    n_components = Y_arr.shape[1]
 
     k_ME_matrix = np.zeros((n_features, n_components))
 
     for f_idx in range(n_features):
         x_vals = X_arr[:, f_idx]
         for c_idx in range(n_components):
-            y_vals = Y[:, c_idx]
+            y_vals = Y_arr[:, c_idx]
             # Handle standard correlation checks
             if method == "pearson":
                 corr, _ = stats.pearsonr(x_vals, y_vals)

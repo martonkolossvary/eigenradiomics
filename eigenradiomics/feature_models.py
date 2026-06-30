@@ -26,6 +26,7 @@ from scipy import stats
 
 from eigenradiomics._features import resolve_analysis_features
 from eigenradiomics._stats import _fdr_correct
+from eigenradiomics._utils import _format_family_name, _save_figure
 from eigenradiomics.catalog import FeatureCatalog
 from eigenradiomics.dataset import RadiomicsDataset
 
@@ -701,6 +702,10 @@ def plot_volcano(
     core_percentile: float = 99.0,
     figsize: tuple[float, float] | None = None,
     title: str | None = None,
+    path: str | Path | None = None,
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
 ) -> Any:
     """Volcano plot of the feature-association results, one panel per model tier.
 
@@ -730,6 +735,21 @@ def plot_volcano(
         points pinned to the edge); ``"include"`` shows the full range.
     core_percentile : float
         Percentile of \\|x\\| used for the "clip" x-limit.
+    figsize : tuple, optional
+        Figure size.
+    title : str, optional
+        Figure title.
+    path : str or Path, optional
+        Destination path.
+    dpi : int, default=300
+        The resolution in dots per inch (DPI) for saving the image.
+    save_pdf : bool, default=False
+        Whether to also save a PDF copy of the plot. Enabled globally by the
+        ``SAVE_PDF`` environment variable.
+    save_tiff : bool, default=False
+        Whether to also save a TIFF copy of the plot. Enabled globally by the
+        ``SAVE_TIFF`` environment variable. DPI is set by the ``TIFF_DPI`` environment
+        variable (falling back to ``dpi``).
 
     Returns
     -------
@@ -843,6 +863,7 @@ def plot_volcano(
     if title:
         fig.suptitle(title, weight="bold")
     fig.tight_layout(rect=(0, 0.08, 1, 1))
+    _save_figure(fig, path, dpi, save_pdf, save_tiff)
     return fig
 
 
@@ -901,6 +922,9 @@ def plot_rwas_manhattan(
     figsize: tuple[float, float] | None = None,
     title: str | None = None,
     path: str | Path | None = None,
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
 ) -> plt.Figure:
     """Plot an RWAS Manhattan plot of feature associations.
 
@@ -936,6 +960,15 @@ def plot_rwas_manhattan(
         Figure title.
     path : str or Path, optional
         If set, save the figure to this file path.
+    dpi : int, default=300
+        The resolution in dots per inch (DPI) for saving the image.
+    save_pdf : bool, default=False
+        Whether to also save a PDF copy of the plot. Enabled globally by the
+        ``SAVE_PDF`` environment variable.
+    save_tiff : bool, default=False
+        Whether to also save a TIFF copy of the plot. Enabled globally by the
+        ``SAVE_TIFF`` environment variable. DPI is set by the ``TIFF_DPI`` environment
+        variable (falling back to ``dpi``).
 
     Returns
     -------
@@ -982,8 +1015,30 @@ def plot_rwas_manhattan(
     if order is not None:
         order_names = [feat for feat in order if feat in all_features]
     else:
-        # Sort by group_by first, then by feature name
-        df_sorted = df.sort_values(by=[group_by, "feature"])
+        if group_by == "family":
+            IBSI_FAMILY_ORDER = [
+                "morphology",
+                "intensity",
+                "histogram",
+                "ivh",
+                "glcm",
+                "glrlm",
+                "glszm",
+                "gldzm",
+                "ngtdm",
+                "ngldm",
+            ]
+            present_families = df[group_by].dropna().unique()
+            existing_cats = [c for c in IBSI_FAMILY_ORDER if c in present_families]
+            other_cats = sorted(c for c in present_families if c not in existing_cats)
+            full_order = existing_cats + other_cats
+            df_sorted = df.copy()
+            df_sorted[group_by] = pd.Categorical(
+                df_sorted[group_by], categories=full_order, ordered=True
+            )
+            df_sorted = df_sorted.sort_values(by=[group_by, "feature"])
+        else:
+            df_sorted = df.sort_values(by=[group_by, "feature"])
         order_names = list(df_sorted["feature"].unique())
 
     if not order_names:
@@ -997,7 +1052,12 @@ def plot_rwas_manhattan(
     df_ordered["_sig"] = df_ordered["p_fdr"].lt(fdr_alpha)
 
     # Assign group colors
-    unique_groups = sorted(df_ordered[group_by].dropna().unique())
+    if isinstance(df_ordered[group_by].dtype, pd.CategoricalDtype):
+        unique_groups = list(df_ordered[group_by].dropna().unique().categories)
+        present = set(df_ordered[group_by].dropna().unique())
+        unique_groups = [g for g in unique_groups if g in present]
+    else:
+        unique_groups = sorted(df_ordered[group_by].dropna().unique())
     group_colors = _assign_colors(unique_groups, None)
 
     # Color map for the points
@@ -1112,7 +1172,7 @@ def plot_rwas_manhattan(
 
     # Ticks for families (centered on each block)
     tick_positions = [(start + end) / 2 for _, start, end in boundaries]
-    tick_labels_main = [str(fam) for fam, _, _ in boundaries]
+    tick_labels_main = [_format_family_name(str(fam)) for fam, _, _ in boundaries]
     ax_main.set_xticks(tick_positions)
     ax_main.set_xticklabels(tick_labels_main, fontsize=8)
 
@@ -1216,8 +1276,7 @@ def plot_rwas_manhattan(
         fig.suptitle(title, weight="bold")
 
     fig.tight_layout()
-    if path:
-        plt.savefig(path, dpi=300, bbox_inches="tight")
+    _save_figure(fig, path, dpi, save_pdf, save_tiff)
 
     return fig
 

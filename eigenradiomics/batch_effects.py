@@ -11,13 +11,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
+from scipy.stats import chi2
 from sklearn.base import TransformerMixin, clone
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
+from sklearn.neighbors import NearestNeighbors
 
 from eigenradiomics._excel import write_styled_workbook
 from eigenradiomics._features import resolve_analysis_features
-from eigenradiomics._plotting import apply_science_style
+from eigenradiomics._plotting import CVD_MARKERS, OKABE_ITO, apply_science_style
 from eigenradiomics._stats import (
     _fdr_correct,
     anova_effect,
@@ -25,6 +27,7 @@ from eigenradiomics._stats import (
     levene_test,
     permanova_euclidean,
 )
+from eigenradiomics._utils import _save_figure
 from eigenradiomics.preprocessing._feature_remover import _load_catalog
 from eigenradiomics.preprocessing._prep import RadiomicsPrepTransformer
 
@@ -135,6 +138,85 @@ def _compute_feature_level_stats(
     return table
 
 
+def _knn_indices(coords: NDArray, k: int) -> NDArray:
+    """k nearest-neighbour indices for each row (self excluded)."""
+    n = coords.shape[0]
+    # Query the fitted points explicitly (not the self-query form, which caps at
+    # n_samples - 1); ask for one extra neighbour so we can drop each point's self.
+    n_neighbors = int(min(k + 1, n))
+    nn = NearestNeighbors(n_neighbors=n_neighbors).fit(coords)
+    return nn.kneighbors(coords, return_distance=False)[:, 1:]
+
+
+def _kbet_rejection_rate(
+    coords: NDArray,
+    batch: NDArray,
+    *,
+    k: int | None = None,
+    alpha: float = 0.05,
+    n_test: int = 500,
+    random_state: int = 42,
+) -> float:
+    """k-nearest-neighbour Batch Effect Test rejection rate (Buttner et al., 2019).
+
+    For a random subset of samples, compare each sample's local batch composition
+    (its ``k`` nearest neighbours) against the global batch frequencies with a
+    chi-square goodness-of-fit test, and return the fraction of neighbourhoods that
+    reject batch homogeneity at ``alpha``. A value near ``alpha`` indicates
+    well-mixed batches (no batch effect); values toward 1 indicate strong batch
+    separation. ``k`` defaults to ``min(50, max(10, round(0.1 * n)))``.
+    """
+    labels = np.asarray(batch)
+    n = len(labels)
+    cats = np.unique(labels)
+    if len(cats) < 2 or n <= len(cats):
+        return np.nan
+    if k is None:
+        k = int(min(50, max(10, round(0.1 * n))))
+    k = int(min(k, n - 1))
+    neigh = _knn_indices(np.asarray(coords, dtype=float), k)
+    global_freq = np.array([(labels == c).mean() for c in cats])
+    expected = global_freq * k
+    rng = np.random.default_rng(random_state)
+    test_idx = rng.choice(n, size=int(min(n_test, n)), replace=False)
+    rejects = 0
+    for i in test_idx:
+        observed = np.array([(labels[neigh[i]] == c).sum() for c in cats], dtype=float)
+        stat = float(((observed - expected) ** 2 / expected).sum())
+        if chi2.sf(stat, df=len(cats) - 1) < alpha:
+            rejects += 1
+    return float(rejects / len(test_idx))
+
+
+def _lisi_score(
+    coords: NDArray,
+    batch: NDArray,
+    *,
+    k: int = 30,
+) -> float:
+    """Median batch LISI (local inverse Simpson index; Korsunsky et al., 2019).
+
+    For each sample, ``1 / sum(p_b**2)`` over the batch-label proportions among its
+    ``k`` nearest neighbours estimates the effective number of batches represented
+    locally (an unweighted kNN approximation of the kernel-weighted original).
+    Returns the median across samples: ~1 means single-batch neighbourhoods
+    (strong batch effect), ~n_batches means fully mixed (no batch effect).
+    """
+    labels = np.asarray(batch)
+    n = len(labels)
+    cats = np.unique(labels)
+    if len(cats) < 2 or n <= len(cats):
+        return np.nan
+    neigh = _knn_indices(np.asarray(coords, dtype=float), k)
+    codes = np.searchsorted(cats, labels)
+    inv_simpson = np.empty(n)
+    for i in range(n):
+        counts = np.bincount(codes[neigh[i]], minlength=len(cats)).astype(float)
+        p = counts / counts.sum()
+        inv_simpson[i] = 1.0 / float(np.sum(p**2))
+    return float(np.median(inv_simpson))
+
+
 def _compute_global_diagnostics(
     X_global: pd.DataFrame,
     batch_series: pd.Series,
@@ -186,6 +268,14 @@ def _compute_global_diagnostics(
         except ValueError:  # pragma: no cover - only on degenerate label sets QC prevents
             silhouette = np.nan
 
+    # Local batch-mixing metrics on the PCA embedding (complement the global
+    # PERMANOVA): kBET rejection rate (high -> batch effect) and median batch
+    # LISI (low -> batch effect, high -> well mixed).
+    coords = scores.to_numpy()
+    batch_arr = batch_subset.astype(str).to_numpy()
+    kbet = _kbet_rejection_rate(coords, batch_arr)
+    lisi = _lisi_score(coords, batch_arr)
+
     diag_dict = {
         "matrix": matrix_label,
         "n_samples": int(n_samples),
@@ -204,6 +294,8 @@ def _compute_global_diagnostics(
         "permanova_r2": r2,
         "permanova_p": permanova_p,
         "silhouette_pc": silhouette,
+        "kbet_rejection_rate": kbet,
+        "lisi_batch": lisi,
     }
 
     return diag_dict, scores, pca
@@ -423,12 +515,16 @@ def compute_batch_effects(
             "permanova_r2": np.nan,
             "permanova_p": np.nan,
             "silhouette_pc": np.nan,
+            "kbet_rejection_rate": np.nan,
+            "lisi_batch": np.nan,
         }
         global_rows.append(diag)
 
     # 8. ComBat Sensitivity Analysis
     combat_stats_annotated = pd.DataFrame()
     combat_replacements = pd.DataFrame()
+    combat_input = pd.DataFrame()
+    combat_corrected = pd.DataFrame()
     run_combat_sensitivity = not no_combat and (X_global.shape[0] >= 3 and X_global.shape[1] >= 2)
 
     if run_combat_sensitivity:
@@ -509,9 +605,18 @@ def compute_batch_effects(
                     ]
                 )
 
-                # Re-calculate statistics after ComBat
+                # Expose the matched pre-/post-ComBat matrices (same transformed
+                # basis) so callers can plot before/after distributions per feature.
+                combat_input = X_global[combat_features]
+                combat_corrected = corrected_df
+
+                # Re-calculate statistics on the ComBat-corrected matrix. All
+                # three tests must run on the corrected data so the "after" table
+                # reflects the correction; passing the raw matrix here left the
+                # rank (Kruskal/epsilon^2) and variance (Levene) columns identical
+                # to the uncorrected table, hiding ComBat's effect on them.
                 combat_feature_stats = _compute_feature_level_stats(
-                    X_qc_raw.loc[X_global.index, combat_features],
+                    corrected_df,
                     corrected_df,
                     batch_series,
                 )
@@ -600,9 +705,13 @@ def compute_batch_effects(
         results_dict["combat_feature_stats"] = combat_stats_annotated
         results_dict["combat_adjustment_notes"] = combat_replacements
 
-    # Save internal PCA coordinates for plotting referencing
-    results_dict["_pca_results"] = pca_results  # Hidden key for plotting reference
-    results_dict["_batch_series"] = batch_series  # Hidden key for plotting reference
+    # Hidden keys (skipped by the Excel export) for plotting/inspection: the PCA
+    # coordinates, the batch labels, and the matched pre-/post-ComBat matrices.
+    results_dict["_pca_results"] = pca_results
+    results_dict["_batch_series"] = batch_series
+    if not combat_corrected.empty:
+        results_dict["_combat_input"] = combat_input
+        results_dict["_combat_corrected"] = combat_corrected
     return results_dict
 
 
@@ -630,12 +739,64 @@ def write_batch_effects_excel(results: dict[str, pd.DataFrame], path: str | Path
     write_styled_workbook(sheets, path, _batch_effects_number_format)
 
 
+def _embed_2d(
+    scores: pd.DataFrame, method: str, *, random_state: int = 42
+) -> tuple[pd.DataFrame, str]:
+    """Return 2D scatter coordinates for a batch-effect plot, plus a method label.
+
+    ``"pca"`` returns the first two principal components (distance-preserving, so
+    it matches the quantitative PERMANOVA/kBET/LISI diagnostics). ``"tsne"`` and
+    ``"umap"`` are nonlinear, *visualisation-only* embeddings computed on the PCA
+    scores: they are not distance-preserving and must not be used to quantify
+    batch effects. UMAP needs the optional ``umap-learn`` dependency and falls
+    back to PCA (with a warning) when it is missing.
+    """
+    method = method.lower()
+    if method not in ("pca", "tsne", "umap"):
+        raise ValueError(f"Unknown embedding {method!r}; choose 'pca', 'tsne', or 'umap'.")
+
+    if method == "pca" or scores.shape[1] < 2:
+        xy = scores.iloc[:, :2].copy()
+        xy.columns = ["E1", "E2"]
+        return xy, "PCA"
+
+    data = scores.to_numpy()
+    if method == "tsne":
+        from sklearn.manifold import TSNE
+
+        perplexity = float(min(30.0, max(5.0, (len(scores) - 1) / 3.0)))
+        emb = TSNE(
+            n_components=2, init="pca", perplexity=perplexity, random_state=random_state
+        ).fit_transform(data)
+        return pd.DataFrame(emb, index=scores.index, columns=["E1", "E2"]), "t-SNE"
+
+    try:
+        import umap
+    except ImportError:
+        warnings.warn(
+            "UMAP embedding requires the optional `umap-learn` dependency "
+            "(pip install 'eigenradiomics[embedding]'); falling back to PCA.",
+            UserWarning,
+            stacklevel=2,
+        )
+        xy = scores.iloc[:, :2].copy()
+        xy.columns = ["E1", "E2"]
+        return xy, "PCA"
+    emb = umap.UMAP(n_components=2, random_state=random_state).fit_transform(data)
+    return pd.DataFrame(emb, index=scores.index, columns=["E1", "E2"]), "UMAP"
+
+
 def plot_batch_effects(
     results: dict[str, pd.DataFrame],
     path: str | Path | None = None,
     primary_alpha: float = 0.05,
+    title: str | None = None,
+    embedding: str = "pca",
+    dpi: int = 300,
+    save_pdf: bool = False,
+    save_tiff: bool = False,
 ) -> plt.Figure:
-    """Generate accessible, OUP-compliant scientific PCA scatterplots and statistic histograms.
+    """Generate accessible, OUP-compliant scientific embedding scatterplots and histograms.
 
     Parameters
     ----------
@@ -645,6 +806,23 @@ def plot_batch_effects(
         If provided, saves the figure to the specified path.
     primary_alpha : float
         FDR alpha cutoff displayed on the ANOVA q-value histogram.
+    title : str, optional
+        Figure title.
+    embedding : {"pca", "tsne", "umap"}, default="pca"
+        2D embedding for the scatter panels. ``"pca"`` plots PC1/PC2. ``"tsne"``
+        and ``"umap"`` are nonlinear, visualisation-only embeddings computed on the
+        PCA scores (they do not change the quantitative diagnostics). ``"umap"``
+        needs the optional ``umap-learn`` dependency and falls back to PCA if
+        unavailable.
+    dpi : int, default=300
+        The resolution in dots per inch (DPI) for saving the image.
+    save_pdf : bool, default=False
+        Whether to also save a PDF copy of the plot. Enabled globally by the
+        ``SAVE_PDF`` environment variable.
+    save_tiff : bool, default=False
+        Whether to also save a TIFF copy of the plot. Enabled globally by the
+        ``SAVE_TIFF`` environment variable. DPI is set by the ``TIFF_DPI`` environment
+        variable (falling back to ``dpi``).
 
     Returns
     -------
@@ -661,67 +839,63 @@ def plot_batch_effects(
     has_pca = ("raw_transformed", "scores") in pca_results
 
     n_cols = 1 + int(has_combat) + 1  # PCA panels + ANOVA q-value panel
-    fig, axes = plt.subplots(1, n_cols, figsize=(4 * n_cols, 4), sharey=False)
+    fig, axes = plt.subplots(
+        1, n_cols, figsize=(4 * n_cols, 4), sharey=False, layout="constrained"
+    )
     if n_cols == 1:  # pragma: no cover - always >= 2 panels (PCA + histogram)
         axes = [axes]
 
     ax_idx = 0
     text_bbox = dict(facecolor="white", edgecolor="0.8", boxstyle="round,pad=0.2", alpha=0.9)
 
-    # 1. PCA Before ComBat
-    if has_pca:
-        ax = axes[ax_idx]
-        scores = pca_results[("raw_transformed", "scores")]
-        pca_model = pca_results[("raw_transformed", "pca")]
-        batches_subset = batch_series.loc[scores.index].astype(str)
-
-        # Plot PCA scatter
-        unique_batches = sorted(batches_subset.unique())
-        plt.colormaps.get_cmap("tab10")
-
-        for _idx, b in enumerate(unique_batches):
-            mask = batches_subset == b
+    def _draw_scatter(ax: plt.Axes, scores_df: pd.DataFrame, pca_model: PCA, when: str) -> None:
+        batches_subset = batch_series.loc[scores_df.index].astype(str)
+        xy, emb_label = _embed_2d(scores_df, embedding)
+        # Redundant encoding: each batch gets a distinct marker shape AND an
+        # Okabe-Ito colour, so groups stay separable without relying on colour.
+        for i, b in enumerate(sorted(batches_subset.unique())):
+            mask = (batches_subset == b).to_numpy()
             ax.scatter(
-                scores.loc[mask, "PC1"],
-                scores.loc[mask, "PC2"],
+                xy.loc[mask, "E1"],
+                xy.loc[mask, "E2"],
                 label=f"Batch {b}",
+                marker=CVD_MARKERS[i % len(CVD_MARKERS)],
+                color=OKABE_ITO[i % len(OKABE_ITO)],
                 alpha=0.85,
                 edgecolor="0.25",
                 linewidth=0.5,
                 s=30,
             )
-
-        ax.set_title("PCA Before ComBat", weight="bold", pad=12)
-        ax.set_xlabel(f"PC1 ({pca_model.explained_variance_ratio_[0]*100:.1f}%)")
-        ax.set_ylabel(f"PC2 ({pca_model.explained_variance_ratio_[1]*100:.1f}%)")
+        ax.set_title(f"{emb_label} {when} ComBat", weight="bold", pad=12)
+        if emb_label == "PCA":
+            ax.set_xlabel(f"PC1 ({pca_model.explained_variance_ratio_[0] * 100:.1f}%)")
+            ax.set_ylabel(f"PC2 ({pca_model.explained_variance_ratio_[1] * 100:.1f}%)")
+        else:
+            ax.set_xlabel(f"{emb_label} 1")
+            ax.set_ylabel(f"{emb_label} 2")
         ax.grid(True, linestyle=":", alpha=0.5)
+
+    # 1. Embedding Before ComBat
+    if has_pca:
+        ax = axes[ax_idx]
+        _draw_scatter(
+            ax,
+            pca_results[("raw_transformed", "scores")],
+            pca_results[("raw_transformed", "pca")],
+            "Before",
+        )
         ax.legend(frameon=True, facecolor="white", fontsize=8, edgecolor="0.8")
         ax_idx += 1
 
-    # 2. PCA After ComBat
+    # 2. Embedding After ComBat
     if has_combat:
         ax = axes[ax_idx]
-        scores_c = pca_results[("combat", "scores")]
-        pca_model_c = pca_results[("combat", "pca")]
-        batches_subset = batch_series.loc[scores_c.index].astype(str)
-
-        unique_batches = sorted(batches_subset.unique())
-        for _idx, b in enumerate(unique_batches):
-            mask = batches_subset == b
-            ax.scatter(
-                scores_c.loc[mask, "PC1"],
-                scores_c.loc[mask, "PC2"],
-                label=f"Batch {b}",
-                alpha=0.85,
-                edgecolor="0.25",
-                linewidth=0.5,
-                s=30,
-            )
-
-        ax.set_title("PCA After ComBat", weight="bold", pad=12)
-        ax.set_xlabel(f"PC1 ({pca_model_c.explained_variance_ratio_[0]*100:.1f}%)")
-        ax.set_ylabel(f"PC2 ({pca_model_c.explained_variance_ratio_[1]*100:.1f}%)")
-        ax.grid(True, linestyle=":", alpha=0.5)
+        _draw_scatter(
+            ax,
+            pca_results[("combat", "scores")],
+            pca_results[("combat", "pca")],
+            "After",
+        )
         ax_idx += 1
 
     # 3. ANOVA q-value Histogram
@@ -766,10 +940,26 @@ def plot_batch_effects(
         bbox=dict(facecolor="white", edgecolor="#D32F2F", boxstyle="round,pad=0.2", alpha=0.9),
     )
 
-    fig.tight_layout()
+    # Label subfigures (A, B, C ...) to match the reproducibility figures.
+    for i, panel_ax in enumerate(axes):
+        panel_ax.annotate(
+            chr(ord("A") + i),
+            xy=(0.0, 1.0),
+            xycoords="axes fraction",
+            xytext=(-2.0, 6.0),
+            textcoords="offset points",
+            fontsize=14,
+            fontweight="bold",
+            va="bottom",
+            ha="right",
+            annotation_clip=False,
+        )
 
-    if path is not None:
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(path, dpi=300, bbox_inches="tight")
+    if title is not None:
+        fig.suptitle(title, weight="bold", fontsize=12)
+
+    # Constrained layout manages spacing; disable bbox_inches="tight" on save so
+    # it does not fight the layout engine or clip the out-of-axes panel letters.
+    _save_figure(fig, path, dpi, save_pdf, save_tiff, bbox_inches=None)
 
     return fig

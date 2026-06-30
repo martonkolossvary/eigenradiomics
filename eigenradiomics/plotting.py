@@ -20,6 +20,7 @@ from matplotlib.ticker import MaxNLocator
 from numpy.typing import NDArray
 from scipy.cluster.hierarchy import dendrogram, leaves_list
 
+from eigenradiomics._plotting import OKABE_ITO
 from eigenradiomics._utils import _format_family_name, _save_figure
 from eigenradiomics.artifacts import ReductionArtifacts
 
@@ -34,7 +35,6 @@ EIGEN_VIBRANT: list[str] = [
     "#8B5CF6",  # violet
     "#1E293B",  # slate
 ]
-OKABE_ITO = EIGEN_VIBRANT
 
 #: Default bar colour when "by_module" is requested but no modules are available.
 _DEFAULT_BAR_COLOR = "#4477AA"
@@ -127,8 +127,8 @@ def _assign_colors(
     """Map each category to a colour (explicit overrides; else a palette)."""
     if explicit is not None:
         return {category: explicit.get(category, "lightgrey") for category in categories}
-    if len(categories) <= len(OKABE_ITO):
-        palette: list[Any] = list(OKABE_ITO)
+    if len(categories) <= len(EIGEN_VIBRANT):
+        palette: list[Any] = list(EIGEN_VIBRANT)
     else:
         tab = plt.get_cmap("tab20")
         palette = [tab(i % 20) for i in range(len(categories))]
@@ -858,7 +858,7 @@ def plot_batch_distributions(
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.5), sharey=True, layout="constrained")
 
     linestyles = ["-", "--", ":", "-."]
-    colors = EIGEN_VIBRANT
+    colors = OKABE_ITO
 
     for idx, b_id in enumerate(unique_batches):
         mask = batches == b_id

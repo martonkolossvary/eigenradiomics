@@ -58,6 +58,58 @@ pipe.fit(X_train)
 Y_new = pipe.transform(X_new[X_train.columns])
 ```
 
+## Study Design Roles & Metadata
+
+A key primitive in `eigenradiomics` is the `StudyDesign`, which provides semantic annotations mapping clinical and experimental metadata columns to specific analytical roles:
+
+| Role | Description | Consuming Subsystems |
+| :--- | :--- | :--- |
+| `group` | Subject / Patient identifier for grouped cross-validation and cluster bootstrapping | `GroupKFold`, `compute_reproducibility` |
+| `batch` | Scanner, acquisition center, or manufacturer identifier | `compute_batch_effects`, ComBat harmonization |
+| `timepoint` | Longitudinal scan timing or visit order (e.g., `"baseline"`, `"followup"`) | `transform_paired`, longitudinal trajectory analysis |
+| `target` | Supervised continuous or categorical outcome | `compute_feature_associations`, RWAS models |
+| `duration` | Survival follow-up time | Cox proportional hazards models |
+| `event` | Survival censoring indicator (1 = event, 0 = censored) | Cox proportional hazards models |
+
+```mermaid
+flowchart TD
+    Raw[Raw Table / Multi-modal Scans] --> RD[RadiomicsDataset]
+    
+    subgraph StudyDesign Roles
+        RD -->|group: PatientID| G[CV Splitter / Cluster Bootstrapping]
+        RD -->|batch: CenterID| B[Batch QC & ComBat Harmonization]
+        RD -->|timepoint: Visit| T[Longitudinal transform_paired]
+        RD -->|target / event| O[Feature Associations & RWAS]
+    end
+```
+
+## Longitudinal & Paired Study Designs
+
+In longitudinal studies where patients undergo repeated imaging (e.g., pre-treatment vs post-treatment, or baseline vs surveillance), repeated scans share within-subject correlations that must be accounted for during both quality control and downstream evaluation.
+
+```python
+from eigenradiomics import RadiomicsDataset, StudyDesign
+
+# Specify subject grouping and timepoints
+design = StudyDesign(roles={
+    "group": "PatientID",
+    "batch": "ScannerID",
+    "timepoint": "Timepoint",
+    "target": "TreatmentResponse",
+})
+
+dataset = RadiomicsDataset(
+    table,
+    feature_columns=feature_cols,
+    design=design,
+    catalog=catalog,
+)
+
+# Extract paired scans cleanly
+baseline = dataset.features[dataset.metadata["Timepoint"] == "T0"]
+followup = dataset.features[dataset.metadata["Timepoint"] == "T1"]
+```
+
 ## Output Naming
 
 All reducers produce reducer-scoped output names through `get_feature_names_out()`.
@@ -65,4 +117,5 @@ All reducers produce reducer-scoped output names through `get_feature_names_out(
 Examples:
 
 - `wgcna_0`, `wgcna_1`, `wgcna_2`
-- future reducers would follow the same pattern, e.g. `pca_0`, `nmf_3`
+- `pca_0`, `pca_1`, `pca_2`
+- `umap_0`, `umap_1`

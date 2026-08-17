@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
+from matplotlib.axes import Axes
 from numpy.typing import NDArray
 
 from eigenradiomics._excel import write_styled_workbook
@@ -182,9 +183,7 @@ def compute_reproducibility(
 
         for ds in datasets:
             if isinstance(ds, pd.DataFrame):
-                df = pd.DataFrame(
-                    ds.to_numpy(dtype=float), index=ref_index, columns=ref_columns
-                )
+                df = pd.DataFrame(ds.to_numpy(dtype=float), index=ref_index, columns=ref_columns)
             else:
                 df = pd.DataFrame(
                     np.asarray(ds, dtype=float), index=ref_index, columns=ref_columns
@@ -552,14 +551,20 @@ def plot_reproducibility_histograms(
 
     # Create figure subplots
     is_custom_axes = axes is not None
+    plot_axes: list[Axes]
     if not is_custom_axes:
-        fig, axes = plt.subplots(1, n_plots, figsize=(4 * n_plots, 4), sharey=False)
+        fig_obj, sub_axes = plt.subplots(1, n_plots, figsize=(4 * n_plots, 4), sharey=False)
         if n_plots == 1:
-            axes = [axes]
+            plot_axes = [cast(Axes, sub_axes)]
+        else:
+            plot_axes = list(cast(Sequence[Axes], sub_axes))
+        fig = cast(plt.Figure, fig_obj)
     else:
-        fig = axes[0].figure
-        if len(axes) != n_plots:
-            raise ValueError(f"Expected {n_plots} axes, but got {len(axes)}")
+        assert axes is not None
+        plot_axes = list(axes)
+        fig = cast(plt.Figure, plot_axes[0].figure)
+        if len(plot_axes) != n_plots:
+            raise ValueError(f"Expected {n_plots} axes, but got {len(plot_axes)}")
 
     # Helper for bounding boxes
     text_bbox = dict(
@@ -569,7 +574,7 @@ def plot_reproducibility_histograms(
         alpha=0.9,
     )
 
-    for idx, ax in enumerate(axes):
+    for idx, ax in enumerate(plot_axes):
         val = data_to_plot[idx]
         color = colors[idx]
         t_val = titles[idx]
@@ -584,7 +589,9 @@ def plot_reproducibility_histograms(
         # Draw histogram with high-contrast distinct boundaries
         ax.hist(
             val,
-            bins=np.arange(-1.0, 1.05, 0.1) if vmin < 0 else np.arange(0.0, 1.05, 0.05),
+            bins=np.arange(-1.0, 1.05, 0.1).tolist()
+            if vmin < 0
+            else np.arange(0.0, 1.05, 0.05).tolist(),
             color=color,
             edgecolor="0.25",
             linewidth=0.8,
@@ -652,6 +659,7 @@ def plot_reproducibility_histograms(
     # Render a legend of correlation types on the first axis if requested
     if show_legend:
         from matplotlib.patches import Patch
+
         legend_handles = []
         if "Spearman" in results:
             legend_handles.append(Patch(facecolor="#4F46E5", edgecolor="0.25", label="Spearman"))
@@ -660,10 +668,13 @@ def plot_reproducibility_histograms(
         if "ICC" in results:
             legend_handles.append(Patch(facecolor="#0D9488", edgecolor="0.25", label="ICC(2,1)"))
 
-        if legend_handles and len(axes) > 0:
-            axes[0].legend(
-                handles=legend_handles, loc="upper right", frameon=True,
-                fontsize=8.5, framealpha=0.9,
+        if legend_handles and len(plot_axes) > 0:
+            plot_axes[0].legend(
+                handles=legend_handles,
+                loc="upper right",
+                frameon=True,
+                fontsize=8.5,
+                framealpha=0.9,
             )
 
     if not is_custom_axes:
@@ -772,7 +783,8 @@ def plot_reproducibility(
         )
 
     # 1. Compute reproducibility if datasets are provided
-    if datasets is not None:
+    if reproducibility_results is None:
+        assert datasets is not None
         results = compute_reproducibility(
             datasets,
             catalog=catalog,
@@ -780,7 +792,7 @@ def plot_reproducibility(
             **(compute_kws or {}),
         )
     else:
-        results = reproducibility_results
+        results = cast(dict[str, pd.DataFrame], reproducibility_results)
 
     # 2. Generate combined figure
     apply_science_style()
@@ -807,40 +819,22 @@ def plot_reproducibility(
     fig = plt.figure(figsize=figsize, layout="constrained")
 
     active_axes = []
+    hist_axes = []
 
     if use_grid_2x2:
         # 2x2 panel grid (A, B, C, D) with a full-width legend strip below, like
         # the stacked layout. Giving the legends their own bottom row lets the
         # synteny panel (D) fill its quadrant so it top-aligns with the ICC panel (C).
         if show_legend:
-            gs = fig.add_gridspec(
-                3, 2, height_ratios=[1.0, 1.0, 0.45], hspace=0.12, wspace=0.3
-            )
+            gs = fig.add_gridspec(3, 2, height_ratios=[1.0, 1.0, 0.45], hspace=0.12, wspace=0.3)
         else:
             gs = fig.add_gridspec(2, 2, hspace=0.12, wspace=0.3)
 
-        hist_axes = []
-
-        if "Spearman" in results:
-            spearman_ax = fig.add_subplot(gs[0, 0])
-            hist_axes.append(spearman_ax)
-            active_axes.append(spearman_ax)
-        else:
-            spearman_ax = None
-
-        if "Pearson" in results:
-            pearson_ax = fig.add_subplot(gs[0, 1])
-            hist_axes.append(pearson_ax)
-            active_axes.append(pearson_ax)
-        else:
-            pearson_ax = None
-
-        if "ICC" in results:
-            icc_ax = fig.add_subplot(gs[1, 0])
-            hist_axes.append(icc_ax)
-            active_axes.append(icc_ax)
-        else:
-            icc_ax = None
+        spearman_ax = fig.add_subplot(gs[0, 0])
+        pearson_ax = fig.add_subplot(gs[0, 1])
+        icc_ax = fig.add_subplot(gs[1, 0])
+        hist_axes.extend([spearman_ax, pearson_ax, icc_ax])
+        active_axes.extend([spearman_ax, pearson_ax, icc_ax])
 
         synteny_ax = fig.add_subplot(gs[1, 1])
         synteny_ax.set_box_aspect(1.0)
@@ -887,6 +881,7 @@ def plot_reproducibility(
 
     # Draw Synteny Plot
     from eigenradiomics.plotting import plot_reproducibility_synteny
+
     plot_reproducibility_synteny(
         results,
         catalog=catalog,
@@ -901,10 +896,7 @@ def plot_reproducibility(
     # synteny panel has no y-axis margin and sits flush against the figure's left
     # edge, so its label is anchored inside the top-left corner (ha="left") to
     # avoid being pushed off-canvas.
-    letter_idx = 0
-    for ax in active_axes:
-        if ax is None:
-            continue
+    for letter_idx, ax in enumerate(active_axes):
         is_synteny = ax is synteny_ax
         ax.annotate(
             chr(ord("A") + letter_idx),
@@ -919,7 +911,6 @@ def plot_reproducibility(
             annotation_clip=False,
             in_layout=False,
         )
-        letter_idx += 1
 
     # Overall title
     if title:
@@ -938,7 +929,7 @@ def plot_reproducibility(
             inv = fig.transFigure.inverted()
             corners = []
             for lg in legends:
-                ext = lg.get_window_extent()
+                ext = cast(Any, lg).get_window_extent()
                 corners.append(inv.transform((ext.x0, ext.y0)))
                 corners.append(inv.transform((ext.x1, ext.y1)))
             xs = [c[0] for c in corners]

@@ -35,8 +35,10 @@ def _catalog() -> FeatureCatalog:
             {
                 "config": ["total_orig", "total_orig", "total_fbn_16", "total_fbn_16"],
                 "feature_key": [
-                    "mean_intensity_Q4LE", "joint_entropy_TU9B",
-                    "mean_intensity_Q4LE", "joint_entropy_TU9B",
+                    "mean_intensity_Q4LE",
+                    "joint_entropy_TU9B",
+                    "mean_intensity_Q4LE",
+                    "joint_entropy_TU9B",
                 ],
                 "family": ["intensity", "glcm", "intensity", "glcm"],
                 "family_group": ["Intensity", "Texture", "Intensity", "Texture"],
@@ -51,8 +53,10 @@ def _catalog() -> FeatureCatalog:
 def test_from_pictologics_dataframe_with_catalog():
     ds = RadiomicsDataset.from_pictologics(_raw_export(), _catalog(), group="PatientID")
     assert set(ds.feature_columns) == {
-        "total_orig__mean_intensity_Q4LE", "total_orig__joint_entropy_TU9B",
-        "total_fbn_16__mean_intensity_Q4LE", "total_fbn_16__joint_entropy_TU9B",
+        "total_orig__mean_intensity_Q4LE",
+        "total_orig__joint_entropy_TU9B",
+        "total_fbn_16__mean_intensity_Q4LE",
+        "total_fbn_16__joint_entropy_TU9B",
     }
     assert "total_orig__subject_id" not in ds.data.columns  # leak dropped
     assert set(ds.metadata_columns) == {"PatientID", "Vessel"}
@@ -84,8 +88,10 @@ def test_from_pictologics_path_autodiscovers_sidecar(tmp_path):
         {
             "config": ["total_orig", "total_orig", "total_fbn_16", "total_fbn_16"],
             "feature_key": [
-                "mean_intensity_Q4LE", "joint_entropy_TU9B",
-                "mean_intensity_Q4LE", "joint_entropy_TU9B",
+                "mean_intensity_Q4LE",
+                "joint_entropy_TU9B",
+                "mean_intensity_Q4LE",
+                "joint_entropy_TU9B",
             ],
             "family": ["intensity", "glcm", "intensity", "glcm"],
         }
@@ -112,7 +118,8 @@ def test_split_observer_tables_feeds_reproducibility():
     tables = split_observer_tables(_paired(), ("O1_", "O2_"), id_columns="PatientID")
     assert len(tables) == 2
     assert list(tables[0].columns) == [
-        "total_orig__mean_intensity_Q4LE", "total_orig__joint_entropy_TU9B",
+        "total_orig__mean_intensity_Q4LE",
+        "total_orig__joint_entropy_TU9B",
     ]
     assert list(tables[0].index) == [f"P{i}" for i in range(8)]
     results = compute_reproducibility(tables, bootstrap_iterations=20)
@@ -156,7 +163,8 @@ def test_remover_observer_prefixes_family_selector():
         families="intensity", catalog=_catalog(), observer_prefixes=("O1_", "O2_")
     ).fit(_paired())
     assert set(rem.removed_feature_names_) == {
-        "O1_total_orig__mean_intensity_Q4LE", "O2_total_orig__mean_intensity_Q4LE",
+        "O1_total_orig__mean_intensity_Q4LE",
+        "O2_total_orig__mean_intensity_Q4LE",
     }
 
 

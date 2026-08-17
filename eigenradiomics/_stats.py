@@ -162,9 +162,7 @@ def _icc_2_1_estimate(Y: NDArray) -> dict[str, float]:
 
     # ICC(2,1) formula
     denominator = (
-        ms_between_subjects
-        + (k - 1) * ms_error
-        + (k / n) * (ms_between_observers - ms_error)
+        ms_between_subjects + (k - 1) * ms_error + (k / n) * (ms_between_observers - ms_error)
     )
     if denominator <= 0 or np.isnan(denominator):
         icc = np.nan

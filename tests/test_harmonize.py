@@ -53,7 +53,7 @@ def _fake_make_design_matrix(counts, batch, covar_mod=None, ref_batch=None, na_c
     for j, c in enumerate(cats):
         design[[i for i, b in enumerate(batch) if b == c], j] = 1.0
     if n_covar:
-        design[:, len(cats):] = np.asarray(covar_mod, dtype=float)
+        design[:, len(cats) :] = np.asarray(covar_mod, dtype=float)
     vci = types.SimpleNamespace(
         counts=counts,
         design=design,

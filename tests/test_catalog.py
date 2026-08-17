@@ -43,9 +43,7 @@ class TestConstruction:
         # config__feature_key must be unique, else annotate() fans out the join.
         with pytest.raises(ValueError, match="duplicate feature key"):
             FeatureCatalog(
-                pd.DataFrame(
-                    {"config": ["orig", "orig"], "feature_key": ["Energy", "Energy"]}
-                )
+                pd.DataFrame({"config": ["orig", "orig"], "feature_key": ["Energy", "Energy"]})
             )
 
     def test_from_csv(self, tmp_path, catalog_frame: pd.DataFrame) -> None:

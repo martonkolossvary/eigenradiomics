@@ -417,8 +417,7 @@ class PaCMAPReducer(BaseReducer):
             import pacmap
         except ImportError as e:
             raise ImportError(
-                "PaCMAPReducer requires the 'pacmap' package. "
-                "Install it with: pip install pacmap"
+                "PaCMAPReducer requires the 'pacmap' package. Install it with: pip install pacmap"
             ) from e
 
         X_arr = self._validate_input(X, reset=True, allow_nan=False)
@@ -466,8 +465,7 @@ class TriMAPReducer(BaseReducer):
             import trimap
         except ImportError as e:
             raise ImportError(
-                "TriMAPReducer requires the 'trimap' package. "
-                "Install it with: pip install trimap"
+                "TriMAPReducer requires the 'trimap' package. Install it with: pip install trimap"
             ) from e
 
         X_arr = self._validate_input(X, reset=True, allow_nan=False)

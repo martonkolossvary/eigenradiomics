@@ -156,3 +156,43 @@ Each side answers a question — *who?* (left dendrogram + modules), *what kind?
 (right clinical panel) — around the similarity itself. From here, the module
 eigengenes (`eigengenes`) feed any downstream model with the leakage-safe
 `dataset.groups` for cross-validation.
+
+## 8. Biological Interpretation & Longitudinal Tracking
+
+After unsupervised network reduction, eigenradiomics provides native tools to **functionally annotate modules** and **track paired patient trajectories** over time.
+
+### Functional Catalog Enrichment (ORA)
+
+Determine whether specific image biomarker families (e.g. GLCM texture, intensity histograms) are statistically enriched within discovered WGCNA modules via Fisher's exact test, Chi-square, or hypergeometric test with grouped False Discovery Rate (FDR) control:
+
+```python
+# Compute enrichment for all metadata columns in the feature catalog
+enrichment_df = reducer.get_catalog_enrichment(catalog)
+
+# Display top enriched biological/imaging terms
+top_enrichment = enrichment_df[enrichment_df["fdr_q_value"] < 0.05]
+print(top_enrichment[["cluster", "catalog_column", "group", "n_overlap", "p_value", "fdr_q_value"]])
+```
+
+### Longitudinal Paired Trajectory Tracking
+
+Track individual patient response between baseline and follow-up scans with sign-aligned module eigengenes, automated index alignment, and trajectory distance metrics:
+
+```python
+# Extract baseline and follow-up scans from the longitudinal dataset
+baseline_df = dataset.features.iloc[0::2]
+followup_df = dataset.features.iloc[1::2]
+
+# Project through the fitted reducer with automated index alignment and trajectory computation
+paired = reducer.transform_paired(
+    baseline_df,
+    followup_df,
+    align_indices=True,
+    relative=True,
+    compute_distance=True,
+)
+
+# Convert to wide tabular format for downstream clinical association analysis
+paired_summary = paired.to_dataframe(prefix_mode="suffix")
+print(paired_summary[["wgcna_0_baseline", "wgcna_0_followup", "wgcna_0_delta", "trajectory_distance"]].head())
+```

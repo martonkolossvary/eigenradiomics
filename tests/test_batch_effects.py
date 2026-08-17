@@ -426,3 +426,74 @@ def test_combat_import_failure(monkeypatch):
     with pytest.warns(UserWarning, match="ComBat sensitivity diagnostics skipped"):
         res = compute_batch_effects(df, batch, permutations=10, no_combat=False)
     assert "combat_feature_stats" not in res
+
+
+class TestBatchEffectsCoverageGaps:
+    """Targeted tests for remaining uncovered branches in batch_effects.py."""
+
+    def test_kbet_and_lisi_edge_cases(self):
+        from eigenradiomics.batch_effects import _kbet_rejection_rate, _lisi_score
+
+        coords = np.array([[1.0, 2.0], [1.1, 2.1]])
+        single_batch = np.array(["A", "A"])
+
+        # Single batch -> returns nan
+        assert np.isnan(_kbet_rejection_rate(coords, single_batch))
+        assert np.isnan(_lisi_score(coords, single_batch))
+
+        # Samples <= number of categories -> returns nan
+        two_cats = np.array(["A", "B"])
+        assert np.isnan(_kbet_rejection_rate(coords, two_cats))
+        assert np.isnan(_lisi_score(coords, two_cats))
+
+    def test_embed_scores_and_plot_embeddings(self, monkeypatch):
+        from eigenradiomics.batch_effects import _embed_2d, plot_batch_effects
+
+        df, batch = _batch_df()
+        scores = pd.DataFrame(np.random.default_rng(0).normal(size=(len(df), 4)), index=df.index)
+
+        # 1. Invalid method error
+        with pytest.raises(ValueError, match="Unknown embedding"):
+            _embed_2d(scores, method="invalid_emb")
+
+        # 2. t-SNE embedding
+        emb_tsne, label_tsne = _embed_2d(scores, method="tsne")
+        assert label_tsne == "t-SNE"
+        assert emb_tsne.shape == (len(df), 2)
+
+        # 3. UMAP missing fallback warning
+        import builtins
+
+        real_import = builtins.__import__
+
+        def block_umap(name, *args, **kwargs):
+            if name == "umap":
+                raise ImportError("mock no umap")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", block_umap)
+        with pytest.warns(UserWarning, match="UMAP embedding requires"):
+            emb_umap_fb, label_umap_fb = _embed_2d(scores, method="umap")
+        assert label_umap_fb == "PCA"
+
+        # 3b. UMAP success path
+        import sys
+        import types
+        from unittest.mock import MagicMock
+
+        monkeypatch.undo()
+        mock_umap = types.ModuleType("umap")
+        mock_umap_inst = MagicMock()
+        mock_umap_inst.fit_transform.return_value = np.zeros((len(df), 2))
+        mock_umap.UMAP = MagicMock(return_value=mock_umap_inst)
+        monkeypatch.setitem(sys.modules, "umap", mock_umap)
+        emb_umap, label_umap = _embed_2d(scores, method="umap")
+        assert label_umap == "UMAP"
+        assert emb_umap.shape == (len(df), 2)
+
+        # 4. plot_batch_effects with embedding='tsne' and custom title
+        monkeypatch.undo()
+        res = compute_batch_effects(df, batch, permutations=10, no_combat=True)
+        fig_tsne = plot_batch_effects(res, embedding="tsne", title="My Batch Title")
+        assert isinstance(fig_tsne, plt.Figure)
+        plt.close(fig_tsne)

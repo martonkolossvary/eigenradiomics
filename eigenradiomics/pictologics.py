@@ -30,7 +30,7 @@ def _split_pictologics_name(
     for prefix in observer_prefixes:
         if name.startswith(prefix):
             observer = prefix
-            base = name[len(prefix):]
+            base = name[len(prefix) :]
             break
     if "__" in base:
         config, feature_key = base.split("__", 1)
@@ -83,7 +83,7 @@ def split_observer_tables(
         if not cols:
             raise ValueError(f"no columns found for observer prefix {prefix!r}.")
         sub = table[cols].copy()
-        sub.columns = [c[len(prefix):] for c in cols]
+        sub.columns = [c[len(prefix) :] for c in cols]
         if index is not None:
             sub.index = index
         tables.append(sub)

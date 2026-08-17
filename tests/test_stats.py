@@ -54,6 +54,12 @@ class TestIcc:
         lo, hi = _bootstrap_icc_ci(Y, "f", iterations=50)
         assert np.isnan(lo) and np.isnan(hi)
 
+    def test_bootstrap_with_precomputed_indices(self) -> None:
+        Y = np.array([[9.0, 8.0], [7.0, 7.0], [5.0, 4.0], [3.0, 3.0]])
+        indices = np.array([[0, 1, 2, 3], [1, 2, 3, 0]])
+        lo, hi = _bootstrap_icc_ci(Y, "f", iterations=2, bootstrap_indices=indices)
+        assert not np.isnan(lo) and not np.isnan(hi)
+
 
 class TestFisherCi:
     def test_small_n(self) -> None:

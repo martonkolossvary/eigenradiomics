@@ -198,6 +198,20 @@ def main() -> None:
     fig.savefig(OUT / "03_cornerstone_heatmap.png", dpi=150, bbox_inches="tight")
     print(f"7. visualize: cornerstone heatmap written to {OUT / '03_cornerstone_heatmap.png'}")
 
+    # ----------------------------------------------------------------------
+    # 8. Catalog enrichment & Longitudinal response tracking
+    # ----------------------------------------------------------------------
+    enrich = reducer.get_catalog_enrichment(catalog, columns=["family", "family_group"])
+    print(f"8. enrichment: evaluated {len(enrich)} module-family pairs; "
+          f"{int((enrich['fdr_q_value'] < 0.05).sum())} significant at FDR < 0.05.")
+
+    # Simulate paired follow-up scan
+    X_followup = X + RNG.standard_normal(X.shape) * 0.2
+    paired = reducer.transform_paired(X, X_followup, relative=True, compute_distance=True)
+    wide_paired = paired.to_dataframe(prefix_mode="suffix")
+    print(f"   longitudinal: paired analysis produced {wide_paired.shape[1]} trajectory columns "
+          f"for {len(wide_paired)} patients.")
+
 
 if __name__ == "__main__":
     main()

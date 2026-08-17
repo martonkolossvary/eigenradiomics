@@ -6,7 +6,7 @@ import warnings
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from eigenradiomics.catalog import FeatureCatalog
@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch
 from matplotlib.ticker import MaxNLocator
@@ -335,14 +336,13 @@ def plot_clustered_heatmap(
     # 4. Lay out the panels (rows: top strips, heatmap, bottom bars, colorbar;
     #    cols: dendro, cluster strip, heatmap, correlation panel, legend).
     corr_ratio = (
-        float(np.clip(0.5 * corr_panel.data.shape[1], 1.4, 4.5))
-        if corr_panel is not None
-        else 0.0
+        float(np.clip(0.5 * corr_panel.data.shape[1], 1.4, 4.5)) if corr_panel is not None else 0.0
     )
     if figsize is None:
         side = float(np.clip(n / 12.0, 6.0, 14.0))
         width = (
-            side + 2.0
+            side
+            + 2.0
             + (2.6 if has_legend else 0.0)
             + (0.1 * side * corr_ratio + 0.6 if corr_panel is not None else 0.0)
         )
@@ -386,8 +386,12 @@ def plot_clustered_heatmap(
     if below_cutoff_color is not None:
         cmap_obj.set_under(below_cutoff_color)
     image = ax_heat.imshow(
-        ordered.to_numpy(), aspect="auto", cmap=cmap_obj,
-        vmin=vmin, vmax=vmax, interpolation="nearest",
+        ordered.to_numpy(),
+        aspect="auto",
+        cmap=cmap_obj,
+        vmin=vmin,
+        vmax=vmax,
+        interpolation="nearest",
     )
     if tick_labels is not None:
         ax_heat.set_yticks(range(n))
@@ -429,9 +433,13 @@ def plot_clustered_heatmap(
         panel = corr_panel.data.reindex(order_names)
         ax_corr = fig.add_subplot(grid[heat_row, col["corr"]])
         corr_image = ax_corr.imshow(
-            panel.to_numpy(dtype=float), aspect="auto", cmap=corr_panel.cmap,
-            vmin=corr_panel.vmin, vmax=corr_panel.vmax,
-            interpolation="nearest", origin="upper",
+            panel.to_numpy(dtype=float),
+            aspect="auto",
+            cmap=corr_panel.cmap,
+            vmin=corr_panel.vmin,
+            vmax=corr_panel.vmax,
+            interpolation="nearest",
+            origin="upper",
         )
         ax_corr.set_yticks([])
         ax_corr.set_xticks(range(panel.shape[1]))
@@ -449,8 +457,12 @@ def plot_clustered_heatmap(
     if draw_dendro:
         ax_dendro = fig.add_subplot(grid[heat_row, col["dendro"]])
         dendrogram(
-            np.asarray(linkage), orientation="left", no_labels=True,
-            ax=ax_dendro, color_threshold=0, above_threshold_color="#555555",
+            np.asarray(linkage),
+            orientation="left",
+            no_labels=True,
+            ax=ax_dendro,
+            color_threshold=0,
+            above_threshold_color="#555555",
         )
         ax_dendro.set_ylim(10.0 * n, 0.0)
         ax_dendro.set_xticks([])
@@ -473,7 +485,8 @@ def plot_clustered_heatmap(
     # 10. Right-edge stacked legend column (one titled block per categorical track).
     if has_legend:
         legend_gs = grid[:, col["legend"]].subgridspec(
-            len(legend_blocks), 1,
+            len(legend_blocks),
+            1,
             height_ratios=[len(block_map) + 1.5 for _, block_map in legend_blocks],
         )
         for block_index, (block_title, color_map) in enumerate(legend_blocks):
@@ -483,8 +496,13 @@ def plot_clustered_heatmap(
                 for category, color in color_map.items()
             ]
             ax_legend.legend(
-                handles=handles, title=block_title, loc="center left",
-                frameon=False, fontsize=7, title_fontsize=8, handlelength=1.0,
+                handles=handles,
+                title=block_title,
+                loc="center left",
+                frameon=False,
+                fontsize=7,
+                title_fontsize=8,
+                handlelength=1.0,
             )
             ax_legend.axis("off")
 
@@ -541,6 +559,7 @@ def plot_hub_significance(
     from scipy import stats
 
     from eigenradiomics._plotting import apply_science_style
+
     apply_science_style()
 
     # Align inputs
@@ -553,9 +572,7 @@ def plot_hub_significance(
     k_me_series = k_me_series.loc[common_idx]
     sig_series = feature_significance.loc[common_idx]
 
-    lbl_series = (
-        pd.Series(cluster_labels) if isinstance(cluster_labels, dict) else cluster_labels
-    )
+    lbl_series = pd.Series(cluster_labels) if isinstance(cluster_labels, dict) else cluster_labels
     lbl_series = lbl_series.reindex(common_idx)
 
     fig, ax = plt.subplots(figsize=(6, 5), layout="constrained")
@@ -573,7 +590,7 @@ def plot_hub_significance(
         alpha=0.85,
         label=f"In Module ({target_cluster})",
         edgecolors="#1E293B",
-        linewidths=0.5
+        linewidths=0.5,
     )
 
     # Outside target: open triangles, dark slate
@@ -586,7 +603,7 @@ def plot_hub_significance(
         alpha=0.6,
         label="Out of Module",
         edgecolors="#94A3B8",
-        linewidths=0.8
+        linewidths=0.8,
     )
 
     # Label top hubs
@@ -605,19 +622,20 @@ def plot_hub_significance(
             fontsize=8,
             fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.8, ec="0.7"),
-            arrowprops=dict(arrowstyle="->", color="#333333", lw=0.6)
+            arrowprops=dict(arrowstyle="->", color="#333333", lw=0.6),
         )
 
     # Calculate correlation metric for the module
     if len(k_me_series[in_target]) > 1:
         r, p = stats.spearmanr(k_me_series[in_target], sig_series[in_target])
         ax.text(
-            0.05, 0.95,
+            0.05,
+            0.95,
             f"Module Hub-Significance:\np = {r:.2f} (p = {p:.1e})",
             transform=ax.transAxes,
             fontsize=9,
             verticalalignment="top",
-            bbox=dict(boxstyle="square", fc="white", alpha=0.9, ec="0.8")
+            bbox=dict(boxstyle="square", fc="white", alpha=0.9, ec="0.8"),
         )
 
     ax.set_xlabel(f"Module Membership ($k_{{ME}}$) for {target_cluster}", fontsize=11)
@@ -685,6 +703,7 @@ def plot_eigengene_profiles(
     from scipy import stats
 
     from eigenradiomics._plotting import apply_science_style
+
     apply_science_style()
 
     # Align data
@@ -699,10 +718,7 @@ def plot_eigengene_profiles(
 
     # Detect if trait is discrete/categorical vs continuous
     unique_vals = np.unique(x_vals[~pd.isna(x_vals)])
-    is_categorical = (
-        isinstance(unique_vals[0], (str, bool))
-        or len(unique_vals) <= 6
-    )
+    is_categorical = isinstance(unique_vals[0], (str, bool)) or len(unique_vals) <= 6
 
     fig, ax = plt.subplots(figsize=(6, 4.5), layout="constrained")
 
@@ -710,14 +726,14 @@ def plot_eigengene_profiles(
         categories = sorted(list(unique_vals))
         groups_data = [y_vals[x_vals == cat] for cat in categories]
 
-        colors = EIGEN_VIBRANT[:len(categories)]
-        hatches = ["", "//", "\\\\", "xx", ".."][:len(categories)]
+        colors = EIGEN_VIBRANT[: len(categories)]
+        hatches = ["", "//", "\\\\", "xx", ".."][: len(categories)]
 
         box = ax.boxplot(
             groups_data,
             patch_artist=True,
             medianprops=dict(color="black", linewidth=1.5),
-            boxprops=dict(linewidth=1.0)
+            boxprops=dict(linewidth=1.0),
         )
 
         for b_patch, color, hatch in zip(box["boxes"], colors, hatches, strict=False):
@@ -733,7 +749,7 @@ def plot_eigengene_profiles(
                 color="#1E293B",
                 alpha=0.4,
                 s=15,
-                edgecolors="none"
+                edgecolors="none",
             )
 
         ax.set_xticks(range(1, len(categories) + 1))
@@ -752,7 +768,7 @@ def plot_eigengene_profiles(
             s=25,
             edgecolors="#1E293B",
             alpha=0.7,
-            label="Patients"
+            label="Patients",
         )
 
         slope, intercept, r_val, p_val, _ = stats.linregress(x_clean, y_clean)
@@ -765,16 +781,17 @@ def plot_eigengene_profiles(
             color="#F43F5E",  # Vibrant Rose/Coral (Brand Signature)
             linestyle="--",
             linewidth=1.5,
-            label="Linear Fit"
+            label="Linear Fit",
         )
 
         ax.text(
-            0.05, 0.95,
+            0.05,
+            0.95,
             f"Fit Summary:\nr = {r_val:.2f}\np = {p_val:.1e}",
             transform=ax.transAxes,
             fontsize=9.5,
             verticalalignment="top",
-            bbox=dict(boxstyle="round", fc="white", alpha=0.9, ec="0.8")
+            bbox=dict(boxstyle="round", fc="white", alpha=0.9, ec="0.8"),
         )
         ax.set_xlabel(trait_name, fontsize=11)
         ax.legend(loc="lower right", frameon=True, facecolor="white", edgecolor="0.8")
@@ -837,6 +854,7 @@ def plot_batch_distributions(
     from scipy import stats
 
     from eigenradiomics._plotting import apply_science_style
+
     apply_science_style()
 
     if isinstance(X_before, pd.DataFrame):
@@ -1147,12 +1165,12 @@ def plot_reproducibility_synteny(
     # Annotate catalog
     if catalog is not None:
         from eigenradiomics.feature_models import _annotate_catalog
+
         df = _annotate_catalog(df, catalog)
         from eigenradiomics.catalog import FeatureCatalog
+
         cat_frame = (
-            catalog.frame
-            if isinstance(catalog, FeatureCatalog)
-            else FeatureCatalog(catalog).frame
+            catalog.frame if isinstance(catalog, FeatureCatalog) else FeatureCatalog(catalog).frame
         )
         disc_cols = [
             c for c in ("is_discretised", "discretisation_param") if c in cat_frame.columns
@@ -1318,10 +1336,16 @@ def plot_reproducibility_synteny(
     # Plot Setup. Skip global styling when drawing into a caller-supplied axis
     # (the caller has already applied the style) to avoid redundant rcParam churn.
     from eigenradiomics._plotting import apply_science_style
+
     if ax is None:
         apply_science_style()
 
     is_custom_ax = ax is not None
+    main_ax: Axes
+    ax_leg_cutoffs: Axes | None = None
+    ax_leg_families: Axes | None = None
+    ax_leg_discs: Axes | None = None
+
     if not is_custom_ax:
         if figsize is None:
             figsize = (11.0, 4.8)  # Compact landscape by default
@@ -1329,7 +1353,7 @@ def plot_reproducibility_synteny(
         if show_legend:
             # GridSpec: top for main plot, bottom for legend area
             gs = fig.add_gridspec(2, 1, height_ratios=[2.0, 0.8], hspace=0.1)
-            ax = fig.add_subplot(gs[0, 0])
+            main_ax = fig.add_subplot(gs[0, 0])
             # Partitioned Sub-Gridspec for separate legends (symmetric equal width ratios)
             gs_leg = gs[1, 0].subgridspec(1, 3)
             ax_leg_cutoffs = fig.add_subplot(gs_leg[0, 0])
@@ -1337,10 +1361,11 @@ def plot_reproducibility_synteny(
             ax_leg_discs = fig.add_subplot(gs_leg[0, 2])
         else:
             gs = fig.add_gridspec(1, 1)
-            ax = fig.add_subplot(gs[0, 0])
-            ax_leg_cutoffs = ax_leg_families = ax_leg_discs = None
+            main_ax = fig.add_subplot(gs[0, 0])
     else:
-        fig = ax.figure
+        assert ax is not None
+        main_ax = ax
+        fig = cast(plt.Figure, ax.figure)
         if show_legend:
             if legend_axes is None or len(legend_axes) != 3:
                 raise ValueError(
@@ -1348,8 +1373,6 @@ def plot_reproducibility_synteny(
                     "show_legend=True to plot_reproducibility_synteny"
                 )
             ax_leg_cutoffs, ax_leg_families, ax_leg_discs = legend_axes
-        else:
-            ax_leg_cutoffs = ax_leg_families = ax_leg_discs = None
 
     # Draw lines and ribbons
     df["_y"] = n - 1 - np.arange(n)
@@ -1368,10 +1391,11 @@ def plot_reproducibility_synteny(
             lw = lw_list[cat_idx]
             alpha = 0.4 + 0.4 * (cat_idx / (num_categories - 1)) if num_categories > 1 else 0.8
 
-        ax.plot([0, 1], [y, y], color=color, alpha=alpha, lw=lw, linestyle="-", zorder=1)
+        main_ax.plot([0, 1], [y, y], color=color, alpha=alpha, lw=lw, linestyle="-", zorder=1)
 
     # Calculate ribbon coordinates dynamically to avoid gaps
     from matplotlib.patches import Rectangle
+
     left_edge = 0.0
     right_edge = 1.0
 
@@ -1386,16 +1410,26 @@ def plot_reproducibility_synteny(
             if not grp_idx.empty:
                 y_min = grp_idx.min() - 0.51
                 y_max = grp_idx.max() + 0.51
-                ax.add_patch(
+                main_ax.add_patch(
                     Rectangle(
-                        (w_l, y_min), 0.03, y_max - y_min,
-                        color=group_colors[grp], alpha=0.8, ec="none", zorder=2,
+                        (w_l, y_min),
+                        0.03,
+                        y_max - y_min,
+                        color=group_colors[grp],
+                        alpha=0.8,
+                        ec="none",
+                        zorder=2,
                     )
                 )
-                ax.add_patch(
+                main_ax.add_patch(
                     Rectangle(
-                        (w_r, y_min), 0.03, y_max - y_min,
-                        color=group_colors[grp], alpha=0.8, ec="none", zorder=2,
+                        (w_r, y_min),
+                        0.03,
+                        y_max - y_min,
+                        color=group_colors[grp],
+                        alpha=0.8,
+                        ec="none",
+                        zorder=2,
                     )
                 )
 
@@ -1409,33 +1443,37 @@ def plot_reproducibility_synteny(
             y = row["_y"]
             label = row["_disc_label"]
             col = disc_colors.get(label, "#E0E0E0")
-            ax.add_patch(Rectangle((w_l, y - 0.51), 0.03, 1.02, color=col, ec="none", zorder=2))
-            ax.add_patch(Rectangle((w_r, y - 0.51), 0.03, 1.02, color=col, ec="none", zorder=2))
+            main_ax.add_patch(
+                Rectangle((w_l, y - 0.51), 0.03, 1.02, color=col, ec="none", zorder=2)
+            )
+            main_ax.add_patch(
+                Rectangle((w_r, y - 0.51), 0.03, 1.02, color=col, ec="none", zorder=2)
+            )
 
     # Axis decoration based on dynamic bounds
-    ax.set_xlim(left_edge - 0.02, right_edge + 0.02)
-    ax.set_ylim(-0.5, n - 0.5)
+    main_ax.set_xlim(left_edge - 0.02, right_edge + 0.02)
+    main_ax.set_ylim(-0.5, n - 0.5)
 
     if n <= 50:
         ticks = np.arange(n)
         labels = df["feature"].values[::-1]
-        ax.set_yticks(ticks)
-        ax.set_yticklabels(labels, fontsize=8)
-        ax2 = ax.twinx()
-        ax2.set_ylim(ax.get_ylim())
+        main_ax.set_yticks(ticks)
+        main_ax.set_yticklabels(labels, fontsize=8)
+        ax2 = main_ax.twinx()
+        ax2.set_ylim(main_ax.get_ylim())
         ax2.set_yticks(ticks)
         ax2.set_yticklabels(labels, fontsize=8)
     else:
-        ax.set_yticks([])
-        ax2 = ax.twinx()
+        main_ax.set_yticks([])
+        ax2 = main_ax.twinx()
         ax2.set_yticks([])
 
-    ax.set_xticks([0, 1])
-    ax.set_xticklabels(observer_labels, fontsize=10, weight="bold")
+    main_ax.set_xticks([0, 1])
+    main_ax.set_xticklabels(observer_labels, fontsize=10, weight="bold")
 
-    for spine in ax.spines.values():
+    for spine in main_ax.spines.values():
         spine.set_visible(False)
-    if 'ax2' in locals():
+    if "ax2" in locals():
         for spine in ax2.spines.values():
             spine.set_visible(False)
 
@@ -1458,8 +1496,12 @@ def plot_reproducibility_synteny(
     if num_categories == 1:
         cutoff_handles.append(
             Line2D(
-                [0], [0], color=colors_list[0], lw=lw_list[0],
-                linestyle="-", label=metric_label,
+                [0],
+                [0],
+                color=colors_list[0],
+                lw=lw_list[0],
+                linestyle="-",
+                label=metric_label,
             )
         )
     else:
@@ -1467,9 +1509,9 @@ def plot_reproducibility_synteny(
             color = colors_list[i]
             lw = lw_list[i]
             if i == num_categories - 1:
-                lbl = f"{metric_label} ≥ {thresholds_list[i-1]:.2g}"
+                lbl = f"{metric_label} ≥ {thresholds_list[i - 1]:.2g}"
             elif i > 0:
-                lbl = f"{thresholds_list[i-1]:.2g} ≤ {metric_label} < {thresholds_list[i]:.2g}"
+                lbl = f"{thresholds_list[i - 1]:.2g} ≤ {metric_label} < {thresholds_list[i]:.2g}"
             else:
                 lbl = f"{metric_label} < {thresholds_list[0]:.2g}"
             cutoff_handles.append(Line2D([0], [0], color=color, lw=lw, linestyle="-", label=lbl))
@@ -1494,7 +1536,12 @@ def plot_reproducibility_synteny(
                 )
                 disc_handles.append(Patch(facecolor=col, edgecolor="0.3", label=lbl))
 
-    if show_legend:
+    if (
+        show_legend
+        and ax_leg_cutoffs is not None
+        and ax_leg_families is not None
+        and ax_leg_discs is not None
+    ):
         # Column 1: Cut-offs
         ax_leg_cutoffs.axis("off")
         ax_leg_cutoffs.legend(

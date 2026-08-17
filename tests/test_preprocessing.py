@@ -260,9 +260,7 @@ class TestRadiomicsFeatureSelection:
     def test_invalid_catalog_schema_raises(self, pictologics_table: pd.DataFrame) -> None:
         catalog = pd.DataFrame({"name": ["volume_RNU0"]})
         with pytest.raises(ValueError, match="Feature catalog must contain"):
-            RadiomicsFeatureRemover(families="morphology", catalog=catalog).fit(
-                pictologics_table
-            )
+            RadiomicsFeatureRemover(families="morphology", catalog=catalog).fit(pictologics_table)
 
     def test_catalog_missing_family_column_raises(
         self,
@@ -276,9 +274,7 @@ class TestRadiomicsFeatureSelection:
             }
         )
         with pytest.raises(ValueError, match="require a `family` column"):
-            RadiomicsFeatureRemover(families="morphology", catalog=catalog).fit(
-                pictologics_table
-            )
+            RadiomicsFeatureRemover(families="morphology", catalog=catalog).fit(pictologics_table)
 
     def test_catalog_missing_family_group_column_raises(
         self,
@@ -320,8 +316,10 @@ class TestRadiomicsFeatureRemover:
         self,
         pictologics_table: pd.DataFrame,
     ) -> None:
-        split = RadiomicsFeatureRemover(features="volume_RNU0").fit(pictologics_table).split(
-            pictologics_table
+        split = (
+            RadiomicsFeatureRemover(features="volume_RNU0")
+            .fit(pictologics_table)
+            .split(pictologics_table)
         )
         assert isinstance(split.removed_table, pd.DataFrame)
         assert list(split.removed_table.columns) == [
@@ -333,10 +331,14 @@ class TestRadiomicsFeatureRemover:
         assert split.metadata_columns == ("PatientID", "Timepoint")
 
     def test_explicit_metadata_columns(self, pictologics_table: pd.DataFrame) -> None:
-        split = RadiomicsFeatureRemover(
-            features="volume_RNU0",
-            metadata_columns=["PatientID"],
-        ).fit(pictologics_table).split(pictologics_table)
+        split = (
+            RadiomicsFeatureRemover(
+                features="volume_RNU0",
+                metadata_columns=["PatientID"],
+            )
+            .fit(pictologics_table)
+            .split(pictologics_table)
+        )
         assert list(split.removed_table.columns) == [
             "PatientID",
             "standard_fbn_8__volume_RNU0",
@@ -401,10 +403,14 @@ class TestRadiomicsFeatureRemover:
             ).fit(pictologics_table)
 
     def test_metadata_columns_none(self, pictologics_table: pd.DataFrame) -> None:
-        split = RadiomicsFeatureRemover(
-            features="volume_RNU0",
-            metadata_columns=None,
-        ).fit(pictologics_table).split(pictologics_table)
+        split = (
+            RadiomicsFeatureRemover(
+                features="volume_RNU0",
+                metadata_columns=None,
+            )
+            .fit(pictologics_table)
+            .split(pictologics_table)
+        )
         assert split.metadata_columns == ()
         assert list(split.removed_table.columns) == [
             "standard_fbn_8__volume_RNU0",
@@ -540,9 +546,7 @@ class TestRadiomicsPrepTransformer:
             pt.transform(df[["a"]])
 
     def test_nan_preserved_and_dataframe_returned(self) -> None:
-        df = pd.DataFrame(
-            {"a": [1.0, np.nan, 3.0, 4.0, 5.0], "b": [5.0, 4.0, 3.0, 2.0, 1.0]}
-        )
+        df = pd.DataFrame({"a": [1.0, np.nan, 3.0, 4.0, 5.0], "b": [5.0, 4.0, 3.0, 2.0, 1.0]})
         out = RadiomicsPrepTransformer().fit_transform(df)
         assert isinstance(out, pd.DataFrame)
         assert np.isnan(out.iloc[1, 0])
@@ -600,3 +604,10 @@ class TestRadiomicsPrepTransformer:
         prep = RadiomicsPrepTransformer()
         assert prep._get_tags()["allow_nan"] is True
         assert prep.__sklearn_tags__().input_tags.allow_nan is True
+
+    def test_get_feature_columns_fast_path(self) -> None:
+        from eigenradiomics._features import resolve_analysis_features
+
+        df = pd.DataFrame({"feat1": [1, 2], "feat2": [3, 4], "meta": ["a", "b"]})
+        cols = resolve_analysis_features(df, features=["feat1", "feat2"])
+        np.testing.assert_array_equal(cols, np.array(["feat1", "feat2"]))

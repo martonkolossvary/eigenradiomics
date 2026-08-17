@@ -34,6 +34,7 @@ def _eig_traits(n: int = 60):
     )
     return eig, traits
 
+
 # ---- encode_clinical_series ----------------------------------------------
 
 

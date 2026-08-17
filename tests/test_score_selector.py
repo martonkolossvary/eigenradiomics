@@ -12,9 +12,7 @@ from eigenradiomics import FeatureScoreSelector, RadiomicsPrepTransformer
 
 def _X() -> pd.DataFrame:
     rng = np.random.default_rng(0)
-    return pd.DataFrame(
-        rng.standard_normal((12, 4)), columns=["f0", "f1", "f2", "f3"]
-    )
+    return pd.DataFrame(rng.standard_normal((12, 4)), columns=["f0", "f1", "f2", "f3"])
 
 
 def test_keep_above_from_dataframe_scores():

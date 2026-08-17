@@ -4,67 +4,131 @@
 
 This is particularly critical when working with high-dimensional radiomic feature tables, such as those produced by [Pictologics](https://github.com/martonkolossvary/pictologics), where hundreds or thousands of correlated features must be distilled into a tractable set of components for downstream predictive modelling.
 
+---
+
 ## Unified Reducer Contract
 
 While different algorithms operate under distinct statistical assumptions, all reducers in this package adhere to a shared set of guarantees:
 
-1. **Dense Matrices**: All methods operate on dense NumPy backends. Sparse data arrays are rejected by default.
-2. **Prior Scaling**: Dimensionality reduction models are vulnerable to unit-variance skew. Continuous features should be \(z\)-scored (standard scaled) *prior* to passing to a reducer.
-3. **Reproducible Loadings**: Every reducer fits and caches its internal parameters (e.g., eigenvector bases, singular value loadings, module membership) during `.fit()`. This ensures that `.transform()` on new data produces deterministic, mathematically equivalent mappings without re-computing the reduction, strictly preventing data leakage.
-4. **Inverse Transform**: Where mathematically supported, reducers implement `.inverse_transform()` to project from the reduced subspace back to the original feature space. This enables reconstruction error analysis and intrinsic goodness-of-fit evaluation during hyperparameter tuning.
-5. **Full Parameter Exposure**: Every hyperparameter of a given reducer is exposed through the standard `get_params()` / `set_params()` interface. This allows seamless integration with scikit-learn hyperparameter tuning frameworks such as `GridSearchCV` and `RandomizedSearchCV`.
+1. **Dense Matrices**: All methods operate on dense NumPy backends.
+2. **Prior Scaling**: Dimensionality reduction models are sensitive to scale differences. Continuous features should be preprocessed (winsorized, power-transformed, and \(z\)-scored) prior to passing to a reducer.
+3. **Reproducible Loadings & No Leakage**: Inductive reducers fit and cache internal parameters (e.g., eigenvector bases, singular value loadings, module assignments) during `.fit()`. This ensures that `.transform()` on new data produces deterministic mappings without re-computing the reduction, strictly preventing data leakage.
+4. **Inverse Transform**: Where mathematically supported, reducers implement `.inverse_transform()` to project from the reduced subspace back to the original feature space.
+5. **Full Parameter Exposure**: Every hyperparameter is exposed through the standard `get_params()` / `set_params()` interface for `GridSearchCV` and `Pipeline` compatibility.
 
-## Hyperparameter Optimization
+---
 
-Because reducers are unsupervised, their parameters are tuned either by downstream
-supervised evaluation in a `Pipeline`, by an intrinsic unsupervised score
-(reconstruction error, silhouette), or by tracking both with a multi-metric
-`GridSearchCV`. The [Pipelines & Grid Search](../user_guide/pipelines_and_grid_search.md)
-guide is the single home for those strategies with worked examples.
+## Inductive vs. Transductive Reducers
 
-## Output Nomenclature
+Reducers are categorized based on their ability to project out-of-sample data:
 
-For straightforward traceability in downstream coefficient tables or hyperparameter search results, reduced features receive synthetic names scoped by the algorithm:
+* **Inductive Reducers** (`WGCNAReducer`, `PCAReducer`, `SparsePCAReducer`, `UMAPReducer`, `IsomapReducer`, `LLEReducer`): Learn parametric or kernel projection operators during `fit()` and can project unseen samples via `transform()` and `transform_paired()`.
+* **Transductive Reducers** (`TSNEReducer`, `MDSReducer`, `SpectralReducer`): Optimize low-dimensional coordinates directly for the training set and do not support out-of-sample transformation. Calling `transform()` or `transform_paired()` raises an informative `NotImplementedError`.
 
-- WGCNA modules → `wgcna_0`, `wgcna_1`, `wgcna_2`, ...
-- Future reducers → `pca_0`, `nmf_0`, etc.
+---
 
-These names are returned by `get_feature_names_out()` and are propagated through scikit-learn pipelines automatically.
+## Longitudinal & Paired Analysis (`transform_paired`)
+
+Longitudinal imaging studies require comparing baseline ($X_{\text{pre}}$) and follow-up ($X_{\text{post}}$) feature spaces without recalculating latent embeddings. All inductive reducers implement `transform_paired()` on `BaseReducer`:
+
+```mermaid
+flowchart LR
+    subgraph Inputs ["Input Scans"]
+        X_PRE["Baseline Scans X_pre"]
+        X_POST["Follow-Up Scans X_post"]
+    end
+
+    subgraph Align ["Alignment & Validation"]
+        ALIGN{"Index Alignment<br/>common_idx"}
+    end
+
+    subgraph Reducer ["Inductive Reducer (Fitted)"]
+        TRANSFORM["transform(X) using fixed loadings"]
+    end
+
+    subgraph Output ["PairedReductionResult"]
+        BASE["baseline (ME_pre)"]
+        POST["followup (ME_post)"]
+        DELTA["delta (Δ = post - pre)"]
+        REL["relative_change (Δ / |pre|)"]
+        DIST["trajectory_distance (||Δ||_2)"]
+        EFF["effect_size (Cohen's d)"]
+    end
+
+    X_PRE --> ALIGN
+    X_POST --> ALIGN
+    ALIGN --> TRANSFORM
+    TRANSFORM --> BASE
+    TRANSFORM --> POST
+    BASE & POST --> DELTA
+    DELTA --> REL
+    DELTA --> DIST
+    DELTA --> EFF
+```
+
+### Example: Paired Treatment Response
+
+```python
+from eigenradiomics import PCAReducer, WGCNAReducer
+
+# Fit inductive reducer on baseline scans
+reducer = WGCNAReducer(soft_power=6, min_module_size=20)
+reducer.fit(X_baseline_df)
+
+# Compute paired longitudinal trajectory metrics
+paired = reducer.transform_paired(
+    X_pre=X_baseline_df,
+    X_post=X_followup_df,
+    relative=True,
+    compute_distance=True,
+)
+
+# Extract aligned metrics
+print(paired.delta.head())              # Latent shifts per module
+print(paired.trajectory_distance.head()) # Overall Euclidean trajectory length
+print(paired.effect_size)                # Cohen's d per module
+
+# Merge into a single wide table for survival / classification models:
+wide_df = paired.to_dataframe(prefix_mode="suffix")
+print(wide_df.columns)
+# -> ['wgcna_0_baseline', 'wgcna_0_followup', 'wgcna_0_delta', 'wgcna_0_relative_change', 'trajectory_distance']
+```
+
+---
 
 ## Reduction Artifacts
 
-Beyond the transformed matrix, a reducer can expose **structured intermediate
-outputs** for downstream plotting and analysis through one uniform interface:
+Beyond the transformed matrix, a reducer can expose **structured intermediate outputs** for downstream plotting and analysis through one uniform interface:
 
 ```python
 artifacts = reducer.get_reduction_artifacts()
-artifacts.available()    # e.g. ['similarity', 'linkage', 'cluster_labels',
-                         #       'feature_order', 'feature_importances']
+artifacts.available()    # ['similarity', 'linkage', 'cluster_labels', 'feature_order', 'feature_importances']
 artifacts.similarity     # feature × feature DataFrame, or None
 ```
 
-Each reducer populates whichever elements it can produce and leaves the rest as
-`None`, so a method that only estimates a similarity matrix and one that also
-assigns clusters both feed the same `ReductionArtifacts` container — and the
-same downstream code (clustered heatmaps, exports, analysis).
-
 | Element | Meaning |
 |---------|---------|
-| `feature_names` | input feature names (always present) |
-| `similarity` | symmetric feature × feature similarity (e.g. WGCNA TOM) |
+| `feature_names` | Input feature names (always present) |
+| `similarity` | Symmetric feature × feature similarity (e.g. WGCNA TOM) |
 | `linkage` | SciPy hierarchical-clustering linkage matrix |
-| `cluster_labels` | per-feature cluster / module label |
-| `feature_order` | features in a meaningful display order (e.g. dendrogram leaves) |
-| `feature_importances` | per-feature contribution to the reduction |
+| `cluster_labels` | Per-feature cluster / module label |
+| `feature_order` | Features in a meaningful display order (e.g. dendrogram leaves) |
+| `feature_importances` | Per-feature contribution to the reduction |
 
-`WGCNAReducer` populates all of these (`similarity`/TOM requires
-`store_tom=True`). [`plot_clustered_heatmap`](../user_guide/clustered_heatmap.md)
-consumes a `ReductionArtifacts` directly.
+---
 
-## Currently Implemented Reducers
+## Reducers Directory
 
-| Reducer | Technique | Reference |
-|---------|-----------|-----------|
-| [`WGCNAReducer`](wgcna.md) | Weighted Gene Co-expression Network Analysis | [Langfelder & Horvath, 2008](https://pubmed.ncbi.nlm.nih.gov/19114008/); [PyWGCNA](https://pubmed.ncbi.nlm.nih.gov/37399090/) |
-| [`PCAReducer`](pca.md) | Principal Component Analysis (PCA) | [Pearson, 1901](https://doi.org/10.1080/14786440109462720); scikit-learn |
-| [`SparsePCAReducer`](pca.md) | Sparse Principal Component Analysis | [Zou et al., 2006](https://doi.org/10.1198/106186006X113430); scikit-learn |
+| Reducer | Category | Description |
+| :--- | :--- | :--- |
+| [`WGCNAReducer`](wgcna.md) | Inductive | Weighted Gene Co-expression Network Analysis with missingness & sign alignment. |
+| [`PCAReducer`](pca.md) | Inductive | Standard linear Principal Component Analysis with full reconstruction support. |
+| [`SparsePCAReducer`](pca.md) | Inductive | Sparse PCA with $L_1$ penalty yielding sparse, interpretable loadings. |
+| [`UMAPReducer`](../user_guide/embeddings.md) | Inductive | Uniform Manifold Approximation and Projection for non-linear manifold learning. |
+| [`IsomapReducer`](../user_guide/embeddings.md) | Inductive | Isometric feature mapping preserving geodesic manifold distances. |
+| [`LLEReducer`](../user_guide/embeddings.md) | Inductive | Locally Linear Embedding preserving local neighborhood geometries. |
+| [`PaCMAPReducer`](../user_guide/embeddings.md) | Inductive | Pairwise Controlled Manifold Approximation preserving local & global structure. |
+| [`TriMAPReducer`](../user_guide/embeddings.md) | Inductive | Triplet-based dimensionality reduction preserving global topology. |
+| [`TSNEReducer`](../user_guide/embeddings.md) | Transductive | t-Distributed Stochastic Neighbor Embedding for visualization. |
+| [`MDSReducer`](../user_guide/embeddings.md) | Transductive | Multidimensional Scaling on pairwise Euclidean distances. |
+| [`SpectralReducer`](../user_guide/embeddings.md) | Transductive | Spectral graph embedding using normalized graph Laplacians. |

@@ -2,18 +2,21 @@
 
 The reducer turns a wide feature matrix into a handful of **module eigengenes**.
 This page shows how to take those eigengenes (and the reduction artifacts) into
-statistical analysis: module–trait associations, QC-driven feature selection,
-and leakage-safe modelling.
+statistical analysis: module–trait associations, over-representation analysis,
+QC-driven feature selection, and leakage-safe modelling.
 
 ```mermaid
 flowchart LR
     P[Pipeline<br/>prep · select · reduce] --> Y[Module eigengenes<br/>n_samples × n_modules]
     Y --> MT[compute_module_trait_associations<br/>r · p · FDR]
     Y --> M[Your model<br/>GroupKFold via dataset.groups]
+    P --> ORA[get_catalog_enrichment<br/>Fisher ORA · FDR per family]
     QC[(ICC / batch QC)] -.-> S[FeatureScoreSelector] -.-> P
 ```
 
-## Get labeled eigengenes
+---
+
+## Get Labeled Eigengenes
 
 `WGCNAReducer.transform` returns a NumPy array. To carry the **sample index** and
 **eigengene names** (`wgcna_0`, `wgcna_1`, …) into downstream stats, opt into
@@ -28,7 +31,9 @@ eigengenes = reducer.fit_transform(X)            # index = samples, columns = wg
 `set_output(transform="pandas")` works on the whole `Pipeline` too, so the final
 step's output keeps its labels.
 
-## Module–trait relationships
+---
+
+## Module–Trait Relationships
 
 `compute_module_trait_associations` correlates each module eigengene with each
 clinical trait and reports the coefficient, its p-value, and a
@@ -52,6 +57,8 @@ mtr["p_fdr"]   # Benjamini-Hochberg FDR
 `mtr["r"]` (with `mtr["p_fdr"]` for significance) is a compact summary linking the
 reduced space to outcomes.
 
+---
+
 ## Feature Hubness and Module Membership
 
 To identify the central drivers representing each module's holistic co-expression score, use:
@@ -65,7 +72,12 @@ from eigenradiomics import compute_module_membership, identify_hub_features
 k_me = compute_module_membership(X, reducer=reducer)
 
 # Find top hub feature representing each module
-hubs_df = identify_hub_features(X, cluster_labels=reducer.get_reduction_artifacts().cluster_labels, reducer=reducer, top_n=1)
+hubs_df = identify_hub_features(
+    X,
+    cluster_labels=reducer.get_reduction_artifacts().cluster_labels,
+    reducer=reducer,
+    top_n=1,
+)
 print(hubs_df)  # Columns: cluster, feature, k_ME, rank
 ```
 
@@ -76,30 +88,50 @@ from eigenradiomics.plotting import plot_hub_significance
 
 # Plot k_ME vs. raw association strength
 fig = plot_hub_significance(
-    k_me, feature_significance=clinical_assoc,
+    k_me,
+    feature_significance=clinical_assoc,
     cluster_labels=reducer.get_reduction_artifacts().cluster_labels,
     target_cluster="blue",
-    path="accessible_hub_plot.png"
+    path="accessible_hub_plot.png",
 )
 ```
+
+---
 
 ## Radiomics Feature Group Over-Representation Analysis (ORA)
 
-In multi-observer or multi-scale radiomics pipelines, checking if specific modules are clustered by extraction settings, observers, or shape vs. texture feature families is crucial. 
-`compute_group_enrichment` performs a hypergeometric over-representation test (Fisher's Exact) and corrects for multiple testing.
+Over-Representation Analysis determines whether features belonging to a particular functional family, filter class, or anatomical compartment are statistically enriched within discovered co-expression modules.
+
+### Using `reducer.get_catalog_enrichment()`
+
+You can query enrichment directly from a fitted reducer or a [`ReductionArtifacts`](../reducers/index.md#reduction-artifacts):
 
 ```python
-from eigenradiomics import compute_group_enrichment
+from eigenradiomics import FeatureCatalog, WGCNAReducer
 
-# Map each feature key to custom observer or catalog groups
-catalog_family = catalog.annotate(X).set_index("feature")["family"]
+reducer = WGCNAReducer(soft_power=6, min_module_size=20)
+reducer.fit(X_df)
 
-enrichment_df = compute_group_enrichment(
-    cluster_labels=reducer.get_reduction_artifacts().cluster_labels,
-    group_assignments=catalog_family
+catalog = FeatureCatalog.from_preset("ibsi")
+
+# Test enrichment across multiple catalog columns:
+enrichment_df = reducer.get_catalog_enrichment(
+    catalog,
+    columns=["family", "family_group"],
+    method="fisher",         # "fisher" | "chi2" | "hypergeometric"
+    alternative="greater",   # "greater" (enrichment) | "less" (depletion) | "two-sided"
 )
-print(enrichment_df.head()) # Columns: cluster, group, n_overlap, p_value, fdr_q_value, odds_ratio
+print(enrichment_df.head())
 ```
+
+### Statistical Methods & Group-Wise FDR Correction
+
+* **`method="fisher"`** (default): Exact Fisher's test on the $2 \times 2$ contingency table.
+* **`method="hypergeometric"`**: One-tailed hypergeometric test evaluating the probability of observing $\ge k$ overlaps given background population size $M$.
+* **`method="chi2"`**: Fast asymptotic Chi-squared contingency test.
+* **Group-Wise FDR**: When multi-column catalogs are passed, Benjamini-Hochberg FDR correction is applied **strictly per `catalog_column` family**, preserving the independence of separate hypothesis spaces.
+
+---
 
 ## Eigengene Profiles across Target Groups
 
@@ -112,35 +144,40 @@ from eigenradiomics.plotting import plot_eigengene_profiles
 fig_box = plot_eigengene_profiles(eigengenes, dataset.data["Grade"], trait_name="Grade")
 
 # Continuous Scatter (with regression fit line and Pearson r score annotation)
-fig_scatter = plot_eigengene_profiles(eigengenes, dataset.data["SurvivalTime"], trait_name="Survival Days")
+fig_scatter = plot_eigengene_profiles(
+    eigengenes, dataset.data["SurvivalTime"], trait_name="Survival Days"
+)
 ```
 
-## Observer Reproducibility Synteny Plot
+---
 
-To visually compare feature reproducibility (e.g. ICC or correlation) between two observers/readers, you can use the `plot_observer_synteny` function. It displays features along parallel vertical axes with color-coded connection lines representing reproducibility scores.
+## Reproducibility Synteny Plot
+
+To visually compare feature reproducibility (e.g. ICC or correlation) between two observers/readers, you can use `plot_reproducibility_synteny`. It displays features along parallel vertical axes with color-coded connection lines representing reproducibility scores:
 
 ```python
-from eigenradiomics.plotting import plot_observer_synteny
+from eigenradiomics.plotting import plot_reproducibility_synteny
 
-# Plot observer synteny comparison
-fig = plot_observer_synteny(
+fig = plot_reproducibility_synteny(
     reproducibility_results,    # DataFrame from compute_reproducibility
     catalog=catalog,            # FeatureCatalog for family grouping
     metric="icc",               # Inferred metric to plot
     order=custom_order_names,   # Optional custom ordering
-    title="Observer Reproducibility Synteny"
+    title="Reproducibility Synteny",
 )
 ```
 
+---
+
 ## RWAS Manhattan Plot
 
-The Radiomics Wide Association Study (RWAS) Manhattan plot displays association p-values ($-\log_{10}$ p-value) on the vertical axis against features grouped by their family on the horizontal axis. You can also attach categorical strips, numeric bars, or correlation heatmaps underneath.
+The Radiomics Wide Association Study (RWAS) Manhattan plot displays association p-values ($-\log_{10} p$) on the vertical axis against features grouped by their family on the horizontal axis:
 
 ```python
 from eigenradiomics.feature_models import plot_rwas_manhattan
-from eigenradiomics.plotting import Strip, Bar, CorrPanel
+from eigenradiomics.plotting import Bar, CorrPanel, Strip
 
-# Optionally prepare annotation tracks
+# Prepare optional annotation tracks
 strip = Strip(catalog.frame.set_index("feature")["family_group"])
 bar = Bar(repro_results.set_index("feature")["icc"])
 corr_panel = CorrPanel(correlations_df)
@@ -153,26 +190,22 @@ fig = plot_rwas_manhattan(
     strips=[strip],
     bars=[bar],
     corr_panel=corr_panel,
-    title="RWAS Manhattan Plot"
+    title="RWAS Manhattan Plot",
 )
 ```
 
-!!! tip "Per-feature outcome models"
-    To model individual **features** (not module eigengenes) against an outcome —
-    survival, binary, or continuous, with clinical adjustment and repeated-measures
-    handling — and render volcano plots, see
-    [Feature–outcome models & volcano plots](feature_models.md).
+---
 
-## QC-driven feature selection in a Pipeline
-
-Reproducibility and batch QC run *outside* a single-`X` fit (they need multiple
-readers / a batch label). Compute the scores once, then drop weak features inside
-the pipeline with `FeatureScoreSelector` — so selection is part of the fitted,
-leakage-safe transform:
+## QC-Driven Feature Selection in a Pipeline
 
 ```python
-from eigenradiomics import compute_reproducibility, FeatureScoreSelector, WGCNAReducer
 from sklearn.pipeline import Pipeline
+from eigenradiomics import (
+    FeatureScoreSelector,
+    RadiomicsPrepTransformer,
+    WGCNAReducer,
+    compute_reproducibility,
+)
 
 repro = compute_reproducibility([reader1, reader2])          # per-feature ICC
 icc = repro["ICC"]                                            # has 'feature' + 'icc_2_1'
@@ -184,36 +217,25 @@ pipe = Pipeline([
 ]).set_output(transform="pandas")
 ```
 
-The same selector drops **batch-confounded** features — pass a batch-effect size
-column with `keep="below"` (keep features whose effect is small).
+---
 
-## Feeding eigengenes into a model (leakage-safe CV)
-
-A `RadiomicsDataset` carries the target and the grouping needed for leakage-safe
-cross-validation. Use `dataset.groups` (e.g. `PatientID`) with `GroupKFold` so no
-patient appears in both train and test:
+## Feeding Eigengenes into a Model (Leakage-Safe CV)
 
 ```python
-from sklearn.model_selection import cross_val_score, GroupKFold
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GroupKFold, cross_val_score
+from eigenradiomics import WGCNAReducer
 
-X, y = dataset.to_pipeline_input()      # X = features, y from the study design
+X, y = dataset.to_pipeline_input()
 cv = GroupKFold(n_splits=5)
 scores = cross_val_score(
-    Pipeline([("reduce", WGCNAReducer(soft_power="auto", min_module_size=20)),
-              ("clf", LogisticRegression())]),
-    X, y, groups=dataset.groups, cv=cv,
+    Pipeline([
+        ("reduce", WGCNAReducer(soft_power="auto", min_module_size=20)),
+        ("clf", LogisticRegression()),
+    ]),
+    X,
+    y,
+    groups=dataset.groups,
+    cv=cv,
 )
 ```
-
-Because the reducer fits its mapping on the training fold only and applies it to
-the test fold, the reduction is part of the cross-validated estimate — not fit on
-the whole cohort.
-
-!!! note "Survival outcomes"
-    A survival `StudyDesign` (`time` + `event`) makes `dataset.y()` return a
-    `[time, event]` frame. eigenradiomics does not ship a survival model; hand the
-    eigengenes + that frame to a Cox model (e.g. `lifelines` or
-    `scikit-survival`), grouping by `dataset.groups` for validation.
-
-See the [End-to-End Workflow](end_to_end.md) for the full pipeline in one script.

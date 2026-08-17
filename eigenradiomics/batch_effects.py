@@ -98,8 +98,7 @@ def _compute_feature_level_stats(
             for b in batches
         ]
         raw_groups = [
-            raw_series.loc[batch_series.astype(str) == b].dropna().to_numpy(float)
-            for b in batches
+            raw_series.loc[batch_series.astype(str) == b].dropna().to_numpy(float) for b in batches
         ]
 
         f_stat, anova_p, eta2 = anova_effect(model_groups)
@@ -145,7 +144,7 @@ def _knn_indices(coords: NDArray, k: int) -> NDArray:
     # n_samples - 1); ask for one extra neighbour so we can drop each point's self.
     n_neighbors = int(min(k + 1, n))
     nn = NearestNeighbors(n_neighbors=n_neighbors).fit(coords)
-    return nn.kneighbors(coords, return_distance=False)[:, 1:]
+    return np.asarray(nn.kneighbors(coords, return_distance=False)[:, 1:])
 
 
 def _kbet_rejection_rate(
@@ -503,9 +502,7 @@ def compute_batch_effects(
             "matrix": "raw_transformed",
             "n_samples": int(X_global.shape[0]),
             "n_features": int(X_global.shape[1]),
-            "n_batches": int(batch_series.loc[X_global.index].nunique())
-            if len(X_global)
-            else 0,
+            "n_batches": int(batch_series.loc[X_global.index].nunique()) if len(X_global) else 0,
             "pc_components_used": 0,
             "pc1_variance": np.nan,
             "pc2_variance": np.nan,
@@ -920,12 +917,19 @@ def plot_batch_effects(
     significant_count = int((q_vals <= primary_alpha).sum())
     percent_sig = (significant_count / len(q_vals)) * 100 if len(q_vals) > 0 else 0.0
     summary_str = (
-        f"Features: {len(q_vals)}\n"
-        f"q <= {primary_alpha}: {significant_count} ({percent_sig:.1f}%)"
+        f"Features: {len(q_vals)}\nq <= {primary_alpha}: {significant_count} ({percent_sig:.1f}%)"
     )
 
-    ax.text(0.95, 0.95, summary_str, transform=ax.transAxes, fontsize=9,
-            verticalalignment="top", horizontalalignment="right", bbox=text_bbox)
+    ax.text(
+        0.95,
+        0.95,
+        summary_str,
+        transform=ax.transAxes,
+        fontsize=9,
+        verticalalignment="top",
+        horizontalalignment="right",
+        bbox=text_bbox,
+    )
 
     # Reference cut line
     ax.axvline(primary_alpha, color="#D32F2F", linestyle="--", linewidth=1.5)

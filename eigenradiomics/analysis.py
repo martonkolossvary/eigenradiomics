@@ -3,7 +3,7 @@
 Provides transcriptomics-inspired metrics adapted for radiomics features:
 - **Module/Component Membership (k_ME)**: Correlation between raw features and eigengenes.
 - **Hub Feature Identification**: Extracting physical features representing each module.
-- **Group/Family Over-Representation Analysis (ORA)**: Hypergeometric tests (Fisher's Exact)
+- **Group/Family Over-Representation Analysis (ORA)**: Hypergeometric / Fisher's Exact tests
   to identify significant enrichment of feature groups within modules.
 """
 
@@ -44,11 +44,11 @@ def compute_module_membership(
     method : {"spearman", "pearson", "kendall"}, default="spearman"
         Correlation method. Spearman is recommended for robustness to monotonic non-linearities.
 
-        Returns
-        -------
-        k_ME : pandas.DataFrame of shape (n_features, n_components)
-            Correlation values, indexed by feature name, with columns naming the components.
-        """
+    Returns
+    -------
+    k_ME : pandas.DataFrame of shape (n_features, n_components)
+        Correlation values, indexed by feature name, with columns naming the components.
+    """
     if eigengenes is None and reducer is None:
         raise ValueError("Either 'eigengenes' or a fitted 'reducer' must be provided.")
 
@@ -104,7 +104,6 @@ def compute_module_membership(
         x_vals = X_arr[:, f_idx]
         for c_idx in range(n_components):
             y_vals = Y_arr[:, c_idx]
-            # Handle standard correlation checks
             if method == "pearson":
                 corr, _ = stats.pearsonr(x_vals, y_vals)
             elif method == "kendall":
@@ -164,99 +163,203 @@ def identify_hub_features(
     else:
         feature_names = [f"feat_{i}" for i in range(X.shape[1])]
 
-    # Coerce cluster_labels to pd.Series indexed by feature names
     if isinstance(cluster_labels, pd.Series):
         labels_series = cluster_labels
-    else:  # pragma: no cover
+    else:
         if isinstance(cluster_labels, dict):
             labels_series = pd.Series(cluster_labels)
         else:
             labels_series = pd.Series(cluster_labels, index=feature_names)
 
-    # Align labels with the k_me index
-    labels_series = labels_series.reindex(k_me.index)  # pragma: no cover
+    labels_series = labels_series.reindex(k_me.index)
 
     unique_clusters = sorted(labels_series.dropna().unique())
     hub_records = []
 
     for cluster in unique_clusters:
-        # Features belonging to this cluster
         cluster_mask = labels_series == cluster
         cluster_features = k_me.index[cluster_mask]
 
-        if len(cluster_features) == 0:
-            continue  # pragma: no cover
-
-        # Find the column in k_me matching this cluster name.
-        # Fallback: if names match, use the matched column. Otherwise, match by position.
         col_name = None
         if str(cluster) in k_me.columns:
             col_name = str(cluster)
         else:
-            # Fallback mapping: find unique sorted clusters in labels
             all_sorted_labels = sorted(labels_series.dropna().unique())
-            try:
-                col_idx = all_sorted_labels.index(cluster)
-                if col_idx < len(k_me.columns):
-                    col_name = k_me.columns[col_idx]
-            except ValueError:  # pragma: no cover
-                pass
+            col_idx = all_sorted_labels.index(cluster)
+            if col_idx < len(k_me.columns):
+                col_name = k_me.columns[col_idx]
 
         if col_name is None:
-            # Final fallback, just use the first column or skip
-            col_name = k_me.columns[0] if len(k_me.columns) > 0 else None  # pragma: no cover
+            col_name = k_me.columns[0] if len(k_me.columns) > 0 else None
 
-        if col_name is None:  # pragma: no cover
+        if col_name is None:
             continue
 
-        # Extract k_ME values for features in this cluster
         cluster_kme = k_me.loc[cluster_features, col_name]
-        # Sort by absolute correlation descending
         sorted_kme = cluster_kme.abs().sort_values(ascending=False)
 
-        # Get top N feature names and their original signed k_ME values
         top_features = sorted_kme.index[:top_n]
         for rank_idx, feat in enumerate(top_features):
             original_val = cluster_kme.loc[feat]
-            hub_records.append({
-                "cluster": cluster,
-                "feature": feat,
-                "k_ME": original_val,
-                "rank": rank_idx + 1,
-            })
+            hub_records.append(
+                {
+                    "cluster": cluster,
+                    "feature": feat,
+                    "k_ME": original_val,
+                    "rank": rank_idx + 1,
+                }
+            )
 
     return pd.DataFrame(hub_records)
 
 
+def _single_column_enrichment(
+    c_series: pd.Series,
+    g_series: pd.Series,
+    method: str,
+    alternative: str,
+) -> pd.DataFrame:
+    """Run over-representation analysis between a cluster Series and a group Series."""
+    common_idx = c_series.index.intersection(g_series.index)
+    if len(common_idx) == 0:
+        if len(c_series) == 0 or len(g_series) == 0:
+            return pd.DataFrame(
+                columns=[
+                    "cluster",
+                    "group",
+                    "n_overlap",
+                    "cluster_size",
+                    "group_size",
+                    "total_features",
+                    "p_value",
+                    "fdr_q_value",
+                    "odds_ratio",
+                ]
+            )
+        raise ValueError(
+            "No overlapping feature names between cluster labels and group assignments."
+        )
+
+    c_sub = c_series.loc[common_idx]
+    g_sub = g_series.loc[common_idx]
+
+    unique_clusters = sorted(c_sub.dropna().unique())
+    unique_groups = sorted(g_sub.dropna().unique())
+    total_n = len(common_idx)
+
+    records = []
+
+    for cluster in unique_clusters:
+        for group in unique_groups:
+            cluster_mask = c_sub == cluster
+            group_mask = g_sub == group
+
+            a = int((cluster_mask & group_mask).sum())
+            b = int((cluster_mask & ~group_mask).sum())
+            c = int((~cluster_mask & group_mask).sum())
+            d = int((~cluster_mask & ~group_mask).sum())
+
+            table = np.array([[a, b], [c, d]])
+
+            if method == "fisher":
+                res = stats.fisher_exact(table, alternative=alternative)
+                odds_ratio = float(res.statistic)
+                p_val = float(res.pvalue)
+            elif method == "chi2":
+                odds_ratio = (
+                    float((a * d) / (b * c))
+                    if (b * c) > 0
+                    else (float(np.inf) if a * d > 0 else float(np.nan))
+                )
+                try:
+                    chi2_res = stats.chi2_contingency(table, correction=True)
+                    p_val = float(chi2_res.pvalue)
+                except ValueError:
+                    p_val = float(np.nan)
+            elif method == "hypergeometric":
+                odds_ratio = (
+                    float((a * d) / (b * c))
+                    if (b * c) > 0
+                    else (float(np.inf) if a * d > 0 else float(np.nan))
+                )
+                M = total_n
+                n_pop = a + c
+                n_draw = a + b
+                if alternative == "greater":
+                    p_val = float(stats.hypergeom.sf(a - 1, M, n_pop, n_draw))
+                elif alternative == "less":
+                    p_val = float(stats.hypergeom.cdf(a, M, n_pop, n_draw))
+                else:  # two-sided
+                    res = stats.fisher_exact(table, alternative="two-sided")
+                    p_val = float(res.pvalue)
+            else:
+                raise ValueError(
+                    f"method must be 'fisher', 'chi2', or 'hypergeometric', got {method!r}."
+                )
+
+            records.append(
+                {
+                    "cluster": cluster,
+                    "group": group,
+                    "n_overlap": a,
+                    "cluster_size": a + b,
+                    "group_size": a + c,
+                    "total_features": total_n,
+                    "p_value": p_val,
+                    "odds_ratio": odds_ratio,
+                }
+            )
+
+    return pd.DataFrame(records)
+
+
 def compute_group_enrichment(
     cluster_labels: pd.Series | dict[str, str | int] | Sequence[Any],
-    group_assignments: pd.Series | dict[str, str | int] | Sequence[Any],
+    group_assignments: Any,
     *,
     feature_names: Sequence[str] | None = None,
+    columns: str | Sequence[str] | None = None,
+    method: str = "fisher",
+    alternative: str = "greater",
 ) -> pd.DataFrame:
-    """Perform Over-Representation Analysis (hypergeometric test) of groups within clusters.
+    """Perform Over-Representation Analysis (ORA) of groups within clusters.
 
-    Tests whether features belonging to a particular functional group (e.g., radiomics
-    feature families, scanner protocols, or observers) are statistically enriched within
-    specific co-expression or dimensionality-reduction modules.
+    Tests whether features belonging to a particular functional group or metadata
+    category (e.g., radiomics feature families, filter classes, compartments) are
+    statistically enriched within specific modules.
 
     Parameters
     ----------
     cluster_labels : pd.Series, dict, or sequence
         Module / cluster assignment per feature, or mapping from feature to cluster.
-    group_assignments : pd.Series, dict, or sequence
-        Group assignments per feature, or mapping from feature to functional group.
+    group_assignments : FeatureCatalog, pd.DataFrame, pd.Series, dict, or sequence
+        Group assignments per feature or a catalog table.
     feature_names : sequence of str, optional
         Names of features, used to align inputs if passed as simple sequences.
+    columns : str or sequence of str, optional
+        When group_assignments is a FeatureCatalog or DataFrame, columns to test
+        (e.g., ``["family", "family_group"]``). If None, tests all eligible string columns.
+    method : {"fisher", "chi2", "hypergeometric"}, default="fisher"
+        Statistical test to evaluate over-representation.
+    alternative : {"greater", "less", "two-sided"}, default="greater"
+        Alternative hypothesis direction.
 
     Returns
     -------
     enrichment : pandas.DataFrame
         Detailed over-representation results table.
         Columns: `cluster`, `group`, `n_overlap`, `cluster_size`, `group_size`,
-                 `total_features`, `p_value`, `fdr_q_value`, `odds_ratio`.
+                 `total_features`, `p_value`, `fdr_q_value`, `odds_ratio`
+                 (and `catalog_column` when multi-column/catalog input is used).
     """
-    # Coerce both to Series
+    valid_methods = {"fisher", "chi2", "hypergeometric"}
+    if method not in valid_methods:
+        raise ValueError(f"method must be one of {valid_methods}, got {method!r}.")
+    valid_alts = {"greater", "less", "two-sided"}
+    if alternative not in valid_alts:
+        raise ValueError(f"alternative must be one of {valid_alts}, got {alternative!r}.")
+
+    # Coerce cluster_labels to Series
     if isinstance(cluster_labels, pd.Series):
         c_series = cluster_labels
     elif isinstance(cluster_labels, dict):
@@ -266,6 +369,61 @@ def compute_group_enrichment(
             raise ValueError("feature_names is required when cluster_labels is a sequence.")
         c_series = pd.Series(cluster_labels, index=feature_names)
 
+    # Check if group_assignments is a FeatureCatalog or DataFrame
+    cat_frame = None
+    if hasattr(group_assignments, "frame") and isinstance(group_assignments.frame, pd.DataFrame):
+        cat_frame = group_assignments.frame.set_index("feature")
+    elif isinstance(group_assignments, pd.DataFrame):
+        if "feature" in group_assignments.columns:
+            cat_frame = group_assignments.set_index("feature")
+        else:
+            cat_frame = group_assignments
+
+    if cat_frame is not None:
+        if columns is not None:
+            cols_to_run = [columns] if isinstance(columns, str) else list(columns)
+        else:
+            cols_to_run = [
+                c
+                for c in cat_frame.columns
+                if cat_frame[c].dtype == "object"
+                or isinstance(cat_frame[c].dtype, pd.CategoricalDtype)
+                or cat_frame[c].dtype == "string"
+            ]
+            if not cols_to_run:
+                cols_to_run = list(cat_frame.columns)
+
+        missing_cols = [c for c in cols_to_run if c not in cat_frame.columns]
+        if missing_cols:
+            raise ValueError(f"Columns not found in catalog: {missing_cols}")
+
+        all_results = []
+        for col in cols_to_run:
+            g_series = cat_frame[col].dropna()
+            col_df = _single_column_enrichment(c_series, g_series, method, alternative)
+            if len(col_df) > 0:
+                col_df.insert(0, "catalog_column", col)
+                col_df["fdr_q_value"] = _fdr_correct(col_df["p_value"].to_numpy())
+                all_results.append(col_df)
+
+        if all_results:
+            return pd.concat(all_results, ignore_index=True)
+        return pd.DataFrame(
+            columns=[
+                "catalog_column",
+                "cluster",
+                "group",
+                "n_overlap",
+                "cluster_size",
+                "group_size",
+                "total_features",
+                "p_value",
+                "fdr_q_value",
+                "odds_ratio",
+            ]
+        )
+
+    # Single Series / dict / sequence
     if isinstance(group_assignments, pd.Series):
         g_series = group_assignments
     elif isinstance(group_assignments, dict):
@@ -275,69 +433,10 @@ def compute_group_enrichment(
             raise ValueError("feature_names is required when group_assignments is a sequence.")
         g_series = pd.Series(group_assignments, index=feature_names)
 
-    # Align indices
-    common_idx = c_series.index.intersection(g_series.index)
-    if len(common_idx) == 0:
-        if len(c_series) == 0 or len(g_series) == 0:
-            # Handle empty inputs gracefully without raising overlap error
-            return pd.DataFrame(
-                columns=[
-                    "cluster", "group", "n_overlap", "cluster_size",
-                    "group_size", "total_features", "p_value", "fdr_q_value", "odds_ratio"
-                ]
-            )
-        raise ValueError(
-            "No overlapping feature names between cluster labels and group assignments."
-        )
-
-    c_series = c_series.loc[common_idx]
-    g_series = g_series.loc[common_idx]
-
-    unique_clusters = sorted(c_series.dropna().unique())
-    unique_groups = sorted(g_series.dropna().unique())
-    total_n = len(common_idx)
-
-    records = []
-
-    for cluster in unique_clusters:
-        for group in unique_groups:
-            # Construct 2x2 contingency table:
-            #              In Group    Not In Group
-            # In Cluster      a            b
-            # Not In Cluster  c            d
-
-            cluster_mask = c_series == cluster
-            group_mask = g_series == group
-
-            a = int((cluster_mask & group_mask).sum())
-            b = int((cluster_mask & ~group_mask).sum())
-            c = int((~cluster_mask & group_mask).sum())
-            d = int((~cluster_mask & ~group_mask).sum())
-
-            # Contingency table
-            table = np.array([[a, b], [c, d]])
-
-            # Fisher's Exact test for over-representation (enrichment)
-            res = stats.fisher_exact(table, alternative="greater")
-            odds_ratio = res.statistic
-            p_val = res.pvalue
-
-            records.append({
-                "cluster": cluster,
-                "group": group,
-                "n_overlap": a,
-                "cluster_size": a + b,
-                "group_size": a + c,
-                "total_features": total_n,
-                "p_value": p_val,
-                "odds_ratio": odds_ratio,
-            })
-
-    df = pd.DataFrame(records)
+    df = _single_column_enrichment(c_series, g_series, method, alternative)
     if len(df) > 0:
-        # Correct p-values
         df["fdr_q_value"] = _fdr_correct(df["p_value"].to_numpy())
-    else:  # pragma: no cover
+    else:
         df["fdr_q_value"] = np.nan
 
     return df

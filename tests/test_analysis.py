@@ -29,23 +29,18 @@ def sample_data():
     rng = np.random.default_rng(42)
     X = pd.DataFrame(
         rng.normal(size=(20, 6)),
-        columns=["feat_1", "feat_2", "feat_3", "feat_4", "feat_5", "feat_6"]
+        columns=["feat_1", "feat_2", "feat_3", "feat_4", "feat_5", "feat_6"],
     )
     # 2 components
-    eigengenes = pd.DataFrame(
-        rng.normal(size=(20, 2)),
-        columns=["blue", "brown"]
-    )
+    eigengenes = pd.DataFrame(rng.normal(size=(20, 2)), columns=["blue", "brown"])
     # Custom assignments
     cluster_labels = pd.Series(
-        ["blue", "blue", "blue", "brown", "brown", "brown"],
-        index=X.columns,
-        name="module"
+        ["blue", "blue", "blue", "brown", "brown", "brown"], index=X.columns, name="module"
     )
     group_assignments = pd.Series(
         ["firstorder", "firstorder", "glcm", "glcm", "shape", "shape"],
         index=X.columns,
-        name="family"
+        name="family",
     )
     return X, eigengenes, cluster_labels, group_assignments
 
@@ -88,8 +83,7 @@ class TestAnalysisStats:
 
         # Multi-component dummy WGCNAReducer coverage (line 82)
         reducer_multi = WGCNAReducer(
-            soft_power=6, min_module_size=2, include_grey=True,
-            n_module_components=2, verbose=0
+            soft_power=6, min_module_size=2, include_grey=True, n_module_components=2, verbose=0
         )
         reducer_multi.fit(X)
         kme_multi = compute_module_membership(X, reducer=reducer_multi)
@@ -97,6 +91,7 @@ class TestAnalysisStats:
 
         # Reducer without module_names_ fallback (line 82)
         from eigenradiomics.reducers import PCAReducer
+
         pca_red = PCAReducer(n_components=2)
         pca_red.fit(X)
         kme_pca = compute_module_membership(X, reducer=pca_red)
@@ -153,14 +148,12 @@ class TestAnalysisStats:
 
         # Explicit test triggering lines 185, 199-200, 207 directly
         # Passing a bare dictionary representing label sequence
-        h_bare_dict = {f"feat_{i+1}": "blue" if i < 3 else "brown" for i in range(6)}
+        h_bare_dict = {f"feat_{i + 1}": "blue" if i < 3 else "brown" for i in range(6)}
         hubs_dict_seq = identify_hub_features(X, h_bare_dict, eigengenes)
         assert len(hubs_dict_seq) == 2
 
         # Trigger line 185 - non-DataFrame NumPy array input for reducer-fitted assignments
-        reducer_dummy = WGCNAReducer(
-            soft_power=6, min_module_size=2, include_grey=True, verbose=0
-        )
+        reducer_dummy = WGCNAReducer(soft_power=6, min_module_size=2, include_grey=True, verbose=0)
         reducer_dummy.fit(X)
         hubs_arr_fall = identify_hub_features(
             X.to_numpy(), list(cluster_labels), reducer=reducer_dummy
@@ -178,9 +171,7 @@ class TestAnalysisStats:
         assert len(hubs_ghost) > 0
 
         # Reducer and custom inputs. Set min_module_size lower to avoid empty module returns.
-        reducer = WGCNAReducer(
-            soft_power=6, min_module_size=2, include_grey=True, verbose=0
-        )
+        reducer = WGCNAReducer(soft_power=6, min_module_size=2, include_grey=True, verbose=0)
         reducer.fit(X)
         hubs_red = identify_hub_features(X.to_numpy(), list(cluster_labels), reducer=reducer)
         assert len(hubs_red) > 0
@@ -191,8 +182,15 @@ class TestAnalysisStats:
         assert isinstance(enrichment, pd.DataFrame)
         assert len(enrichment) > 0
         expected_cols = {
-            "cluster", "group", "n_overlap", "cluster_size",
-            "group_size", "total_features", "p_value", "odds_ratio", "fdr_q_value"
+            "cluster",
+            "group",
+            "n_overlap",
+            "cluster_size",
+            "group_size",
+            "total_features",
+            "p_value",
+            "odds_ratio",
+            "fdr_q_value",
         }
         assert expected_cols.issubset(enrichment.columns)
 
@@ -223,8 +221,49 @@ class TestAnalysisStats:
         with pytest.raises(ValueError, match="No overlapping feature names"):
             compute_group_enrichment(
                 pd.Series(list(cluster_labels), index=["a", "b", "c", "d", "e", "f"]),
-                group_assignments
+                group_assignments,
             )
+
+    def test_compute_group_enrichment_methods_and_alternatives(self, sample_data):
+        _, _, cluster_labels, group_assignments = sample_data
+
+        for m in ["fisher", "chi2", "hypergeometric"]:
+            for alt in ["greater", "less", "two-sided"]:
+                res = compute_group_enrichment(
+                    cluster_labels, group_assignments, method=m, alternative=alt
+                )
+                assert isinstance(res, pd.DataFrame)
+                assert len(res) > 0
+                assert "p_value" in res.columns
+                assert "odds_ratio" in res.columns
+                assert "fdr_q_value" in res.columns
+
+        with pytest.raises(ValueError, match="method"):
+            compute_group_enrichment(cluster_labels, group_assignments, method="invalid_test")
+        with pytest.raises(ValueError, match="alternative"):
+            compute_group_enrichment(cluster_labels, group_assignments, alternative="invalid_alt")
+
+    def test_compute_group_enrichment_multi_column_fdr_scope(self, sample_data):
+        _, _, cluster_labels, _ = sample_data
+        cat_df = pd.DataFrame(
+            {
+                "feature": list(cluster_labels.index),
+                "family": ["firstorder", "firstorder", "glcm", "glcm", "shape", "shape"],
+                "category": ["A", "B", "A", "B", "A", "B"],
+            }
+        )
+
+        res = compute_group_enrichment(cluster_labels, cat_df)
+        assert isinstance(res, pd.DataFrame)
+        assert "catalog_column" in res.columns
+        assert set(res["catalog_column"].unique()) == {"family", "category"}
+
+        # Check that columns argument filters columns
+        res_fam = compute_group_enrichment(cluster_labels, cat_df, columns=["family"])
+        assert set(res_fam["catalog_column"].unique()) == {"family"}
+
+        with pytest.raises(ValueError, match="Columns not found"):
+            compute_group_enrichment(cluster_labels, cat_df, columns=["nonexistent_column"])
 
 
 class TestAccessiblePlotting:
@@ -251,16 +290,17 @@ class TestAccessiblePlotting:
 
         # Mismatched name index coverage trigger
         fig_mismatch = plot_hub_significance(
-            kme, sig, cluster_labels.to_dict(),
-            target_cluster="unknown_column", top_n_labels=1
+            kme, sig, cluster_labels.to_dict(), target_cluster="unknown_column", top_n_labels=1
         )
         assert isinstance(fig_mismatch, plt.Figure)
         plt.close(fig_mismatch)
 
         # File writing path trigger
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             import os
+
             out_file = os.path.join(tmpdir, "hub.png")
             fig_path = plot_hub_significance(
                 kme, sig, cluster_labels, target_cluster="blue", path=out_file
@@ -283,12 +323,17 @@ class TestAccessiblePlotting:
 
         # Categorical array input without index mapping, and custom title with Path writing
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             import os
+
             out_file = os.path.join(tmpdir, "profiles.png")
             fig_arr = plot_eigengene_profiles(
-                eigengenes.to_numpy(), trait.to_numpy(),
-                trait_name="Grade", title="Group Profiles", path=out_file
+                eigengenes.to_numpy(),
+                trait.to_numpy(),
+                trait_name="Grade",
+                title="Group Profiles",
+                path=out_file,
             )
             assert os.path.exists(out_file)
             plt.close(fig_arr)
@@ -325,18 +370,139 @@ class TestAccessiblePlotting:
 
         # Non-DataFrame arrays, with path trigger
         import tempfile
+
         with tempfile.TemporaryDirectory() as tmpdir:
             import os
+
             out_file = os.path.join(tmpdir, "batch.png")
             fig_arr = plot_batch_distributions(
-                X.to_numpy(), X_after.to_numpy(), batch_ids.to_numpy(),
-                feature_name=0, title="Batch comparison", path=out_file
+                X.to_numpy(),
+                X_after.to_numpy(),
+                batch_ids.to_numpy(),
+                feature_name=0,
+                title="Batch comparison",
+                path=out_file,
             )
             assert os.path.exists(out_file)
             plt.close(fig_arr)
             fig_arr = plot_batch_distributions(
-                X.to_numpy(), X_after.to_numpy(), batch_ids.to_numpy(),
-                feature_name=0, title="Batch comparison", path=out_file
+                X.to_numpy(),
+                X_after.to_numpy(),
+                batch_ids.to_numpy(),
+                feature_name=0,
+                title="Batch comparison",
+                path=out_file,
             )
             assert os.path.exists(out_file)
             plt.close(fig_arr)
+
+
+class TestAnalysisCoverageGaps:
+    """Targeted tests for remaining uncovered branches in analysis.py."""
+
+    def test_identify_hub_features_edge_cases(self):
+        from eigenradiomics.analysis import identify_hub_features
+
+        rng = np.random.default_rng(0)
+        X = pd.DataFrame(rng.normal(size=(20, 3)), columns=["f1", "f2", "f3"])
+        eigengenes = pd.DataFrame(rng.normal(size=(20, 1)), columns=["col_1"])
+
+        # Cluster label c2 has features, but c3 has none in k_me (hits line 184)
+        labels_sparse = pd.Series(["c1", "c2", "c3"], index=["f1", "f2", "f_other"])
+        hubs_sparse = identify_hub_features(X, cluster_labels=labels_sparse, eigengenes=eigengenes)
+        assert len(hubs_sparse) >= 1
+
+        # Multiple clusters mapped to fewer eigengene columns (hits lines 195-196 and 199)
+        labels_many = pd.Series(["c1", "c2", "c3"], index=["f1", "f2", "f3"])
+        hubs_many = identify_hub_features(X, cluster_labels=labels_many, eigengenes=eigengenes)
+        assert len(hubs_many) >= 1
+
+        # Empty eigengenes (hits line 202)
+        eigengenes_empty = pd.DataFrame(index=X.index)
+        hubs_empty = identify_hub_features(
+            X, cluster_labels=labels_many, eigengenes=eigengenes_empty
+        )
+        assert len(hubs_empty) == 0
+
+    def test_single_column_enrichment_chi2_and_invalid(self):
+        from eigenradiomics.analysis import _single_column_enrichment
+
+        # Chi2 with zero row causing chi2_contingency to raise ValueError (hits lines 281-282)
+        zero_cat = pd.Series(["g1", "g1", "g1"], index=["f1", "f2", "f3"])
+        cluster_labels = pd.Series(["c1", "c1", "c1"], index=["f1", "f2", "f3"])
+        res = _single_column_enrichment(
+            cluster_labels, zero_cat, method="chi2", alternative="greater"
+        )
+        assert np.isnan(res["p_value"].iloc[0])
+
+        # Hypergeometric alternative='less' (hits line 295)
+        res_less = _single_column_enrichment(
+            cluster_labels, zero_cat, method="hypergeometric", alternative="less"
+        )
+        assert not np.isnan(res_less["p_value"].iloc[0])
+
+        # Invalid method in _single_column_enrichment (hits line 294)
+        with pytest.raises(ValueError, match="method must be"):
+            _single_column_enrichment(
+                cluster_labels, zero_cat, method="unsupported_method", alternative="greater"
+            )
+
+    def test_compute_group_enrichment_catalog_and_methods(self):
+        from eigenradiomics.analysis import compute_group_enrichment
+        from eigenradiomics.catalog import FeatureCatalog
+
+        cluster_labels = pd.Series(["m1", "m1", "m2", "m2"], index=["f1", "f2", "f3", "f4"])
+
+        # 1. FeatureCatalog input
+        catalog_df = pd.DataFrame(
+            {
+                "feature": ["f1", "f2", "f3", "f4"],
+                "family": ["A", "A", "B", "B"],
+            }
+        )
+        catalog = FeatureCatalog(catalog_df)
+        res_cat = compute_group_enrichment(cluster_labels, catalog)
+        assert isinstance(res_cat, pd.DataFrame)
+        assert len(res_cat) > 0
+
+        # 2. DataFrame without 'feature' column
+        df_no_feat = pd.DataFrame(
+            {
+                "family": ["A", "A", "B", "B"],
+            },
+            index=["f1", "f2", "f3", "f4"],
+        )
+        res_no_feat = compute_group_enrichment(cluster_labels, df_no_feat)
+        assert isinstance(res_no_feat, pd.DataFrame)
+        assert len(res_no_feat) > 0
+
+        # 3. Numeric-only catalog columns (fallback cols_to_run)
+        df_numeric = pd.DataFrame(
+            {
+                "numeric_group": [1, 1, 2, 2],
+            },
+            index=["f1", "f2", "f3", "f4"],
+        )
+        res_numeric = compute_group_enrichment(cluster_labels, df_numeric)
+        assert isinstance(res_numeric, pd.DataFrame)
+
+        # 4. Hypergeometric two-sided alternative
+        res_hyper_two = compute_group_enrichment(
+            cluster_labels, df_no_feat, method="hypergeometric", alternative="two-sided"
+        )
+        assert isinstance(res_hyper_two, pd.DataFrame)
+
+        # 5. Invalid method error
+        with pytest.raises(ValueError, match="method must be"):
+            compute_group_enrichment(cluster_labels, df_no_feat, method="invalid_method")
+
+        # 6. All empty results fallback
+        df_empty_vals = pd.DataFrame(
+            {
+                "family": [np.nan, np.nan, np.nan, np.nan],
+            },
+            index=["f1", "f2", "f3", "f4"],
+        )
+        res_empty = compute_group_enrichment(cluster_labels, df_empty_vals)
+        assert isinstance(res_empty, pd.DataFrame)
+        assert len(res_empty) == 0

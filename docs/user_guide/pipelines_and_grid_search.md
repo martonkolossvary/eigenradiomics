@@ -172,9 +172,26 @@ Upstream components and the reducer expose constructor parameters through `get_p
 - `impute__strategy`
 - `var__threshold`
 - `scale__with_mean`
+- `reduce__missing_strategy` (`"mean"`, `"median"`, `"floor"`, `"pairwise"`)
+- `reduce__orient_eigengenes` (`"mean_correlation"`, `"hub_feature"`, `"sum_loadings"`)
 - `reduce__soft_power`
 - `reduce__deep_split`
+- `reduce__me_diss_threshold`
 - `model__alpha`
+
+### Native Missingness and Sign Tuning in Pipelines
+
+When training on incomplete datasets with varying degrees of missingness, `WGCNAReducer` can tune its native missing-data strategy and sign-alignment mode directly in the search grid:
+
+```python
+param_grid = {
+    "reduce__missing_strategy": ["mean", "pairwise"],
+    "reduce__orient_eigengenes": ["mean_correlation", "hub_feature"],
+    "reduce__soft_power": [6, 8, 10],
+    "reduce__min_module_size": [15, 25],
+    "model__alpha": [0.1, 1.0, 10.0],
+}
+```
 
 ## Custom Preprocessing
 

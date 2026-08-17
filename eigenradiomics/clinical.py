@@ -34,9 +34,22 @@ _CORRELATION_FUNCS = {
 
 #: Recognized binary / ordinal string tokens (lower-cased) -> numeric code.
 _BINARY_MAP: dict[str, float] = {
-    "0": 0, "1": 1, "false": 0, "true": 1, "f": 0, "t": 1,
-    "no": 0, "yes": 1, "n": 0, "y": 1, "male": 0, "female": 1,
-    "i": 1, "ii": 2, "iii": 3, "iv": 4,
+    "0": 0,
+    "1": 1,
+    "false": 0,
+    "true": 1,
+    "f": 0,
+    "t": 1,
+    "no": 0,
+    "yes": 1,
+    "n": 0,
+    "y": 1,
+    "male": 0,
+    "female": 1,
+    "i": 1,
+    "ii": 2,
+    "iii": 3,
+    "iv": 4,
 }
 
 
@@ -139,8 +152,7 @@ def compute_clinical_correlations(
     usable = [
         column
         for column in encoded.columns
-        if encoded[column].notna().sum() >= min_pairs
-        and encoded[column].nunique(dropna=True) > 1
+        if encoded[column].notna().sum() >= min_pairs and encoded[column].nunique(dropna=True) > 1
     ]
     if not usable:
         raise ValueError(
@@ -205,8 +217,7 @@ def compute_module_trait_associations(
     usable = [
         column
         for column in encoded.columns
-        if encoded[column].notna().sum() >= min_pairs
-        and encoded[column].nunique(dropna=True) > 1
+        if encoded[column].notna().sum() >= min_pairs and encoded[column].nunique(dropna=True) > 1
     ]
     if not usable:
         raise ValueError(

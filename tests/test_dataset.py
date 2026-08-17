@@ -44,9 +44,7 @@ class TestConstruction:
 
     def test_auto_detect_features_by_catalog(self) -> None:
         df = pd.DataFrame({"id": ["p1"], "Energy": [1.0], "Entropy": [2.0]})
-        cat = FeatureCatalog(
-            pd.DataFrame({"feature": ["Energy"], "family": ["fo"]})
-        )
+        cat = FeatureCatalog(pd.DataFrame({"feature": ["Energy"], "family": ["fo"]}))
         ds = RadiomicsDataset(df, catalog=cat)
         assert ds.feature_columns == ["Energy"]
 
@@ -58,18 +56,16 @@ class TestConstruction:
         assert ds.shape == (4, 2)
 
     def test_from_wide_catalog_from_dataframe(self, wide: pd.DataFrame) -> None:
-        cat_df = pd.DataFrame(
-            {"config": ["orig", "orig"], "feature_key": ["Energy", "Entropy"]}
-        )
+        cat_df = pd.DataFrame({"config": ["orig", "orig"], "feature_key": ["Energy", "Entropy"]})
         ds = RadiomicsDataset.from_wide(wide, catalog=cat_df)
         assert isinstance(ds.catalog, FeatureCatalog)
         assert ds.feature_columns == ["orig__Energy", "orig__Entropy"]
 
     def test_from_wide_catalog_from_csv(self, tmp_path, wide: pd.DataFrame) -> None:
         cat_path = tmp_path / "catalog.csv"
-        pd.DataFrame(
-            {"config": ["orig", "orig"], "feature_key": ["Energy", "Entropy"]}
-        ).to_csv(cat_path, index=False)
+        pd.DataFrame({"config": ["orig", "orig"], "feature_key": ["Energy", "Entropy"]}).to_csv(
+            cat_path, index=False
+        )
         ds = RadiomicsDataset.from_wide(wide, catalog=str(cat_path))
         assert isinstance(ds.catalog, FeatureCatalog)
         assert ds.feature_columns == ["orig__Energy", "orig__Entropy"]
@@ -126,9 +122,7 @@ class TestAccess:
         assert "n_features=2" in repr(ds)
 
     def test_groups_with_missing_raises(self) -> None:
-        df = pd.DataFrame(
-            {"PatientID": ["p1", None, "p3"], "orig__E": [1.0, 2.0, 3.0]}
-        )
+        df = pd.DataFrame({"PatientID": ["p1", None, "p3"], "orig__E": [1.0, 2.0, 3.0]})
         ds = RadiomicsDataset(df, design=StudyDesign(roles={"group": "PatientID"}))
         with pytest.raises(ValueError, match="missing values"):
             _ = ds.groups

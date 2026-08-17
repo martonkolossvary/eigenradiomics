@@ -259,8 +259,9 @@ def test_right_panel_minimal():
 
 def test_right_panel_spec_custom_cmap():
     df, _, _ = _blocks()
-    panel = CorrPanel(_corr_frame(list(df.index)), cmap="coolwarm", vmin=-0.5, vmax=0.5,
-                      label="Spearman r")
+    panel = CorrPanel(
+        _corr_frame(list(df.index)), cmap="coolwarm", vmin=-0.5, vmax=0.5, label="Spearman r"
+    )
     fig = plot_clustered_heatmap(df, right=panel)
     assert len(fig.axes) == 4
     plt.close(fig)
@@ -498,7 +499,6 @@ def test_plot_reproducibility_options(tmp_path):
     assert (tmp_path / "grid_2x2_noleg.png").exists()
     plt.close(fig_grid_noleg)
 
-    # 3. Run default layout without legends
     results, fig_noleg = plot_reproducibility(
         reproducibility_results=results,
         path=tmp_path / "default_noleg.png",
@@ -509,3 +509,173 @@ def test_plot_reproducibility_options(tmp_path):
     assert (tmp_path / "default_noleg.png").exists()
     plt.close(fig_noleg)
 
+
+class TestSyntenyPlottingCoverageGaps:
+    """Targeted tests for remaining uncovered branches in plotting.py."""
+
+    def test_synteny_metric_selection_and_inferences(self):
+        from eigenradiomics.plotting import plot_reproducibility_synteny
+
+        features = [f"f{i}" for i in range(10)]
+
+        # 1. Dict with 'ICC' and 'CustomSheet'
+        results_custom_sheet = {
+            "CustomSheet": pd.DataFrame(
+                {
+                    "feature": features,
+                    "estimate": [0.85] * 10,
+                }
+            )
+        }
+        fig1 = plot_reproducibility_synteny(results_custom_sheet, show_legend=False)
+        assert isinstance(fig1, plt.Figure)
+        plt.close(fig1)
+
+        # 2. Dict with 'Spearman' having 'mean' column
+        results_mean = {
+            "Spearman": pd.DataFrame(
+                {
+                    "feature": features,
+                    "mean": [0.80] * 10,
+                }
+            )
+        }
+        fig2 = plot_reproducibility_synteny(results_mean, metric="spearman")
+        assert isinstance(fig2, plt.Figure)
+        plt.close(fig2)
+
+        # 3. Direct DataFrame with 'estimate' and 'mean'
+        df_est = pd.DataFrame({"feature": features, "estimate": [0.75] * 10})
+        fig3 = plot_reproducibility_synteny(df_est)
+        plt.close(fig3)
+
+        df_mean = pd.DataFrame({"feature": features, "mean": [0.70] * 10})
+        fig4 = plot_reproducibility_synteny(df_mean)
+        plt.close(fig4)
+
+        # 4. Metric 'icc' resolving to 'icc_2_1' or 'icc'
+        df_icc = pd.DataFrame({"feature": features, "icc_2_1": [0.9] * 10})
+        fig5 = plot_reproducibility_synteny(df_icc, metric="icc")
+        plt.close(fig5)
+
+    def test_synteny_discretisation_ribbons_counts(self):
+        from eigenradiomics.plotting import plot_reproducibility_synteny
+
+        features = [f"f{i}" for i in range(10)]
+
+        # 1 param
+        df1 = pd.DataFrame(
+            {
+                "feature": features,
+                "icc": [0.85] * 10,
+                "is_discretised": [True] * 10,
+                "discretisation_param": [32] * 10,
+            }
+        )
+        fig1 = plot_reproducibility_synteny(df1, show_discretisation_ribbon=True)
+        plt.close(fig1)
+
+        # 2 params
+        df2 = pd.DataFrame(
+            {
+                "feature": features,
+                "icc": [0.85] * 10,
+                "is_discretised": [True, False] * 5,
+                "discretisation_param": [16, np.nan] * 5,
+            }
+        )
+        fig2 = plot_reproducibility_synteny(df2, show_discretisation_ribbon=True)
+        plt.close(fig2)
+
+        # 3 params
+        df3 = pd.DataFrame(
+            {
+                "feature": features,
+                "icc": [0.85] * 10,
+                "is_discretised": [True, True, True, False] * 2 + [True, False],
+                "discretisation_param": [16, 32, 64, np.nan] * 2 + [16, np.nan],
+            }
+        )
+        fig3 = plot_reproducibility_synteny(df3, show_discretisation_ribbon=True)
+        plt.close(fig3)
+
+        # 4+ params
+        df4 = pd.DataFrame(
+            {
+                "feature": features,
+                "icc": [0.85] * 10,
+                "is_discretised": [True] * 10,
+                "discretisation_param": [8, 16, 32, 64, 128] * 2,
+            }
+        )
+        fig4 = plot_reproducibility_synteny(df4, show_discretisation_ribbon=True)
+        plt.close(fig4)
+
+    def test_synteny_legend_and_axes_validation(self):
+        from eigenradiomics.plotting import plot_reproducibility_synteny
+
+        features = [f"f{i}" for i in range(10)]
+        df = pd.DataFrame({"feature": features, "icc": [0.85] * 10})
+
+        # Custom ax with show_legend=True and invalid legend_axes
+        fig_main, ax_main = plt.subplots()
+        with pytest.raises(ValueError, match="Must provide 3 legend_axes"):
+            plot_reproducibility_synteny(df, ax=ax_main, show_legend=True, legend_axes=None)
+
+        fig_dummy, leg_axes = plt.subplots(1, 3)
+        fig_custom = plot_reproducibility_synteny(
+            df, ax=ax_main, show_legend=True, legend_axes=leg_axes
+        )
+        assert fig_custom is not None
+        plt.close(fig_main)
+        plt.close(fig_dummy)
+
+        # Single category cutoff handle
+        fig_single = plot_reproducibility_synteny(df, thresholds=[])
+        plt.close(fig_single)
+
+        # > 4 thresholds raises (hits line 1184)
+        with pytest.raises(ValueError, match="At most 4 thresholds"):
+            plot_reproducibility_synteny(df, thresholds=[0.1, 0.2, 0.3, 0.4, 0.5])
+
+        # Dict with 'ICC' and metric='icc' (hits line 1087)
+        fig_dict_icc = plot_reproducibility_synteny({"ICC": df}, metric="icc")
+        plt.close(fig_dict_icc)
+
+        # Catalog with disc_cols (hits lines 1161-1162)
+        from eigenradiomics.catalog import FeatureCatalog
+
+        cat_df = pd.DataFrame(
+            {
+                "feature": features,
+                "family": ["glcm"] * 10,
+                "is_discretised": [True] * 10,
+                "discretisation_param": [32] * 10,
+            }
+        )
+        fig_cat = plot_reproducibility_synteny(df, catalog=FeatureCatalog(cat_df))
+        plt.close(fig_cat)
+
+        # 2 unique non-null discretization parameters (hits lines 1291-1293)
+        df_2params = pd.DataFrame(
+            {
+                "feature": features,
+                "icc": [0.85] * 10,
+                "is_discretised": [True] * 10,
+                "discretisation_param": [16, 32] * 5,
+            }
+        )
+        fig_2p = plot_reproducibility_synteny(df_2params, show_discretisation_ribbon=True)
+        plt.close(fig_2p)
+
+        # is_discretised=True with NaN param (hits line 1312)
+        df_nan_p = pd.DataFrame(
+            {
+                "feature": features,
+                "icc": [0.85] * 10,
+                "is_discretised": [True] * 10,
+                "discretisation_param": [np.nan] * 10,
+            }
+        )
+        fig_np = plot_reproducibility_synteny(df_nan_p, show_discretisation_ribbon=True)
+        plt.close(fig_np)

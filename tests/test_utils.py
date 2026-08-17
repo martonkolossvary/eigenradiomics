@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
@@ -9,6 +10,7 @@ import scipy.sparse
 
 from eigenradiomics._utils import (
     _check_feature_names,
+    _save_figure,
     check_constant_features,
     extract_feature_names,
     validate_estimator_input,
@@ -134,19 +136,53 @@ class TestCheckConstantFeatures:
     """Tests for check_constant_features helper."""
 
     def test_identifies_constant_columns(self):
-        X = np.array([
-            [1.0, 2.0, 3.0],
-            [1.0, 2.5, 3.0],
-            [1.0, 2.1, 3.0],
-        ])
+        X = np.array(
+            [
+                [1.0, 2.0, 3.0],
+                [1.0, 2.5, 3.0],
+                [1.0, 2.1, 3.0],
+            ]
+        )
         mask = check_constant_features(X)
         np.testing.assert_array_equal(mask, [True, False, True])
 
     def test_handles_nan_correctly(self):
-        X = np.array([
-            [1.0, 2.0, np.nan],
-            [1.0, 2.5, np.nan],
-            [np.nan, 2.1, np.nan],
-        ])
+        X = np.array(
+            [
+                [1.0, 2.0, np.nan],
+                [1.0, 2.5, np.nan],
+                [np.nan, 2.1, np.nan],
+            ]
+        )
         mask = check_constant_features(X)
         np.testing.assert_array_equal(mask, [True, False, False])
+
+
+class TestSaveFigure:
+    """Tests for _save_figure environment variable branches."""
+
+    def test_save_figure_env_vars(self, tmp_path, monkeypatch):
+        fig, ax = plt.subplots()
+        ax.plot([0, 1], [0, 1])
+
+        out_png = tmp_path / "plot.png"
+        monkeypatch.setenv("SAVE_PDF", "1")
+        monkeypatch.setenv("SAVE_TIFF", "true")
+        monkeypatch.setenv("TIFF_DPI", "150")
+
+        _save_figure(fig, out_png)
+        plt.close(fig)
+
+        assert out_png.exists()
+        assert (tmp_path / "plot.pdf").exists()
+        assert (tmp_path / "plot.tiff").exists()
+
+    def test_save_figure_invalid_tiff_dpi(self, tmp_path, monkeypatch):
+        fig, ax = plt.subplots()
+        out_png = tmp_path / "plot2.png"
+        monkeypatch.setenv("SAVE_TIFF", "true")
+        monkeypatch.setenv("TIFF_DPI", "invalid_number")
+
+        _save_figure(fig, out_png)
+        plt.close(fig)
+        assert (tmp_path / "plot2.tiff").exists()

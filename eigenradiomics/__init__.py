@@ -4,7 +4,7 @@ from eigenradiomics.analysis import (
     compute_module_membership,
     identify_hub_features,
 )
-from eigenradiomics.artifacts import ReductionArtifacts
+from eigenradiomics.artifacts import PairedReductionResult, ReductionArtifacts
 from eigenradiomics.batch_effects import (
     compute_batch_effects,
     plot_batch_effects,
@@ -71,6 +71,7 @@ __all__ = [
     "__version__",
     "BaseReducer",
     "ReductionArtifacts",
+    "PairedReductionResult",
     "RadiomicsFeatureRemover",
     "FeatureScoreSelector",
     "ComBatHarmonizer",

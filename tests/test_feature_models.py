@@ -599,9 +599,7 @@ def test_plot_rwas_manhattan_coverage_gaps():
     # 3. n > 60 features (to hit tick_labels is None and ax_corr.set_xticks([]))
     n_feats = 65
     rng = np.random.default_rng(42)
-    X_large = pd.DataFrame(
-        {f"feat_{i}": rng.normal(0, 1, 100) for i in range(n_feats)}
-    )
+    X_large = pd.DataFrame({f"feat_{i}": rng.normal(0, 1, 100) for i in range(n_feats)})
     y_large = pd.Series(rng.normal(0, 1, 100))
     res_large = compute_feature_associations(X_large, y_large)
 
@@ -617,3 +615,28 @@ def test_plot_rwas_manhattan_coverage_gaps():
     assert fig is not None
     plt.close(fig)
 
+
+def test_plot_rwas_manhattan_custom_group_by():
+    from eigenradiomics.feature_models import plot_rwas_manhattan
+
+    df = pd.DataFrame(
+        {
+            "feature": ["f1", "f2", "f3", "f4"],
+            "p_value": [0.001, 0.04, 0.2, 0.8],
+            "p_fdr": [0.004, 0.08, 0.3, 0.8],
+            "status": ["ok", "ok", "ok", "ok"],
+            "custom_cat": pd.Categorical(["groupB", "groupA", "groupB", "groupA"]),
+        }
+    )
+
+    # Test with custom Categorical column (exercises lines 1060 and 1075-1077)
+    fig = plot_rwas_manhattan(df, group_by="custom_cat")
+    assert fig is not None
+    plt.close(fig)
+
+    # Test with custom string column not in IBSI order
+    df_str = df.copy()
+    df_str["custom_str"] = ["grp2", "grp1", "grp2", "grp1"]
+    fig2 = plot_rwas_manhattan(df_str, group_by="custom_str")
+    assert fig2 is not None
+    plt.close(fig2)

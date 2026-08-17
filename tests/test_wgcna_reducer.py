@@ -1,4 +1,3 @@
-
 """Tests for eigenradiomics.reducers.WGCNAReducer."""
 
 from __future__ import annotations
@@ -741,8 +740,6 @@ class TestWGCNAReducerCoverageGaps:
         assert Y.ndim == 2
 
 
-
-
 class TestWGCNAAdditionalCoverage:
     def test_inverse_transform(self, wgcna_default, small_feature_matrix):
         """Test inverse_transform round trips."""
@@ -810,9 +807,9 @@ class TestWGCNAReducerArtifacts:
     """Structured reduction-artifact outputs for downstream plotting/analysis."""
 
     def test_artifacts_with_tom(self, small_feature_matrix):
-        r = WGCNAReducer(
-            soft_power=6, min_module_size=20, store_tom=True, verbose=0
-        ).fit(small_feature_matrix)
+        r = WGCNAReducer(soft_power=6, min_module_size=20, store_tom=True, verbose=0).fit(
+            small_feature_matrix
+        )
         art = r.get_reduction_artifacts()
         m = small_feature_matrix.shape[1]
         assert set(art.available()) == {
@@ -831,9 +828,9 @@ class TestWGCNAReducerArtifacts:
         )
 
     def test_artifacts_without_tom(self, small_feature_matrix):
-        r = WGCNAReducer(
-            soft_power=6, min_module_size=20, store_tom=False, verbose=0
-        ).fit(small_feature_matrix)
+        r = WGCNAReducer(soft_power=6, min_module_size=20, store_tom=False, verbose=0).fit(
+            small_feature_matrix
+        )
         art = r.get_reduction_artifacts()
         assert art.similarity is None
         assert "similarity" not in art.available()
@@ -872,3 +869,302 @@ class TestWGCNAReducerPowerRange:
         table = r.wgcna_get_soft_power_table()
         assert table["Power"].between(2, 12).all()
         assert 2 <= r.soft_power_ <= 12
+
+
+class TestWGCNAReducerMissingStrategy:
+    """Tests for missing data handling in WGCNAReducer."""
+
+    def test_missing_strategy_raise_on_nan(self, small_feature_matrix, rng):
+        X_nan = small_feature_matrix.copy()
+        X_nan[0, 0] = np.nan
+        r = WGCNAReducer(missing_strategy="raise", soft_power=6, min_module_size=20, verbose=0)
+        with pytest.raises(ValueError, match="NaN"):
+            r.fit(X_nan)
+
+        r_fit = WGCNAReducer(missing_strategy="raise", soft_power=6, min_module_size=20, verbose=0)
+        r_fit.fit(small_feature_matrix)
+        with pytest.raises(ValueError, match="NaN"):
+            r_fit.transform(X_nan)
+
+    def test_missing_strategy_zero(self, small_feature_matrix, rng):
+        X_nan = small_feature_matrix.copy()
+        mask = rng.random(X_nan.shape) < 0.1
+        X_nan[mask] = np.nan
+
+        r = WGCNAReducer(missing_strategy="zero", soft_power=6, min_module_size=20, verbose=0)
+        Y = r.fit_transform(X_nan)
+        assert not np.isnan(Y).any()
+        assert np.all(r.impute_values_ == 0.0)
+
+        # Transform on new data with NaNs
+        X_test = small_feature_matrix.copy()
+        X_test[0, 5] = np.nan
+        Y_test = r.transform(X_test)
+        assert not np.isnan(Y_test).any()
+
+    def test_missing_strategy_floor(self, small_feature_matrix, rng):
+        X_nan = small_feature_matrix.copy()
+        mask = rng.random(X_nan.shape) < 0.1
+        X_nan[mask] = np.nan
+
+        r = WGCNAReducer(missing_strategy="floor", soft_power=6, min_module_size=20, verbose=0)
+        Y = r.fit_transform(X_nan)
+        assert not np.isnan(Y).any()
+        expected_floor = np.nanmin(X_nan, axis=0)
+        np.testing.assert_allclose(r.impute_values_, expected_floor)
+
+    def test_missing_strategy_mean_median(self, small_feature_matrix, rng):
+        X_nan = small_feature_matrix.copy()
+        mask = rng.random(X_nan.shape) < 0.1
+        X_nan[mask] = np.nan
+
+        r_mean = WGCNAReducer(missing_strategy="mean", soft_power=6, min_module_size=20, verbose=0)
+        Y_mean = r_mean.fit_transform(X_nan)
+        assert not np.isnan(Y_mean).any()
+        np.testing.assert_allclose(r_mean.impute_values_, np.nanmean(X_nan, axis=0))
+
+        r_median = WGCNAReducer(
+            missing_strategy="median", soft_power=6, min_module_size=20, verbose=0
+        )
+        Y_median = r_median.fit_transform(X_nan)
+        assert not np.isnan(Y_median).any()
+        np.testing.assert_allclose(r_median.impute_values_, np.nanmedian(X_nan, axis=0))
+
+    def test_missing_strategy_pairwise(self, small_feature_matrix, rng):
+        X_nan = small_feature_matrix.copy()
+        mask = rng.random(X_nan.shape) < 0.1
+        X_nan[mask] = np.nan
+
+        r = WGCNAReducer(missing_strategy="pairwise", soft_power=6, min_module_size=20, verbose=0)
+        Y = r.fit_transform(X_nan)
+        assert not np.isnan(Y).any()
+        assert Y.shape[1] == r.n_components_
+
+        # Pairwise with auto soft power
+        r_auto = WGCNAReducer(
+            missing_strategy="pairwise",
+            soft_power="auto",
+            power_min=2,
+            power_max=10,
+            r_squared_cut=0.7,
+            min_module_size=20,
+            verbose=0,
+        )
+        r_auto.fit(X_nan)
+        assert r_auto.soft_power_ is not None
+
+    def test_missing_strategy_all_nan_column_guard(self, small_feature_matrix):
+        X_nan = small_feature_matrix.copy()
+        X_nan[:, 3] = np.nan  # Entire column 3 is NaN
+
+        r = WGCNAReducer(missing_strategy="mean", soft_power=6, min_module_size=20, verbose=0)
+        with pytest.warns(UserWarning, match="entirely NaN"):
+            r.fit(X_nan)
+
+        assert r.impute_values_[3] == 0.0
+        Y = r.transform(X_nan)
+        assert not np.isnan(Y).any()
+
+    def test_missing_strategy_sklearn_tags(self):
+        r_raise = WGCNAReducer(missing_strategy="raise")
+        r_zero = WGCNAReducer(missing_strategy="zero")
+
+        assert not r_raise._get_tags().get("allow_nan", False)
+        assert r_zero._get_tags().get("allow_nan", False)
+        assert not r_raise.__sklearn_tags__().input_tags.allow_nan
+        assert r_zero.__sklearn_tags__().input_tags.allow_nan
+
+    def test_invalid_strategy(self):
+        with pytest.raises(ValueError, match="missing_strategy"):
+            WGCNAReducer(missing_strategy="invalid_mode").fit(np.ones((10, 10)))
+
+
+class TestWGCNAReducerSignAlignment:
+    """Tests for eigengene sign orientation rules."""
+
+    def test_orient_eigengenes_mean_correlation(self, small_feature_matrix):
+        r = WGCNAReducer(
+            orient_eigengenes="mean_correlation",
+            soft_power=6,
+            min_module_size=20,
+            verbose=0,
+        ).fit(small_feature_matrix)
+        Y = r.transform(small_feature_matrix)
+        assert Y.shape[1] == r.n_components_
+
+    def test_orient_eigengenes_hub_feature_multicomponent(self, small_feature_matrix):
+        r = WGCNAReducer(
+            orient_eigengenes="hub_feature",
+            n_module_components=2,
+            soft_power=6,
+            min_module_size=20,
+            verbose=0,
+        ).fit(small_feature_matrix)
+        for _mod, loadings in r.module_loadings_.items():
+            if loadings.ndim == 2:
+                for col in range(loadings.shape[1]):
+                    j_max = np.argmax(np.abs(loadings[:, col]))
+                    assert loadings[j_max, col] >= 0
+
+    def test_orient_eigengenes_sum_loadings_guard(self):
+        # Construct synthetic matrix with balanced positive and negative loadings
+        X = np.array([[1.0, -1.0], [-1.0, 1.0], [1.0, -1.0], [-1.0, 1.0]])
+        eg, loadings = _wgcna_compute_eigengene(
+            X, n_components=1, orient_eigengenes="sum_loadings"
+        )
+        assert len(loadings) == 2
+
+    def test_orient_eigengenes_false(self, small_feature_matrix):
+        r = WGCNAReducer(
+            orient_eigengenes=False,
+            soft_power=6,
+            min_module_size=20,
+            verbose=0,
+        ).fit(small_feature_matrix)
+        assert r.n_components_ > 0
+
+    def test_orient_eigengenes_inverse_transform(self, small_feature_matrix):
+        r1 = WGCNAReducer(
+            orient_eigengenes="mean_correlation", soft_power=6, min_module_size=20, verbose=0
+        ).fit(small_feature_matrix)
+        r2 = WGCNAReducer(
+            orient_eigengenes=False, soft_power=6, min_module_size=20, verbose=0
+        ).fit(small_feature_matrix)
+
+        Y1 = r1.transform(small_feature_matrix)
+        Y2 = r2.transform(small_feature_matrix)
+
+        recon1 = r1.inverse_transform(Y1)
+        recon2 = r2.inverse_transform(Y2)
+
+        np.testing.assert_allclose(recon1, recon2, atol=1e-10)
+
+
+class TestWGCNAReducerCatalogEnrichment:
+    """Tests for get_catalog_enrichment."""
+
+    def test_wgcna_get_catalog_enrichment(self, small_feature_df):
+        r = WGCNAReducer(soft_power=6, min_module_size=20, verbose=0).fit(small_feature_df)
+
+        n_cols = len(small_feature_df.columns)
+        catalog_data = {
+            "feature": list(small_feature_df.columns),
+            "family": ["firstorder" if i < 100 else "glcm" for i in range(n_cols)],
+            "family_group": ["intensity" if i < 100 else "texture" for i in range(n_cols)],
+        }
+        catalog_df = pd.DataFrame(catalog_data)
+
+        enrich = r.get_catalog_enrichment(catalog_df)
+        assert isinstance(enrich, pd.DataFrame)
+        assert "catalog_column" in enrich.columns
+        assert "fdr_q_value" in enrich.columns
+        assert set(enrich["catalog_column"].unique()) == {"family", "family_group"}
+
+
+class TestWGCNAUtilsAndReducerCoverageGaps:
+    """Tests for edge cases in _wgcna.py and _wgcna_utils.py."""
+
+    def test_invalid_orient_eigengenes_raises(self, small_feature_matrix):
+        r = WGCNAReducer(orient_eigengenes="invalid_mode")
+        with pytest.raises(ValueError, match="orient_eigengenes"):
+            r.fit(small_feature_matrix)
+
+    def test_guard_all_nan_features_none(self):
+        r = WGCNAReducer()
+        r.impute_values_ = None
+        r._guard_all_nan_features(["feat1", "feat2"])  # Should return cleanly
+
+    def test_pairwise_network_types(self, small_feature_matrix, rng):
+        X_nan = small_feature_matrix.copy()
+        mask = rng.random(X_nan.shape) < 0.05
+        X_nan[mask] = np.nan
+
+        # Unsigned pairwise
+        r_unsigned = WGCNAReducer(
+            missing_strategy="pairwise",
+            network_type="unsigned",
+            soft_power=6,
+            min_module_size=20,
+            verbose=0,
+        )
+        Y_u = r_unsigned.fit_transform(X_nan)
+        assert Y_u.shape[1] > 0
+
+        # Signed pairwise
+        r_signed = WGCNAReducer(
+            missing_strategy="pairwise",
+            network_type="signed",
+            soft_power=6,
+            min_module_size=20,
+            verbose=0,
+        )
+        Y_s = r_signed.fit_transform(X_nan)
+        assert Y_s.shape[1] > 0
+
+    def test_auto_soft_power_failure_raises(self, small_feature_matrix, monkeypatch):
+        from PyWGCNA.wgcna import WGCNA
+
+        monkeypatch.setattr(
+            WGCNA, "pickSoftThreshold", lambda *args, **kwargs: (None, pd.DataFrame())
+        )
+        r = WGCNAReducer(
+            missing_strategy="pairwise",
+            soft_power="auto",
+            min_module_size=5,
+            verbose=0,
+        )
+        with pytest.raises(ValueError, match="Automatic soft-power selection failed"):
+            r.fit(small_feature_matrix)
+
+    def test_cutree_dynamic_ndarray_result(self, small_feature_matrix, monkeypatch):
+        from PyWGCNA.wgcna import WGCNA
+
+        # Mock cutreeHybrid returning a numpy array instead of a DataFrame (hits line 470)
+        n_features = small_feature_matrix.shape[1]
+        monkeypatch.setattr(
+            WGCNA, "cutreeHybrid", lambda *args, **kwargs: np.ones(n_features, dtype=int)
+        )
+        r = WGCNAReducer(soft_power=6, min_module_size=5, verbose=0)
+        r.fit(small_feature_matrix)
+        assert r.n_components_ > 0
+
+    def test_artifact_feature_importances_no_modules(self, small_feature_matrix):
+        # Matrix where no modules are found (min_module_size larger than n_features)
+        r = WGCNAReducer(min_module_size=1000, soft_power=6, verbose=0)
+        with pytest.warns(UserWarning, match="found no modules"):
+            r.fit(small_feature_matrix)
+        assert r._artifact_feature_importances() is None
+
+    def test_wgcna_utils_sign_orientations(self):
+        # 1. Multi-component sum_loadings
+        X = np.array(
+            [
+                [1.0, 2.0, 3.0],
+                [2.0, 1.0, 2.0],
+                [3.0, 3.0, 1.0],
+                [4.0, 2.0, 3.0],
+            ]
+        )
+        eg, loadings = _wgcna_compute_eigengene(
+            X, n_components=2, orient_eigengenes="sum_loadings"
+        )
+        assert loadings.shape == (3, 2)
+
+        # 2. Multi-component mean_correlation with orthogonal secondary component (lines 99-100)
+        for mat in [
+            np.array([[1.0, 1.0], [-1.0, -1.0], [2.0, -2.0], [-2.0, 2.0]]),
+            np.array([[1.0, 1.0], [-1.0, -1.0], [-2.0, 2.0], [2.0, -2.0]]),
+            np.array([[1.0, -1.0], [-1.0, 1.0], [2.0, 2.0], [-2.0, -2.0]]),
+            np.array([[-1.0, 1.0], [1.0, -1.0], [2.0, 2.0], [-2.0, -2.0]]),
+            np.array([[2.0, 0.0], [-2.0, 0.0], [0.0, -3.0], [0.0, 3.0]]),
+            np.array([[2.0, 0.0], [-2.0, 0.0], [0.0, 3.0], [0.0, -3.0]]),
+        ]:
+            _wgcna_compute_eigengene(mat, n_components=2, orient_eigengenes="mean_correlation")
+
+        # 3. Single component sum_loadings inversion (hits lines 64-65)
+        for s in [1.0, -1.0]:
+            X_s = np.array([[s * 1.0, s * 2.0], [s * 2.0, s * 1.0], [s * 3.0, s * 2.0]])
+            eg3, loadings3 = _wgcna_compute_eigengene(
+                X_s, n_components=1, orient_eigengenes="sum_loadings"
+            )
+            assert np.sum(loadings3) >= -1e-10

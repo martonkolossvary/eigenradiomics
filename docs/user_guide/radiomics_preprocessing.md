@@ -1,8 +1,8 @@
 # Radiomics Table Preprocessing
 
 `eigenradiomics.preprocessing` provides utilities for splitting selected
-Pictologics wide-format feature columns out of a radiomics table before
-downstream modeling or reduction.
+Pictologics wide-format feature columns out of a radiomics table, handling missingness,
+and cleaning feature distributions prior to downstream modeling or reduction.
 
 Pictologics wide tables use feature columns named as:
 
@@ -18,6 +18,8 @@ standard_fbn_32__joint_entropy_TU9B
 ```
 
 Columns that do not follow this pattern are treated as metadata by default.
+
+---
 
 ## Split a CSV Table
 
@@ -36,6 +38,8 @@ print(result.removed_table)
 
 This writes a stripped radiomics table without the selected feature columns and
 a removed-feature table containing metadata columns plus the removed features.
+
+---
 
 ## Selector Types
 
@@ -58,6 +62,8 @@ split_radiomics_file(
 )
 ```
 
+---
+
 ## Catalog-Backed Selection
 
 If you provide a Pictologics `describe_features()` catalog, you can select by
@@ -75,6 +81,8 @@ split_radiomics_file(
 The catalog should contain `config`, `feature_key`, `family`, and
 `family_group` columns. A legacy single `feature` column is also supported when
 it contains `{config}__{feature_key}` values.
+
+---
 
 ## sklearn Pipeline Use
 
@@ -103,7 +111,9 @@ For observer-paired reproducibility tables (`O1_…`, `O2_…` columns), pass
 `observer_prefixes=("O1_", "O2_")` so the `configs`/`families`/catalog selectors
 resolve on the base `config__feature_key` name.
 
-## Selecting features by a QC score
+---
+
+## Selecting Features by a QC Score
 
 `FeatureScoreSelector` drops features that fail a **precomputed** quality
 threshold — e.g. low reproducibility ICC or a large batch-effect size — inside a
@@ -119,6 +129,8 @@ reliable = FeatureScoreSelector(icc, threshold=0.80, score_column="icc_2_1")
 
 See [Downstream Statistical Analysis](downstream_analysis.md#qc-driven-feature-selection-in-a-pipeline)
 for using it together with the QC functions.
+
+---
 
 ## Per-Feature Cleaning with `RadiomicsPrepTransformer`
 
@@ -158,5 +170,78 @@ re-ordered or mismatched table is rejected rather than silently mis-cleaned. A
 DataFrame input returns a DataFrame (preserving the index and columns); an
 array input returns an array.
 
-It is the default preprocessing step inside `compute_batch_effects`, and works
-as a normal step in an sklearn `Pipeline`.
+---
+
+## Missing Data & Imputation Guide
+
+Missing values in radiomics feature tables require deliberate handling. Depending on whether you want native reducer-level missingness or upstream multivariate imputation within a scikit-learn `Pipeline`, several options are available:
+
+```mermaid
+flowchart TD
+    RAW["Raw Radiomics Matrix (with NaNs)"] --> PREP["RadiomicsPrepTransformer<br/>(Preserves NaNs, cleans distributions)"]
+    PREP --> ROUTE{"Imputation Strategy"}
+    ROUTE -->|Native WGCNA| WGCNA["WGCNAReducer<br/>missing_strategy='pairwise' / 'floor' / 'zero'"]
+    ROUTE -->|Simple Imputation| SIMP["SimpleImputer(strategy='median')"]
+    ROUTE -->|k-Nearest Neighbors| KNN["KNNImputer(n_neighbors=5)"]
+    ROUTE -->|Multivariate MICE| MICE["IterativeImputer(max_iter=10)"]
+    SIMP & KNN & MICE --> REDUCE["PCAReducer / WGCNAReducer"]
+```
+
+### Approach 1: Native Missingness in `WGCNAReducer`
+
+For WGCNA, native missing handling avoids distorting topological connections:
+
+```python
+from eigenradiomics import RadiomicsPrepTransformer, WGCNAReducer
+from sklearn.pipeline import Pipeline
+
+pipeline = Pipeline([
+    ("prep", RadiomicsPrepTransformer()),
+    ("wgcna", WGCNAReducer(
+        missing_strategy="pairwise",  # Pairwise complete correlation
+        orient_eigengenes="mean_correlation",
+    )),
+])
+
+Y_train = pipeline.fit_transform(X_train)
+Y_test = pipeline.transform(X_test)
+```
+
+### Approach 2: Upstream Multivariate Imputation in a `Pipeline`
+
+When using reducers that require complete matrices (such as standard `PCAReducer` or manifold embeddings), place an imputer immediately after `RadiomicsPrepTransformer`:
+
+```python
+from sklearn.experimental import enable_iterative_imputer  # noqa: F401
+from sklearn.impute import IterativeImputer, KNNImputer, SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import RidgeClassifier
+from eigenradiomics import RadiomicsPrepTransformer, PCAReducer
+
+# Option A: Fast univariate median imputation
+pipe_median = Pipeline([
+    ("prep", RadiomicsPrepTransformer()),
+    ("impute", SimpleImputer(strategy="median")),
+    ("pca", PCAReducer(n_components=10)),
+    ("clf", RidgeClassifier()),
+])
+
+# Option B: k-Nearest Neighbors imputation across radiomics profiles
+pipe_knn = Pipeline([
+    ("prep", RadiomicsPrepTransformer()),
+    ("impute", KNNImputer(n_neighbors=5)),
+    ("pca", PCAReducer(n_components=10)),
+    ("clf", RidgeClassifier()),
+])
+
+# Option C: Multivariate Imputation by Chained Equations (MICE)
+pipe_mice = Pipeline([
+    ("prep", RadiomicsPrepTransformer()),
+    ("impute", IterativeImputer(max_iter=10, random_state=42)),
+    ("pca", PCAReducer(n_components=10)),
+    ("clf", RidgeClassifier()),
+])
+```
+
+!!! important "Imputation Training vs. Test Leakage"
+    By embedding imputers inside a scikit-learn `Pipeline`, imputation statistics (e.g. feature medians, neighbor graphs, regression weights) are fitted **strictly on the training fold** during cross-validation, preventing data leakage into test sets.

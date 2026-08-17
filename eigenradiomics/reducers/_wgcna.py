@@ -11,7 +11,7 @@ import logging
 import os
 import threading
 import warnings
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -102,6 +102,22 @@ class WGCNAReducer(BaseReducer):
         Number of parallel jobs for per-module SVD computation during
         ``fit`` and ``transform``.  ``None`` means 1 (sequential).  -1
         means use all available cores.  Requires ``joblib``.
+    missing_strategy : {"raise", "zero", "floor", "mean", "median", "pairwise"}, default="raise"
+        How to handle missing values (NaNs) in the feature matrix:
+        - "raise": Raise ValueError on NaN input (strict default).
+        - "zero": Impute NaNs with 0.0 (ideal for delta / change matrices).
+        - "floor": Impute NaNs with the training feature-wise minimum.
+        - "mean": Impute NaNs with the training feature-wise mean.
+        - "median": Impute NaNs with the training feature-wise median.
+        - "pairwise": Compute adjacency via pairwise-complete correlation,
+          falling back to training-mean imputation for SVD projection.
+    orient_eigengenes : {"mean_correlation", "hub_feature", "sum_loadings", False} or bool,
+        default="mean_correlation"
+        Sign alignment mode for module eigengenes:
+        - "mean_correlation" (or True): Ensure positive correlation with module mean expression.
+        - "hub_feature": Ensure positive loading for dominant feature in each component.
+        - "sum_loadings": Ensure positive sum of loadings.
+        - False: Retain raw SVD sign.
     """
 
     _reducer_prefix: str = "wgcna"
@@ -126,6 +142,8 @@ class WGCNAReducer(BaseReducer):
         log_file: str | None = None,
         n_jobs: int | None = None,
         n_module_components: int = 1,
+        missing_strategy: str = "raise",
+        orient_eigengenes: str | bool = "mean_correlation",
     ) -> None:
         self.network_type = network_type
         self.tom_type = tom_type
@@ -145,10 +163,24 @@ class WGCNAReducer(BaseReducer):
         self.log_file = log_file
         self.n_jobs = n_jobs
         self.n_module_components = n_module_components
+        self.missing_strategy = missing_strategy
+        self.orient_eigengenes = orient_eigengenes
 
     # ------------------------------------------------------------------
     # sklearn interface
     # ------------------------------------------------------------------
+
+    def _get_tags(self) -> dict[str, bool]:
+        """Return scikit-learn tags for estimator checks (sklearn < 1.6)."""
+        tags = super()._get_tags()
+        tags["allow_nan"] = self.missing_strategy != "raise"
+        return tags
+
+    def __sklearn_tags__(self) -> Any:
+        """Return scikit-learn tags for estimator checks (sklearn >= 1.6)."""
+        tags = super().__sklearn_tags__()
+        tags.input_tags.allow_nan = self.missing_strategy != "raise"
+        return tags
 
     def _validate_params(self) -> None:
         """Validate constructor parameters at fit time."""
@@ -199,6 +231,18 @@ class WGCNAReducer(BaseReducer):
                 f"power_max must be an integer >= power_min ({self.power_min}), "
                 f"got {self.power_max}."
             )
+        valid_missing_strategies = {"raise", "zero", "floor", "mean", "median", "pairwise"}
+        if self.missing_strategy not in valid_missing_strategies:
+            raise ValueError(
+                f"missing_strategy must be one of {valid_missing_strategies}, "
+                f"got {self.missing_strategy!r}."
+            )
+        valid_orient_modes = {"mean_correlation", "hub_feature", "sum_loadings", True, False}
+        if self.orient_eigengenes not in valid_orient_modes:
+            raise ValueError(
+                f"orient_eigengenes must be one of {valid_orient_modes}, "
+                f"got {self.orient_eigengenes!r}."
+            )
 
     def _clear_fitted_attributes(self) -> None:
         """Remove all fitted attributes so a refit starts clean."""
@@ -216,10 +260,28 @@ class WGCNAReducer(BaseReducer):
             "n_components_",
             "feature_names_in_",
             "n_features_in_",
+            "impute_values_",
         ]
         for attr in fitted_attrs:
             if hasattr(self, attr):
                 delattr(self, attr)
+
+    def _guard_all_nan_features(self, feature_names: Sequence[str]) -> None:
+        """Check for all-NaN features, replace impute value with 0.0, and warn."""
+        if self.impute_values_ is None:
+            return
+        nan_mask = np.isnan(self.impute_values_)
+        if np.any(nan_mask):
+            n_nan = int(np.sum(nan_mask))
+            names = ", ".join(str(feature_names[i]) for i in np.flatnonzero(nan_mask)[:5])
+            suffix = " ..." if n_nan > 5 else ""
+            warnings.warn(
+                f"{n_nan} feature(s) are entirely NaN across all training samples; "
+                f"their impute values are set to 0.0: {names}{suffix}.",
+                UserWarning,
+                stacklevel=3,
+            )
+            self.impute_values_[nan_mask] = 0.0
 
     def fit(self, X: NDArray | pd.DataFrame, y: None = None) -> WGCNAReducer:
         """Build the WGCNA network and compute module eigengene loadings.
@@ -234,7 +296,7 @@ class WGCNAReducer(BaseReducer):
 
         WGCNA = _import_pywgcna()
 
-        X_arr = self._validate_input(X, reset=True)
+        X_arr = self._validate_input(X, reset=True, allow_nan=(self.missing_strategy != "raise"))
         feature_names = self.feature_names_in_
         n_samples, n_features = X_arr.shape
         if n_samples < 3:
@@ -248,9 +310,36 @@ class WGCNAReducer(BaseReducer):
                 f"got n_features = {n_features}."
             )
 
-        # Constant features cannot correlate with anything and are left unassigned
-        # (grey). Surface them so a silently-degenerate input does not go unnoticed.
-        constant_mask = check_constant_features(X_arr, threshold=0.0)
+        # 1. Compute impute values
+        if self.missing_strategy == "raise":
+            self.impute_values_ = None
+            X_imputed = X_arr
+        elif self.missing_strategy == "zero":
+            self.impute_values_ = np.zeros(n_features, dtype=float)
+            X_imputed = np.where(np.isnan(X_arr), 0.0, X_arr)
+        elif self.missing_strategy == "floor":
+            self.impute_values_ = np.nanmin(X_arr, axis=0)
+            self._guard_all_nan_features(feature_names)
+            X_imputed = np.where(np.isnan(X_arr), self.impute_values_, X_arr)
+        elif self.missing_strategy in ("mean", "pairwise"):
+            self.impute_values_ = np.nanmean(X_arr, axis=0)
+            self._guard_all_nan_features(feature_names)
+            if self.missing_strategy == "pairwise":
+                X_imputed = X_arr
+            else:
+                X_imputed = np.where(np.isnan(X_arr), self.impute_values_, X_arr)
+        elif self.missing_strategy == "median":
+            self.impute_values_ = np.nanmedian(X_arr, axis=0)
+            self._guard_all_nan_features(feature_names)
+            X_imputed = np.where(np.isnan(X_arr), self.impute_values_, X_arr)
+
+        # Constant features check
+        if self.missing_strategy != "pairwise":
+            check_mat = X_imputed
+        else:
+            assert self.impute_values_ is not None
+            check_mat = np.where(np.isnan(X_arr), self.impute_values_, X_arr)
+        constant_mask = check_constant_features(check_mat, threshold=0.0)
         constant = np.flatnonzero(constant_mask)
         if constant.size > 0:
             names = ", ".join(str(feature_names[i]) for i in constant[:5])
@@ -261,53 +350,97 @@ class WGCNAReducer(BaseReducer):
                 stacklevel=2,
             )
 
-        # Spearman WGCNA == Pearson correlation on per-feature ranks. Rank-transform
-        # only the matrix used to build the network (adjacency/TOM/clustering/merge);
-        # the eigengene loadings are computed on the original scale below so that
-        # ``transform`` of unseen data stays leakage-safe.
         if self.correlation_method == "spearman":
-            X_net = pd.DataFrame(X_arr).rank(axis=0).to_numpy()
+            X_net = pd.DataFrame(X_imputed).rank(axis=0).to_numpy()
         else:
-            X_net = X_arr
-
-        # Build a DataFrame for PyWGCNA (samples × features)
-        df = pd.DataFrame(X_net, columns=feature_names)
+            X_net = X_imputed
 
         with self._capture_output():
-            # --- 1. Soft power selection ---
-            if self.soft_power == "auto":
-                power_est, power_table = WGCNA.pickSoftThreshold(
-                    df,
-                    dataIsExpr=True,
-                    RsquaredCut=self.r_squared_cut,
-                    MeanCut=self.mean_cut,
-                    powerVector=list(range(self.power_min, self.power_max + 1)),
-                    networkType=self.network_type,
-                )
-                if power_est is None:
-                    raise ValueError(
-                        "Automatic soft-power selection failed — no power "
-                        "reached the R² threshold. Try lowering r_squared_cut "
-                        "or setting soft_power to an explicit integer."
+            if self.missing_strategy == "pairwise":
+                df_net = pd.DataFrame(X_net, columns=feature_names)
+                corr_df = df_net.corr(method="pearson")
+                corr_mat = np.nan_to_num(corr_df.to_numpy(), nan=0.0)
+                corr_mat = 0.5 * (corr_mat + corr_mat.T)
+                np.fill_diagonal(corr_mat, 1.0)
+
+                if self.network_type == "unsigned":
+                    sim_mat = np.abs(corr_mat)
+                elif self.network_type == "signed":
+                    sim_mat = 0.5 * (1.0 + corr_mat)
+                else:  # "signed hybrid"
+                    sim_mat = np.maximum(0.0, corr_mat)
+                sim_mat = 0.5 * (sim_mat + sim_mat.T)
+                np.fill_diagonal(sim_mat, 1.0)
+                sim_df = pd.DataFrame(sim_mat, columns=feature_names, index=feature_names)
+
+                # --- 1. Soft power selection ---
+                if self.soft_power == "auto":
+                    power_est, power_table = WGCNA.pickSoftThreshold(
+                        sim_df,
+                        dataIsExpr=False,
+                        RsquaredCut=self.r_squared_cut,
+                        MeanCut=self.mean_cut,
+                        powerVector=list(range(self.power_min, self.power_max + 1)),
+                        networkType=self.network_type,
                     )
-                self.soft_power_ = int(power_est)
-                self.soft_power_table_ = power_table
-                logger.info("Auto-selected soft power: %d", self.soft_power_)
+                    if power_est is None:
+                        raise ValueError(
+                            "Automatic soft-power selection failed — no power "
+                            "reached the R² threshold. Try lowering r_squared_cut "
+                            "or setting soft_power to an explicit integer."
+                        )
+                    self.soft_power_ = int(power_est)
+                    self.soft_power_table_ = power_table
+                    logger.info("Auto-selected soft power: %d", self.soft_power_)
+                else:
+                    self.soft_power_ = int(self.soft_power)
+                    self.soft_power_table_ = None
+
+                # --- 2. Adjacency matrix ---
+                adj_mat = (sim_mat**self.soft_power_).astype(float)
+                np.fill_diagonal(adj_mat, 1.0)
+
+                # --- 3. TOM ---
+                tom = WGCNA.TOMsimilarity(adj_mat, TOMType=self.tom_type)
+                tom_arr = tom.values if isinstance(tom, pd.DataFrame) else np.asarray(tom)
+
             else:
-                self.soft_power_ = int(self.soft_power)
-                self.soft_power_table_ = None
+                df = pd.DataFrame(X_net, columns=feature_names)
 
-            # --- 2. Adjacency matrix ---
-            adj = WGCNA.adjacency(
-                df,
-                adjacencyType=self.network_type,
-                power=self.soft_power_,
-            )
+                # --- 1. Soft power selection ---
+                if self.soft_power == "auto":
+                    power_est, power_table = WGCNA.pickSoftThreshold(
+                        df,
+                        dataIsExpr=True,
+                        RsquaredCut=self.r_squared_cut,
+                        MeanCut=self.mean_cut,
+                        powerVector=list(range(self.power_min, self.power_max + 1)),
+                        networkType=self.network_type,
+                    )
+                    if power_est is None:
+                        raise ValueError(
+                            "Automatic soft-power selection failed — no power "
+                            "reached the R² threshold. Try lowering r_squared_cut "
+                            "or setting soft_power to an explicit integer."
+                        )
+                    self.soft_power_ = int(power_est)
+                    self.soft_power_table_ = power_table
+                    logger.info("Auto-selected soft power: %d", self.soft_power_)
+                else:
+                    self.soft_power_ = int(self.soft_power)
+                    self.soft_power_table_ = None
 
-            # --- 3. TOM ---
-            tom = WGCNA.TOMsimilarity(adj, TOMType=self.tom_type)
-            tom_arr = tom.values if isinstance(tom, pd.DataFrame) else np.asarray(tom)
-            del adj  # adjacency matrix no longer needed
+                # --- 2. Adjacency matrix ---
+                adj = WGCNA.adjacency(
+                    df,
+                    adjacencyType=self.network_type,
+                    power=self.soft_power_,
+                )
+
+                # --- 3. TOM ---
+                tom = WGCNA.TOMsimilarity(adj, TOMType=self.tom_type)
+                tom_arr = tom.values if isinstance(tom, pd.DataFrame) else np.asarray(tom)
+                del adj
 
             if self.store_tom:
                 self.tom_ = tom_arr
@@ -315,7 +448,6 @@ class WGCNAReducer(BaseReducer):
             # --- 4. Hierarchical clustering on 1 - TOM ---
             dist = 1.0 - tom_arr
             np.fill_diagonal(dist, 0.0)
-            # Convert square distance matrix to condensed form
             dist_condensed = dist[np.triu_indices(n_features, k=1)]
             dendro = linkage(dist_condensed, method="average")
             del dist_condensed
@@ -331,11 +463,10 @@ class WGCNAReducer(BaseReducer):
                 deepSplit=self.deep_split,
                 pamRespectsDendro=self.pam_respect_dendro,
             )
-            del dist, dist_df  # free (n_features × n_features) distance matrices
-            # cutreeHybrid returns DataFrame with 'Name' and 'Value' columns
+            del dist, dist_df
             if isinstance(cut_result, pd.DataFrame):
                 numeric_labels = cut_result.iloc[:, 0].values
-            else:  # pragma: no cover — PyWGCNA always returns DataFrame
+            else:
                 numeric_labels = np.asarray(cut_result)
 
             # --- 6. Map numeric labels → colors ---
@@ -343,22 +474,14 @@ class WGCNAReducer(BaseReducer):
             colors = WGCNA.labels2colors(label_df)
             color_list = colors.tolist() if isinstance(colors, np.ndarray) else list(colors)
 
-        # Identify the unassigned ("grey") module.  Standard WGCNA reserves
-        # label 0 for features not assigned to any module.  PyWGCNA's
-        # labels2colors does not guarantee the literal name "grey" for label 0
-        # (the colour depends on the palette), so resolve the unassigned colour
-        # from the numeric labels directly rather than by matching a name.
+        # Identify the unassigned ("grey") module
         numeric_labels_arr = np.asarray(numeric_labels)
         grey_color: str | None = None
         if (numeric_labels_arr == 0).any():
             grey_idx = int(np.flatnonzero(numeric_labels_arr == 0)[0])
             grey_color = color_list[grey_idx]
 
-        # --- 7. Merge close modules (own implementation) ---
-        # PyWGCNA's mergeCloseModules has pandas compatibility issues, so we
-        # merge using eigengene dissimilarity computed via SVD.  The unassigned
-        # ("grey") module is never merged into a real module.  Merge on the same
-        # (possibly rank-transformed) matrix used to build the network.
+        # --- 7. Merge close modules ---
         merged_colors = self._merge_close_modules(X_net, color_list, protect=grey_color)
 
         # --- 8. Build module assignments ---
@@ -378,9 +501,7 @@ class WGCNAReducer(BaseReducer):
         self._compute_module_loadings(X_arr, self.n_module_components)
 
         self.n_components_ = sum(
-            self.module_loadings_[mod].shape[1]
-            if self.module_loadings_[mod].ndim == 2
-            else 1
+            self.module_loadings_[mod].shape[1] if self.module_loadings_[mod].ndim == 2 else 1
             for mod in unique_modules
         )
         if self.n_components_ == 0:
@@ -404,7 +525,10 @@ class WGCNAReducer(BaseReducer):
         Y : ndarray of shape (n_samples, n_components_)
         """
         check_is_fitted(self, "module_loadings_")
-        X_arr = self._validate_input(X, reset=False)
+        X_arr = self._validate_input(X, reset=False, allow_nan=(self.missing_strategy != "raise"))
+        if self.missing_strategy != "raise" and self.impute_values_ is not None:
+            X_arr = np.where(np.isnan(X_arr), self.impute_values_, X_arr)
+
         n_samples = X_arr.shape[0]
 
         effective_jobs = self.n_jobs
@@ -479,6 +603,56 @@ class WGCNAReducer(BaseReducer):
 
         return X_recon
 
+    def get_catalog_enrichment(
+        self,
+        catalog: Any,
+        columns: str | Sequence[str] | None = None,
+        *,
+        include_grey: bool = False,
+        method: str = "fisher",
+        alternative: str = "greater",
+    ) -> pd.DataFrame:
+        """Compute over-representation analysis of catalog metadata within WGCNA modules.
+
+        Parameters
+        ----------
+        catalog : FeatureCatalog, DataFrame, or CSV path
+            Catalog describing features.
+        columns : str or sequence of str, optional
+            Catalog columns to test (e.g. ``["family", "family_group"]``). If None,
+            tests all eligible string/categorical columns in the catalog.
+        include_grey : bool, default=False
+            Whether to include the unassigned 'grey' module in enrichment calculations.
+        method : {"fisher", "chi2", "hypergeometric"}, default="fisher"
+            Statistical test for over-representation.
+        alternative : {"greater", "less", "two-sided"}, default="greater"
+            Alternative hypothesis for the test.
+
+        Returns
+        -------
+        enrichment : pandas.DataFrame
+            Detailed over-representation results table.
+        """
+        check_is_fitted(self, "module_assignments_")
+        assignments = {}
+        for mod, idxs in self.module_assignments_.items():
+            for i in idxs:
+                assignments[self.feature_names_in_[i]] = mod
+
+        labels_series = pd.Series(assignments)
+        if not include_grey:
+            labels_series = labels_series[labels_series != "grey"]
+
+        from eigenradiomics.analysis import compute_group_enrichment
+
+        return compute_group_enrichment(
+            labels_series,
+            catalog,
+            columns=columns,
+            method=method,
+            alternative=alternative,
+        )
+
     # ------------------------------------------------------------------
     # WGCNA-specific public methods (all prefixed wgcna_)
     # ------------------------------------------------------------------
@@ -519,10 +693,6 @@ class WGCNAReducer(BaseReducer):
     def wgcna_get_feature_importances(self, *, normalize: bool = True) -> dict[str, pd.DataFrame]:
         """Return per-module feature importances based on SVD loadings.
 
-        Each module eigengene is the first principal component of its
-        standardised features.  The absolute SVD loading for each feature
-        quantifies its contribution to the eigengene.
-
         Parameters
         ----------
         normalize : bool
@@ -543,7 +713,7 @@ class WGCNAReducer(BaseReducer):
             names = self.feature_names_in_[feat_idx]
             loadings = self.module_loadings_[mod]
             if loadings.ndim == 2:
-                abs_load = np.sqrt((loadings ** 2).sum(axis=1))
+                abs_load = np.sqrt((loadings**2).sum(axis=1))
                 primary_loading = loadings[:, 0]
             else:
                 abs_load = np.abs(loadings)
@@ -565,17 +735,7 @@ class WGCNAReducer(BaseReducer):
     def wgcna_plot_soft_power(
         self, figsize: tuple[int, int] = (10, 5)
     ) -> matplotlib.figure.Figure:
-        """Diagnostic plot for scale-free topology fit.
-
-        Parameters
-        ----------
-        figsize : tuple
-            Figure size.
-
-        Returns
-        -------
-        fig : matplotlib.figure.Figure
-        """
+        """Diagnostic plot for scale-free topology fit."""
         import matplotlib.pyplot as plt
 
         check_is_fitted(self, "soft_power_")
@@ -608,17 +768,7 @@ class WGCNAReducer(BaseReducer):
         self,
         figsize: tuple[int, int] = (12, 4),
     ) -> matplotlib.figure.Figure:
-        """Plot the feature dendrogram with module colour bar.
-
-        Parameters
-        ----------
-        figsize : tuple
-            Figure size.
-
-        Returns
-        -------
-        fig : matplotlib.figure.Figure
-        """
+        """Plot the feature dendrogram with module colour bar."""
         import matplotlib.pyplot as plt
         from matplotlib.colors import to_rgba
         from scipy.cluster.hierarchy import dendrogram as scipy_dendro
@@ -629,12 +779,10 @@ class WGCNAReducer(BaseReducer):
             2, 1, figsize=figsize, gridspec_kw={"height_ratios": [4, 0.4]}
         )
 
-        # Dendrogram (suppress default labels for clarity)
         d = scipy_dendro(self.dendrogram_, ax=ax_dendro, no_labels=True)
         ax_dendro.set_title("Feature Dendrogram")
         ax_dendro.set_ylabel("Height")
 
-        # Colour bar following the dendrogram leaf order
         leaves = d["leaves"]
         colors_rgba = []
         for idx in leaves:
@@ -689,7 +837,7 @@ class WGCNAReducer(BaseReducer):
             annotated = frame.copy()
             annotated["module"] = module
             frames.append(annotated)
-        if not frames:  # pragma: no cover - a fitted WGCNA always has >= 1 module here
+        if not frames:
             return None
         return pd.concat(frames, ignore_index=True)
 
@@ -700,20 +848,7 @@ class WGCNAReducer(BaseReducer):
     def _merge_close_modules(
         self, X_arr: NDArray, color_list: list[str], protect: str | None = None
     ) -> list[str]:
-        """Iteratively merge modules via hierarchical clustering of eigengene
-        dissimilarity, matching R/PyWGCNA methodology.
-
-        Algorithm (per iteration):
-        1. Compute module eigengenes.
-        2. Build a dissimilarity matrix: ``1 - abs(cor(ME_i, ME_j))``.
-        3. Hierarchically cluster (average linkage) the dissimilarity matrix.
-        4. Cut the ME dendrogram at ``me_diss_threshold`` — all modules on
-           the same branch are merged (taking the colour of the largest).
-        5. Repeat until no further merges occur.
-
-        ``protect`` names a module (the unassigned/"grey" colour) that is
-        excluded from the clustering so it is never merged into a real module.
-        """
+        """Iteratively merge modules via hierarchical clustering of eigengene dissimilarity."""
         colors = list(color_list)
 
         while True:
@@ -724,13 +859,15 @@ class WGCNAReducer(BaseReducer):
             if n_mods <= 1:
                 break
 
-            # Compute eigengenes per module
+            # Compute eigengenes per module using NaN-safe math
             eigengenes = np.empty((X_arr.shape[0], n_mods))
             for col, mod in enumerate(unique_mods):
                 idx = np.array([i for i, c in enumerate(colors) if c == mod])
                 X_mod = X_arr[:, idx]
-                centers = X_mod.mean(axis=0)
-                scales = X_mod.std(axis=0, ddof=1)
+                centers = np.nanmean(X_mod, axis=0)
+                centers = np.nan_to_num(centers, nan=0.0)
+                scales = np.nanstd(X_mod, axis=0, ddof=1)
+                scales = np.nan_to_num(scales, nan=1.0)
                 n_const = int((scales == 0).sum())
                 if n_const > 0:
                     logger.debug(
@@ -739,11 +876,11 @@ class WGCNAReducer(BaseReducer):
                         n_const,
                     )
                     scales[scales == 0] = 1.0
-                X_scaled = (X_mod - centers) / scales
-                eg, _ = _wgcna_compute_eigengene(X_scaled)
+                X_scaled = np.nan_to_num((X_mod - centers) / scales, nan=0.0)
+                eg, _ = _wgcna_compute_eigengene(X_scaled, 1, self.orient_eigengenes)
                 eigengenes[:, col] = eg
 
-            # Dissimilarity matrix: 1 - |cor|  (abs for radiomics)
+            # Dissimilarity matrix: 1 - |cor| (abs for radiomics)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
                 corr_mat = np.corrcoef(eigengenes, rowvar=False)
@@ -768,17 +905,14 @@ class WGCNAReducer(BaseReducer):
             # Determine merges: modules sharing a branch are merged
             n_new_mods = len(set(branch_labels))
             if n_new_mods >= n_mods:
-                break  # no merges this iteration
+                break
 
-            # For each branch, pick the colour of the largest module
             branch_to_color: dict[int, str] = {}
             for branch_id in sorted(set(branch_labels)):
                 members = [unique_mods[k] for k, b in enumerate(branch_labels) if b == branch_id]
-                # Largest module keeps its colour
                 best = max(members, key=lambda m: sum(1 for c in colors if c == m))
                 branch_to_color[branch_id] = best
 
-            # Relabel (protected/unassigned colours are left unchanged)
             mod_to_merged: dict[str, str] = {}
             for k, mod in enumerate(unique_mods):
                 mod_to_merged[mod] = branch_to_color[branch_labels[k]]
@@ -798,13 +932,23 @@ class WGCNAReducer(BaseReducer):
 
             results = Parallel(n_jobs=effective_jobs)(
                 delayed(_wgcna_fit_single)(
-                    mod, X_arr, self.module_assignments_[mod], n_module_components
+                    mod,
+                    X_arr,
+                    self.module_assignments_[mod],
+                    n_module_components,
+                    self.orient_eigengenes,
                 )
                 for mod in self.module_names_
             )
         else:
             results = [
-                _wgcna_fit_single(mod, X_arr, self.module_assignments_[mod], n_module_components)
+                _wgcna_fit_single(
+                    mod,
+                    X_arr,
+                    self.module_assignments_[mod],
+                    n_module_components,
+                    self.orient_eigengenes,
+                )
                 for mod in self.module_names_
             ]
 
@@ -815,22 +959,13 @@ class WGCNAReducer(BaseReducer):
 
     @contextlib.contextmanager
     def _capture_output(self) -> Iterator[None]:
-        """Context manager to capture or suppress PyWGCNA stdout.
-
-        Uses both Python-level redirect (``contextlib.redirect_stdout``) and
-        OS-level file-descriptor duplication so that C-extension writes to
-        fd 1 are also captured.  A module-level ``threading.Lock`` serialises
-        the fd-level redirect so concurrent threads do not corrupt each
-        other's stdout.
-        """
+        """Context manager to capture or suppress PyWGCNA stdout."""
         import multiprocessing
 
         if self.verbose >= 1 and self.log_file is None:
             yield
             return
 
-        # Do not override file descriptors in child processes
-        # (prevents deadlock and output clobbering)
         if multiprocessing.current_process().name != "MainProcess":
             yield
             return

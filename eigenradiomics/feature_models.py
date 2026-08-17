@@ -1298,4 +1298,3 @@ def plot_rwas_manhattan(
     _save_figure(fig, path, dpi, save_pdf, save_tiff)
 
     return fig
-

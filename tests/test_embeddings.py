@@ -109,9 +109,7 @@ def test_umap_reducer_mocked(dummy_data):
         assert reducer._reducer_prefix == "umap"
 
         reducer.fit(dummy_data)
-        mock_umap.UMAP.assert_called_once_with(
-            n_components=2, densmap=True, random_state=42
-        )
+        mock_umap.UMAP.assert_called_once_with(n_components=2, densmap=True, random_state=42)
         mock_estimator.fit.assert_called_once()
 
         Y = reducer.transform(dummy_data)
@@ -130,9 +128,7 @@ def test_pacmap_reducer_mocked(dummy_data):
         assert reducer._reducer_prefix == "pacmap"
 
         reducer.fit(dummy_data)
-        mock_pacmap.PaCMAP.assert_called_once_with(
-            n_dims=2, random_state=42
-        )
+        mock_pacmap.PaCMAP.assert_called_once_with(n_dims=2, random_state=42)
         mock_estimator.fit.assert_called_once()
 
         Y = reducer.transform(dummy_data)

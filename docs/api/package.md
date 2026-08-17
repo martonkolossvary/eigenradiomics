@@ -11,9 +11,9 @@ docstrings live on the per-area API pages linked in each row.
 | Preprocessing & selection | `RadiomicsPrepTransformer`, `RadiomicsFeatureRemover`, `FeatureScoreSelector`, `ComBatHarmonizer` | [Preprocessing](preprocessing.md) |
 | Reproducibility QC | `compute_reproducibility`, `plot_reproducibility_histograms`, `write_reproducibility_excel` | [Reproducibility](reproducibility.md) |
 | Batch-effect QC | `compute_batch_effects`, `plot_batch_effects`, `write_batch_effects_excel` | [Batch Effects](batch_effects.md) |
-| Dimensionality reduction | `BaseReducer`, `WGCNAReducer`, `ReductionArtifacts` | [Reducers](reducers.md) |
+| Dimensionality reduction | `BaseReducer`, `WGCNAReducer`, `PCAReducer`, `SparsePCAReducer`, `ReductionArtifacts`, `PairedReductionResult` | [Reducers](reducers.md) |
 | Visualization | `plot_clustered_heatmap`, `Strip`, `Bar`, `CorrPanel` | [Plotting](plotting.md) |
-| Downstream stats | `compute_clinical_correlations`, `compute_module_trait_associations`, `encode_clinical_series` | [Clinical & Module-Trait](clinical.md) |
+| Downstream stats | `compute_clinical_correlations`, `compute_module_trait_associations`, `compute_group_enrichment`, `identify_hub_features`, `encode_clinical_series` | [Clinical & Module-Trait](clinical.md) |
 | Feature models | `compute_feature_associations`, `FeatureAssociationResult`, `plot_volcano` | [Feature Models](feature_models.md) |
 | Version | `__version__` | package version string |
 
@@ -27,11 +27,12 @@ from eigenradiomics import (
     # pre-analysis QC
     compute_reproducibility, compute_batch_effects,
     # dimensionality reduction
-    WGCNAReducer, ReductionArtifacts,
+    WGCNAReducer, PCAReducer, SparsePCAReducer, ReductionArtifacts, PairedReductionResult,
     # visualization
     plot_clustered_heatmap, Strip, Bar, CorrPanel,
     # downstream statistical analysis
     compute_clinical_correlations, compute_module_trait_associations,
+    compute_group_enrichment, identify_hub_features,
     # feature-outcome models + volcano
     compute_feature_associations, plot_volcano,
 )

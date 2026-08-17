@@ -441,3 +441,119 @@ def test_plot_single_sheet():
     fig = plot_reproducibility_histograms(results)
     assert len(fig.axes) == 1
     plt.close(fig)
+
+
+class TestReproducibilityCoverageGaps:
+    """Targeted tests for remaining uncovered branches in reproducibility.py."""
+
+    def test_cluster_bootstrap_padding_and_truncation(self):
+        from eigenradiomics.reproducibility import _generate_cluster_bootstrap_indices
+
+        # Highly unbalanced groups to test padding (L < n_samples) and truncation (L > n_samples)
+        groups = np.array([0, 0, 0, 0, 1, 2, 3, 4, 5, 6])
+        idx = _generate_cluster_bootstrap_indices(groups, iterations=100, seed=42)
+        assert idx.shape == (100, len(groups))
+
+    def test_compute_reproducibility_groups_variants(self):
+        rng = np.random.default_rng(42)
+        df1 = pd.DataFrame(
+            {
+                "patient": ["p1", "p1", "p2", "p2", "p3", "p3", "p4", "p4"],
+                "feat1": rng.normal(size=8),
+                "feat_with_nan": [1.0, 2.0, np.nan, 4.0, 5.0, 6.0, 7.0, 8.0],
+            }
+        )
+        df2 = df1.copy()
+        df2["feat1"] = df1["feat1"] + 0.1
+
+        # 1. groups as column name with feature containing NaNs
+        res_col = compute_reproducibility(
+            [df1, df2],
+            groups="patient",
+            bootstrap_iterations=10,
+            features=["feat1", "feat_with_nan"],
+        )
+        assert "ICC" in res_col
+
+        # 2. groups as MultiIndex level name (triggers lines 215-216 and 226)
+        midx = pd.MultiIndex.from_tuples(
+            [(f"p{i // 2}", f"scan_{i}") for i in range(8)], names=["patient_level", "scan"]
+        )
+        df1_mi = df1.drop(columns=["patient"]).set_index(midx)
+        df2_mi = df2.drop(columns=["patient"]).set_index(midx)
+
+        res_mi = compute_reproducibility(
+            [df1_mi, df2_mi], groups="patient_level", bootstrap_iterations=10
+        )
+        assert "ICC" in res_mi
+
+        # 3. Default MultiIndex groups inference when groups=None
+        res_mi_default = compute_reproducibility([df1_mi, df2_mi], bootstrap_iterations=10)
+        assert "ICC" in res_mi_default
+
+        # 4. Invalid groups string raises ValueError
+        with pytest.raises(ValueError, match="groups column/level"):
+            compute_reproducibility([df1, df2], groups="non_existent_col")
+
+        # 5. groups as string with ndarrays raises ValueError
+        with pytest.raises(ValueError, match="groups as string only supported"):
+            compute_reproducibility(
+                [df1[["feat1"]].to_numpy(), df2[["feat1"]].to_numpy()], groups="col"
+            )
+
+        # 6. groups as explicit array (hits line 222)
+        res_arr = compute_reproducibility(
+            [df1, df2], groups=[0, 0, 1, 1, 2, 2, 3, 3], bootstrap_iterations=5
+        )
+        assert "ICC" in res_arr
+
+    def test_plot_reproducibility_options_and_gaps(self):
+        from eigenradiomics.reproducibility import plot_reproducibility
+
+        results = {
+            "Spearman": pd.DataFrame({"feature": ["f1", "f2"], "estimate": [0.8, 0.9]}),
+            "Pearson": pd.DataFrame({"feature": ["f1", "f2"], "estimate": [0.85, 0.95]}),
+            "ICC": pd.DataFrame({"feature": ["f1", "f2"], "icc_2_1": [0.88, 0.92]}),
+        }
+
+        # 1. Custom axes length mismatch in plot_reproducibility_histograms
+        fig_dummy, (ax1, ax2) = plt.subplots(1, 2)
+        with pytest.raises(ValueError, match="Expected 3 axes"):
+            plot_reproducibility_histograms(results, axes=[ax1, ax2])
+        plt.close(fig_dummy)
+
+        # 2. plot_reproducibility_histograms with custom title
+        fig_hist = plot_reproducibility_histograms(results, title="My Custom Histogram Title")
+        assert isinstance(fig_hist, plt.Figure)
+        plt.close(fig_hist)
+
+        # 3. plot_reproducibility: neither datasets nor results raises
+        with pytest.raises(ValueError, match="Either 'datasets' or 'reproducibility_results'"):
+            plot_reproducibility()
+
+        # 4. plot_reproducibility: both datasets and results warns
+        d1 = pd.DataFrame({"f1": [1.0, 2.0, 3.0, 4.0]})
+        with pytest.warns(UserWarning, match="Both 'datasets' and 'reproducibility_results'"):
+            _, fig_both = plot_reproducibility(
+                [d1, d1], reproducibility_results=results, show_legend=False
+            )
+            plt.close(fig_both)
+
+        # 5. plot_reproducibility: empty sheets raises
+        with pytest.raises(ValueError, match="contains no plottable data sheets"):
+            plot_reproducibility(reproducibility_results={})
+
+        # 6. plot_reproducibility: grid_2x2=True with < 3 sheets warns
+        res_two = {"ICC": results["ICC"], "Pearson": results["Pearson"]}
+        with pytest.warns(UserWarning, match="grid_2x2=True requires all three metrics"):
+            _, fig_two = plot_reproducibility(
+                reproducibility_results=res_two, grid_2x2=True, show_legend=False
+            )
+            plt.close(fig_two)
+
+        # 7. plot_reproducibility: grid_2x2=True with title
+        _, fig_grid = plot_reproducibility(
+            reproducibility_results=results, grid_2x2=True, title="Combined Reproducibility Grid"
+        )
+        assert isinstance(fig_grid, plt.Figure)
+        plt.close(fig_grid)

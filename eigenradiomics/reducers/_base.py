@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -11,7 +12,7 @@ from numpy.typing import NDArray
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from eigenradiomics._utils import validate_estimator_input
-from eigenradiomics.artifacts import ReductionArtifacts
+from eigenradiomics.artifacts import PairedReductionResult, ReductionArtifacts
 
 
 class BaseReducer(ABC, TransformerMixin, BaseEstimator):
@@ -77,6 +78,157 @@ class BaseReducer(ABC, TransformerMixin, BaseEstimator):
         -------
         Y : ndarray of shape (n_samples, n_components_)
         """
+
+    def transform_paired(
+        self,
+        X_pre: NDArray | pd.DataFrame,
+        X_post: NDArray | pd.DataFrame,
+        *,
+        relative: bool = False,
+        compute_distance: bool = True,
+        align_indices: bool = True,
+        epsilon: float = 1e-8,
+    ) -> PairedReductionResult:
+        """Project paired longitudinal datasets into reduced space and compute trajectory metrics.
+
+        Parameters
+        ----------
+        X_pre : array-like of shape (n_samples, n_features)
+            Baseline feature matrix.
+        X_post : array-like of shape (n_samples, n_features)
+            Follow-up feature matrix.
+        relative : bool, default=False
+            If True, compute relative change: delta / (|baseline| + epsilon).
+        compute_distance : bool, default=True
+            If True, compute Euclidean trajectory distance ||ME_post - ME_pre||_2 per sample.
+        align_indices : bool, default=True
+            If True and inputs are DataFrames, align on common index before transformation.
+        epsilon : float, default=1e-8
+            Small constant for numerical stability in relative change calculation.
+
+        Returns
+        -------
+        result : PairedReductionResult
+            Structured container with baseline, followup, delta, relative_change,
+            trajectory_distance, and effect_size.
+        """
+        from sklearn.utils.validation import check_is_fitted
+
+        check_is_fitted(self, "n_components_")
+
+        common_idx: Any = None
+        is_df = isinstance(X_pre, pd.DataFrame) and isinstance(X_post, pd.DataFrame)
+
+        if isinstance(X_pre, pd.DataFrame) and isinstance(X_post, pd.DataFrame):
+            if align_indices:
+                common_idx = X_pre.index.intersection(X_post.index)
+                if len(common_idx) == 0:
+                    raise ValueError("No common index entries between X_pre and X_post.")
+                n_dropped_pre = len(X_pre) - len(common_idx)
+                n_dropped_post = len(X_post) - len(common_idx)
+                if n_dropped_pre > 0 or n_dropped_post > 0:
+                    warnings.warn(
+                        f"Index alignment dropped {n_dropped_pre} sample(s) from X_pre and "
+                        f"{n_dropped_post} sample(s) from X_post that were not paired.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                X_pre_aligned: Any = X_pre.loc[common_idx]
+                X_post_aligned: Any = X_post.loc[common_idx]
+            else:
+                if len(X_pre) != len(X_post):
+                    raise ValueError(
+                        f"Sample count mismatch: X_pre has {len(X_pre)} samples, "
+                        f"but X_post has {len(X_post)} samples."
+                    )
+                common_idx = X_pre.index
+                X_pre_aligned = X_pre
+                X_post_aligned = X_post
+        else:
+            if isinstance(X_pre, pd.DataFrame) or isinstance(X_post, pd.DataFrame):
+                raise TypeError("X_pre and X_post must both be DataFrames or both be ndarrays.")
+            X_pre_arr_in = np.asarray(X_pre)
+            X_post_arr_in = np.asarray(X_post)
+            if X_pre_arr_in.shape[0] != X_post_arr_in.shape[0]:
+                raise ValueError(
+                    f"Sample count mismatch: X_pre has {X_pre_arr_in.shape[0]} samples, "
+                    f"but X_post has {X_post_arr_in.shape[0]} samples."
+                )
+            X_pre_aligned = X_pre_arr_in
+            X_post_aligned = X_post_arr_in
+
+        try:
+            ME_pre_arr = np.asarray(self.transform(X_pre_aligned))
+            ME_post_arr = np.asarray(self.transform(X_post_aligned))
+        except NotImplementedError as exc:
+            raise NotImplementedError(
+                f"{type(self).__name__} does not support transform_paired because it cannot "
+                "project out-of-sample data. For paired analysis with transductive methods, "
+                "use fit_transform on concatenated pre/post matrices or use an inductive "
+                "reducer like PCAReducer, WGCNAReducer, or UMAPReducer."
+            ) from exc
+
+        delta_arr = ME_post_arr - ME_pre_arr
+
+        relative_arr = None
+        if relative:
+            denom = np.abs(ME_pre_arr)
+            relative_arr = np.where(denom < epsilon, np.nan, delta_arr / denom)
+
+        dist_arr = None
+        if compute_distance:
+            dist_arr = np.linalg.norm(delta_arr, axis=1)
+
+        std_delta = (
+            np.std(delta_arr, axis=0, ddof=1)
+            if delta_arr.shape[0] > 1
+            else np.zeros(delta_arr.shape[1])
+        )
+        mean_delta = np.mean(delta_arr, axis=0)
+        effect_size_arr = np.where(std_delta < 1e-12, np.nan, mean_delta / std_delta)
+
+        feature_names_out = self.get_feature_names_out()
+
+        if is_df:
+            baseline_out: pd.DataFrame | NDArray = pd.DataFrame(
+                ME_pre_arr, index=common_idx, columns=feature_names_out
+            )
+            followup_out: pd.DataFrame | NDArray = pd.DataFrame(
+                ME_post_arr, index=common_idx, columns=feature_names_out
+            )
+            delta_out: pd.DataFrame | NDArray = pd.DataFrame(
+                delta_arr, index=common_idx, columns=feature_names_out
+            )
+            relative_out: pd.DataFrame | NDArray | None = (
+                pd.DataFrame(relative_arr, index=common_idx, columns=feature_names_out)
+                if relative_arr is not None
+                else None
+            )
+            dist_out: pd.Series | NDArray | None = (
+                pd.Series(dist_arr, index=common_idx, name="trajectory_distance")
+                if dist_arr is not None
+                else None
+            )
+            effect_size_out: pd.Series | NDArray | None = pd.Series(
+                effect_size_arr, index=feature_names_out, name="effect_size"
+            )
+        else:
+            baseline_out = ME_pre_arr
+            followup_out = ME_post_arr
+            delta_out = delta_arr
+            relative_out = relative_arr
+            dist_out = dist_arr
+            effect_size_out = effect_size_arr
+
+        return PairedReductionResult(
+            baseline=baseline_out,
+            followup=followup_out,
+            delta=delta_out,
+            relative_change=relative_out,
+            trajectory_distance=dist_out,
+            effect_size=effect_size_out,
+            feature_names_out=feature_names_out,
+        )
 
     def inverse_transform(self, Y: NDArray) -> NDArray:
         """Map reduced data back to the original space (if supported).

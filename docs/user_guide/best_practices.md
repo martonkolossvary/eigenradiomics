@@ -37,6 +37,13 @@ flowchart LR
 
 ## Reduction
 
+- **`missing_strategy` choice:**
+    - `"pairwise"` is ideal when missingness is low-to-moderate and features are missing at random (MAR): it computes exact pairwise correlations without distorting feature variances.
+    - `"floor"` is recommended when missingness represents true biological absence (e.g., non-contrast scans lacking enhancement features): filling with minimum observed values preserves the physical ground truth.
+    - `"mean"` / `"median"` or upstream `KNNImputer` / `IterativeImputer` are recommended for general imputation.
+- **`orient_eigengenes` in predictive vs longitudinal studies:**
+    - `"mean_correlation"` (default) aligns the eigengene positive sign with the overall average feature trajectory of that module, making positive eigengene changes intuitive in longitudinal and phenotype analyses.
+    - `"hub_feature"` aligns the eigengene strictly with the single most central hub feature in the module.
 - **`soft_power="auto"`** picks the threshold from the scale-free fit; inspect `wgcna_plot_soft_power()` if modules look off.
 - **`min_module_size`** controls granularity; too large yields all-grey (no modules → a `(n, 0)` output, with a warning). Lower it or set `include_grey=True`.
 - **Constant features** can't enter the network (they're left unassigned with a warning) — drop them upstream.

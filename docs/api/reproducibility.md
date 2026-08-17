@@ -7,3 +7,5 @@ Statistical framework for evaluating inter- and intra-observer radiomics feature
 ::: eigenradiomics.reproducibility.write_reproducibility_excel
 
 ::: eigenradiomics.reproducibility.plot_reproducibility_histograms
+
+::: eigenradiomics.reproducibility.plot_reproducibility

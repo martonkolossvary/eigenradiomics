@@ -15,3 +15,5 @@ The reducer framework is centered around a common base class plus reducer-specif
 The structured container returned by `BaseReducer.get_reduction_artifacts()`.
 
 ::: eigenradiomics.artifacts.ReductionArtifacts
+
+::: eigenradiomics.artifacts.PairedReductionResult

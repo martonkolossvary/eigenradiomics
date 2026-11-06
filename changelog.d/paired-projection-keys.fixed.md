@@ -1,0 +1,1 @@
+`transform_paired` now raises a clear error on duplicate index labels in keyed pairing (it raised an unclear shape error), records `n_paired`, `n_unpaired_baseline` and `n_unpaired_followup` in the result, and warns that relative change is not interpretable for centred scores.

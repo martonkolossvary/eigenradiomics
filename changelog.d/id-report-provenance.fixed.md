@@ -1,0 +1,1 @@
+The `normalize_id_column` report now lists every changed value, including an integer-valued float that becomes integer text (1.0 to "1"). New columns: `reason` (integer-valued float, whitespace, lowercase, blank token) and `collision` (different raw IDs that give one normalized ID). `before` is now the raw value as text.

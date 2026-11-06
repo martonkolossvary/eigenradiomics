@@ -172,3 +172,39 @@ def test_remover_accepts_feature_catalog_object():
     raw = _raw_export()
     rem = RadiomicsFeatureRemover(families="intensity", catalog=_catalog()).fit(raw)
     assert "total_orig__mean_intensity_Q4LE" in rem.removed_feature_names_
+
+
+def test_split_observer_tables_rejects_bad_prefixes():
+    with pytest.raises(ValueError, match="distinct"):
+        split_observer_tables(_paired(), ("O1_", "O1_"))
+    with pytest.raises(ValueError, match="non-empty"):
+        split_observer_tables(_paired(), ("", "O2_"))
+    overlapping = pd.DataFrame({"R1_c__f": [1.0, 2.0], "R10_c__f": [3.0, 4.0]})
+    with pytest.raises(ValueError, match="'R1' also matches the columns of 'R10'"):
+        split_observer_tables(overlapping, ("R1", "R10"))
+
+
+def test_split_observer_tables_csv_keeps_zero_padded_ids(tmp_path):
+    paired = _paired().assign(PatientID=[f"{i:03d}" for i in range(8)])
+    path = tmp_path / "paired.csv"
+    paired.to_csv(path, index=False)
+    tables = split_observer_tables(path, ("O1_", "O2_"), id_columns="PatientID")
+    assert list(tables[0].index[:3]) == ["000", "001", "002"]
+
+
+def test_split_observer_tables_rejects_duplicate_or_missing_ids():
+    paired = _paired()
+    paired["Visit"] = ["v1"] * 8
+    paired.loc[1, "PatientID"] = paired.loc[0, "PatientID"]
+    with pytest.raises(ValueError, match="duplicate keys"):
+        split_observer_tables(paired, ("O1_", "O2_"), id_columns=["PatientID", "Visit"])
+    paired.loc[1, "PatientID"] = None
+    with pytest.raises(ValueError, match="missing values"):
+        split_observer_tables(paired, ("O1_", "O2_"), id_columns="PatientID")
+
+
+def test_name_parser_uses_the_longest_observer_prefix():
+    from eigenradiomics.pictologics import _split_pictologics_name
+
+    assert _split_pictologics_name("R10_cfg__f", ("R1", "R10")) == ("R10", "_cfg", "f")
+    assert _split_pictologics_name("R1_cfg__f", ("R1_", "R10_")) == ("R1_", "cfg", "f")

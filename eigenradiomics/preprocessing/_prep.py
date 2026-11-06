@@ -28,10 +28,14 @@ class RadiomicsPrepTransformer(OneToOneFeatureMixin, TransformerMixin, BaseEstim
 
     Parameters
     ----------
-    winsor_lower : float, default=0.01
-        Quantile used as the lower clipping boundary for winsorization.
-    winsor_upper : float, default=0.99
-        Quantile used as the upper clipping boundary for winsorization.
+    winsor_lower : float or None, default=0.01
+        Quantile used as the lower clipping boundary for winsorization. None
+        turns off clipping at the lower side. Note that 0.0 still clips new
+        data at ``transform`` to the training minimum.
+    winsor_upper : float or None, default=0.99
+        Quantile used as the upper clipping boundary for winsorization. None
+        turns off clipping at the upper side; 1.0 still clips new data to the
+        training maximum.
     skip_yeo_johnson : bool, default=False
         If True, skips the Yeo-Johnson power transformation step.
     standardize : bool, default=True
@@ -41,8 +45,8 @@ class RadiomicsPrepTransformer(OneToOneFeatureMixin, TransformerMixin, BaseEstim
     def __init__(
         self,
         *,
-        winsor_lower: float = 0.01,
-        winsor_upper: float = 0.99,
+        winsor_lower: float | None = 0.01,
+        winsor_upper: float | None = 0.99,
         skip_yeo_johnson: bool = False,
         standardize: bool = True,
     ):
@@ -78,6 +82,13 @@ class RadiomicsPrepTransformer(OneToOneFeatureMixin, TransformerMixin, BaseEstim
         self : RadiomicsPrepTransformer
             Fitted transformer.
         """
+        low_q = 0.0 if self.winsor_lower is None else self.winsor_lower
+        high_q = 1.0 if self.winsor_upper is None else self.winsor_upper
+        if not 0.0 <= low_q < high_q <= 1.0:
+            raise ValueError(
+                "winsor_lower and winsor_upper must satisfy 0 <= lower < upper <= 1 "
+                f"(or be None), got {self.winsor_lower!r} and {self.winsor_upper!r}."
+            )
         # Validate inputs and store feature_names_in_ / n_features_in_.
         X_arr = validate_estimator_input(self, X, reset=True, allow_nan=True)
         n_samples, n_features = X_arr.shape
@@ -101,8 +112,17 @@ class RadiomicsPrepTransformer(OneToOneFeatureMixin, TransformerMixin, BaseEstim
                 continue
 
             # 1. Winsorization bounds
-            lower = float(np.percentile(valid_vals, self.winsor_lower * 100))
-            upper = float(np.percentile(valid_vals, self.winsor_upper * 100))
+            # None means no clipping at that side (an infinite bound).
+            lower = (
+                -np.inf
+                if self.winsor_lower is None
+                else float(np.percentile(valid_vals, self.winsor_lower * 100))
+            )
+            upper = (
+                np.inf
+                if self.winsor_upper is None
+                else float(np.percentile(valid_vals, self.winsor_upper * 100))
+            )
             self.winsor_bounds_.append((lower, upper))
 
             # Apply winsorization

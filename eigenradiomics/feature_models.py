@@ -17,7 +17,8 @@ and lifelines cluster-robust Cox. :func:`plot_volcano` renders the results, and
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+import warnings
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -62,6 +63,7 @@ _RESULT_FIELDS = (
     "n_missing",
     "status",
     "error",
+    "warning",
 )
 
 
@@ -97,7 +99,8 @@ class FeatureAssociationResult:
         ----------
         mode : {"fdr", "nominal", "ranked"}
             ``"fdr"`` keeps FDR-significant rows, ``"nominal"`` keeps p < ``alpha``,
-            ``"ranked"`` keeps the lowest-p rows regardless of significance.
+            ``"ranked"`` keeps the lowest-p rows regardless of significance. Every
+            mode keeps only rows with the status ``"ok"``.
         alpha : float
             Significance threshold for ``"fdr"`` / ``"nominal"``.
         per_panel : int, optional
@@ -123,7 +126,7 @@ class FeatureAssociationResult:
         if tier not in self.tiers:
             raise ValueError(f"unknown tier {tier!r}; available: {self.tiers}.")
         sub = self.table[self.table["model"] == tier].set_index("feature")
-        return _value_column(sub, value)
+        return _value_column(sub, value).where(sub["status"].eq("ok"))
 
     def bar(
         self,
@@ -139,6 +142,7 @@ class FeatureAssociationResult:
         ``value`` is one of ``"neg_log10_p"``, ``"neg_log10_fdr"``, ``"log2_effect"``,
         ``"coef"``, ``"effect"``, ``"statistic"``. The bar (indexed by feature) drops
         straight into ``plot_clustered_heatmap(..., bottom=[bar])``.
+        A row whose status is not ``"ok"`` (e.g. ``"not_converged"``) gives NaN.
         ``"log2_effect"`` is log2 of the odds or hazard ratio; it is NaN for a
         linear (continuous-outcome) beta. A p-value of 0 is clipped to the smallest
         positive float before ``-log10``.
@@ -244,6 +248,56 @@ def _clean_error(exc: Exception) -> str:
     return re.sub(r"\s+", " ", str(exc)).strip()[:300]
 
 
+#: Start of the MixedLM note for a random-effect variance near 0 (it converged).
+_BOUNDARY = "The MLE may be on the boundary"
+
+
+def _watched_fit(fit: Callable[[], Any]) -> tuple[Any, str, str]:
+    """Run *fit*; return its result, the failure text, and the note text.
+
+    A failure means the fit did not converge: a ConvergenceWarning (but not the
+    boundary note), a PerfectSeparationWarning, or the ``fit_vb`` text "did not
+    converge" (a plain UserWarning). A note is the boundary ConvergenceWarning or a
+    HessianInversionWarning: the fit converged, but the caller can filter on it.
+    The table keeps both texts, so this function does not show those warnings. It
+    shows each other warning again.
+    """
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        res = fit()
+    failures, notes = [], []
+    for item in caught:
+        names = {cls.__name__ for cls in item.category.__mro__}
+        text = str(item.message)
+        if "HessianInversionWarning" in names or text.startswith(_BOUNDARY):
+            notes.append(text)
+        elif names & {"ConvergenceWarning", "PerfectSeparationWarning"} or (
+            "did not converge" in text
+        ):
+            failures.append(text)
+        else:
+            warnings.warn(item.message, stacklevel=2)
+    return res, "; ".join(dict.fromkeys(failures)), "; ".join(dict.fromkeys(notes))
+
+
+def _converged(res: Any) -> bool:
+    """Read the convergence flags of a statsmodels result (True when it has none)."""
+    retvals = getattr(res, "mle_retvals", None) or {}
+    return bool(getattr(res, "converged", True)) and bool(retvals.get("converged", True))
+
+
+def _mark_convergence(fit: dict, converged: bool, failed: str, noted: str) -> dict:
+    """Record the note text, and set "not_converged" when the optimizer failed.
+
+    A failed fit keeps its estimates, and ``error`` gets the failure text.
+    """
+    fit["warning"] = " ".join(noted.split())[:300]
+    if failed or not converged:
+        fit["status"] = "not_converged"
+        fit["error"] = " ".join(failed.split())[:300] or "the optimizer did not converge."
+    return fit
+
+
 def _design(
     subset: pd.DataFrame, feature: str, covariates: Sequence[str]
 ) -> tuple[NDArray, float]:
@@ -308,7 +362,7 @@ def _fit_cox(
         family = "cox_clustered"
     try:
         cph = cox_cls(penalizer=spec.penalizer)
-        cph.fit(subset[keep], **fit_kwargs)
+        _, failed, noted = _watched_fit(lambda: cph.fit(subset[keep], **fit_kwargs))
         row = cph.summary.loc[feature]
     except Exception as exc:
         return {"status": "fit_failed", "error": _clean_error(exc)}
@@ -322,7 +376,7 @@ def _fit_cox(
     )
     result["statistic"] = float(row["z"])
     result["c_index"] = float(cph.concordance_index_)
-    return result
+    return _mark_convergence(result, True, failed, noted)  # lifelines has only warnings
 
 
 def _fit_binary(
@@ -354,12 +408,14 @@ def _fit_binary(
         else:
             model = sm.Logit(y, design)
             family = "logit"
-        res = model.fit(disp=0) if family == "logit" else model.fit()
+        res, failed, noted = _watched_fit(
+            lambda: model.fit(disp=0) if family == "logit" else model.fit()
+        )
         params, bse, pvals = np.asarray(res.params), np.asarray(res.bse), np.asarray(res.pvalues)
         conf = np.asarray(res.conf_int())
     except Exception as exc:
         return {"status": "fit_failed", "error": _clean_error(exc)}
-    return _ratio_result(
+    fit = _ratio_result(
         family,
         float(params[1]) / sd,
         float(bse[1]) / sd,
@@ -367,6 +423,7 @@ def _fit_binary(
         float(conf[1, 0]) / sd,
         float(conf[1, 1]) / sd,
     )
+    return _mark_convergence(fit, _converged(res), failed, noted)
 
 
 def _fit_glmm(
@@ -393,7 +450,7 @@ def _fit_glmm(
     rhs = " + ".join(names)
     try:
         model = BinomialBayesMixedGLM.from_formula(f"y ~ {rhs}", {"g": "0 + C(g)"}, safe)
-        res = model.fit_vb()
+        res, failed, noted = _watched_fit(model.fit_vb)
         idx = list(res.model.fep_names).index("x")
         coef, sd = float(res.fe_mean[idx]), float(res.fe_sd[idx])
     except Exception as exc:
@@ -401,7 +458,8 @@ def _fit_glmm(
     z = coef / sd if sd > 0 else np.nan
     p = float(2 * stats.norm.sf(abs(z))) if np.isfinite(z) else np.nan
     lo, hi = (coef - 1.96 * sd) / scale, (coef + 1.96 * sd) / scale
-    return _ratio_result("glmm", coef / scale, sd / scale, p, lo, hi)
+    fit = _ratio_result("glmm", coef / scale, sd / scale, p, lo, hi)
+    return _mark_convergence(fit, True, failed, noted)  # fit_vb has only a warning
 
 
 def _fit_continuous(
@@ -415,9 +473,21 @@ def _fit_continuous(
     if spec.groups_col:
         sm = _import_statsmodels()
         try:
-            res = sm.MixedLM(y, design, groups=subset[spec.groups_col].to_numpy()).fit(
-                method=["lbfgs"], reml=True
+            res, failed, noted = _watched_fit(
+                lambda: sm.MixedLM(y, design, groups=subset[spec.groups_col].to_numpy()).fit(
+                    method=["lbfgs"], reml=True
+                )
             )
+            converged = _converged(res)
+            # statsmodels inverts a singular random-intercept covariance as 0. This
+            # gives the within-cluster estimate. With a zero random-intercept
+            # variance, the REML fixed effects are the pooled fit, so use OLS.
+            if float(np.asarray(res.cov_re).min()) <= 1e-10 * float(res.scale):
+                res = sm.OLS(y, design).fit(use_t=False)  # z reference, as MixedLM
+                pooled = (
+                    "the random-intercept variance is 0, so the fixed effect is the pooled fit"
+                )
+                noted = f"{noted}; {pooled}" if noted else pooled
             params, bse, pvals = (
                 np.asarray(res.params),
                 np.asarray(res.bse),
@@ -439,6 +509,7 @@ def _fit_continuous(
             "ci_low": float(conf[1, 0]),
             "ci_high": float(conf[1, 1]),
         }
+        fit = _mark_convergence(fit, converged, failed, noted)
     else:
         fit = _fit_ols_hc3(y, design, feature_idx=1)
     return _to_raw_units(fit, sd)
@@ -597,6 +668,21 @@ def compute_feature_associations(
     Returns
     -------
     FeatureAssociationResult
+        The ``status`` column is ``"ok"`` for a usable fit. ``"not_converged"``
+        means the optimizer reported no convergence, or emitted a
+        ConvergenceWarning (but not the boundary note), a PerfectSeparationWarning,
+        or the GLMM ``fit_vb`` text "did not converge". Such a row keeps its
+        estimates, and ``error`` holds the warning text. It stays in the BH/FDR
+        family, so the family does not depend on fit diagnostics. ``top_hits``,
+        ``bar``, ``matrix``, and the plots use only ``"ok"`` rows.
+
+        The ``warning`` column (an empty string when there is none) records a note
+        that keeps the status ``"ok"``: a HessianInversionWarning, or the MixedLM
+        note "MLE may be on the boundary" (random-intercept variance near 0).
+        Boundary fits are common with few rows per cluster. When that variance is
+        0, statsmodels gives the within-cluster estimate, so the MixedLM row uses
+        the pooled OLS fit (the REML answer at variance 0) and says so in
+        ``warning``.
     """
     if isinstance(X, RadiomicsDataset):
         feature_matrix = X.features
@@ -704,6 +790,7 @@ def compute_feature_associations(
                     "outcome_type": resolved_type,
                     "covariates": ", ".join(tier_covariates),
                     "error": "",
+                    "warning": "",
                     **fit,
                 }
             )
@@ -881,6 +968,7 @@ def plot_volcano(
     3 -> 1x3, 4 -> 2x2, and 5-9 -> 3x3 (unused cells hidden). Pass an explicit
     ``layout=(rows, cols)`` to override. A p-value of 0 (underflow) is plotted at
     ``-log10`` of the smallest positive float (about 323.3), so no fitted row is lost.
+    Only rows with the status ``"ok"`` are plotted.
 
     Parameters
     ----------
@@ -1100,7 +1188,8 @@ def plot_rwas_manhattan(
     Features are plotted on the horizontal axis grouped by their catalog family
     or group, with alternating shading and labels. The vertical axis represents
     the -log10 association p-value. A p-value of 0 (underflow) is plotted at
-    ``-log10`` of the smallest positive float (about 323.3). Custom tracks
+    ``-log10`` of the smallest positive float (about 323.3). Only rows with the
+    status ``"ok"`` are plotted. Custom tracks
     (categorical strips, numeric bars, and correlation panels) can be aligned
     horizontally under the plot.
 

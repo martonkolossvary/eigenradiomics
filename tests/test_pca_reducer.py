@@ -244,3 +244,19 @@ class TestTransformPaired:
             pca.transform_paired(small_feature_df, small_feature_matrix)
         with pytest.raises(TypeError, match="must both be DataFrames or both be ndarrays"):
             pca.transform_paired(small_feature_matrix, small_feature_df)
+
+
+def test_transform_paired_keys_counts_and_relative_warning(small_feature_df):
+    pca = PCAReducer(n_components=2).fit(small_feature_df)
+    pre = small_feature_df.iloc[:5]
+    post = small_feature_df.iloc[2:8]
+    with pytest.warns(UserWarning, match="Index alignment dropped"):
+        res = pca.transform_paired(pre, post)
+    assert (res.n_paired, res.n_unpaired_baseline, res.n_unpaired_followup) == (3, 2, 3)
+    reversed_post = pre.iloc[::-1]
+    assert np.allclose(pca.transform_paired(pre, reversed_post).delta, 0.0)
+    dup = small_feature_df.iloc[[0, 0, 1]]
+    with pytest.raises(ValueError, match="duplicate index labels"):
+        pca.transform_paired(dup, small_feature_df.iloc[[0, 1]])
+    with pytest.warns(UserWarning, match="no meaningful zero"):
+        pca.transform_paired(pre, pre, relative=True)

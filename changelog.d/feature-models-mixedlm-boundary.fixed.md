@@ -1,0 +1,1 @@
+When the MixedLM random-intercept variance is 0, the fixed effect is now the pooled OLS fit (the REML answer at variance 0), and the `warning` column says so. Before, statsmodels inverted the singular covariance as 0 and gave the within-cluster estimate, a median 0.7 SE away from the pooled fit in a null simulation with two rows per cluster.

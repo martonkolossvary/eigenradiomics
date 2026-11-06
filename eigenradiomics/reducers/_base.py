@@ -99,11 +99,15 @@ class BaseReducer(ABC, TransformerMixin, BaseEstimator):
             Follow-up feature matrix.
         relative : bool, default=False
             If True, compute relative change: delta / |baseline|. The value is NaN
-            where |baseline| < epsilon.
+            where |baseline| < epsilon. Use it only for scores with a meaningful
+            zero; centred scores (PCA, WGCNA) have none, so the function warns.
         compute_distance : bool, default=True
             If True, compute Euclidean trajectory distance ||ME_post - ME_pre||_2 per sample.
         align_indices : bool, default=True
-            If True and inputs are DataFrames, align on common index before transformation.
+            If True and inputs are DataFrames, pair rows by index label (the
+            labels must be unique; unpaired rows are dropped with a warning and
+            counted in the result). If False, pair rows by position; the outputs
+            carry the ``X_pre`` labels.
         epsilon : float, default=1e-8
             Smallest |baseline| for a relative change. A smaller |baseline| gives NaN.
 
@@ -122,6 +126,13 @@ class BaseReducer(ABC, TransformerMixin, BaseEstimator):
 
         if isinstance(X_pre, pd.DataFrame) and isinstance(X_post, pd.DataFrame):
             if align_indices:
+                for name, frame in (("X_pre", X_pre), ("X_post", X_post)):
+                    if not frame.index.is_unique:
+                        dup = frame.index[frame.index.duplicated()].unique()[:5].tolist()
+                        raise ValueError(
+                            f"{name} has duplicate index labels {dup}; keyed pairing needs "
+                            "unique labels (or pass align_indices=False for positional pairing)."
+                        )
                 common_idx = X_pre.index.intersection(X_post.index)
                 if len(common_idx) == 0:
                     raise ValueError("No common index entries between X_pre and X_post.")
@@ -173,6 +184,13 @@ class BaseReducer(ABC, TransformerMixin, BaseEstimator):
 
         relative_arr = None
         if relative:
+            warnings.warn(
+                "relative change divides by the baseline score. Centred scores (PCA, "
+                "WGCNA eigengenes) have no meaningful zero, so the ratio is not "
+                "interpretable for them.",
+                UserWarning,
+                stacklevel=2,
+            )
             denom = np.abs(ME_pre_arr)
             relative_arr = np.where(denom < epsilon, np.nan, delta_arr / denom)
 
@@ -229,6 +247,9 @@ class BaseReducer(ABC, TransformerMixin, BaseEstimator):
             trajectory_distance=dist_out,
             effect_size=effect_size_out,
             feature_names_out=feature_names_out,
+            n_paired=int(delta_arr.shape[0]),
+            n_unpaired_baseline=len(X_pre) - int(delta_arr.shape[0]),
+            n_unpaired_followup=len(X_post) - int(delta_arr.shape[0]),
         )
 
     def inverse_transform(self, Y: NDArray) -> NDArray:

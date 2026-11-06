@@ -127,6 +127,10 @@ class PairedReductionResult:
         Standardized Cohen's d effect size per component (mean(delta) / std(delta)).
     feature_names_out : ndarray, optional
         Output latent feature names.
+    n_paired : int, optional
+        Number of paired samples in the outputs.
+    n_unpaired_baseline, n_unpaired_followup : int
+        Baseline and follow-up rows that keyed pairing dropped (no partner).
     """
 
     baseline: pd.DataFrame | NDArray
@@ -136,6 +140,9 @@ class PairedReductionResult:
     trajectory_distance: pd.Series | NDArray | None = None
     effect_size: pd.Series | NDArray | None = None
     feature_names_out: NDArray | None = None
+    n_paired: int | None = None
+    n_unpaired_baseline: int = 0
+    n_unpaired_followup: int = 0
 
     def to_dataframe(self, prefix_mode: str = "suffix") -> pd.DataFrame:
         """Merge baseline, followup, and delta into a single wide DataFrame.

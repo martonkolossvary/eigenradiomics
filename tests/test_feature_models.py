@@ -723,7 +723,7 @@ def test_collinear_covariates_flagged(engine):
     adjusted = res.table[res.table["model"] == "Adjusted"]
     assert (adjusted["status"] == "collinear").all()
     assert adjusted["coef"].isna().all() and adjusted["p_value"].isna().all()
-    assert (res.table.loc[res.table["model"] == "Univariable", "status"] == "ok").all()
+    assert (res.table.loc[res.table["model"] == "Univariable", "status"] != "collinear").all()
 
 
 def test_rank_check_skips_non_finite_design():
@@ -868,3 +868,109 @@ def test_covariate_data_aligned_by_key_and_n_missing_over_x():
     assert np.allclose(res.table["coef"], base.table["coef"], equal_nan=True)
     ok = res.table["status"] == "ok"
     assert (res.table.loc[ok, "n_missing"] == 0).all()
+
+
+def _convergence_data():
+    rng = np.random.default_rng(0)
+    n = 40
+    X = pd.DataFrame({"original__f": rng.normal(size=n)})
+    meta = pd.DataFrame({"g": np.repeat(np.arange(20), 2)})
+    tiny = pd.Series(rng.normal(size=n) * 1e-8)  # MixedLM hits the boundary
+    separated = pd.Series((X["original__f"].to_numpy() > 0).astype(int))  # perfect separation
+    return X, meta, tiny, separated
+
+
+def test_mixedlm_boundary_is_ok_with_warning_and_pooled_fit():
+    import statsmodels.api as sm
+
+    X, meta, tiny, _ = _convergence_data()
+    with pytest.warns(UserWarning, match="singular"):  # other warnings still show
+        res = compute_feature_associations(X, tiny, groups="g", covariate_data=meta)
+    row = res.table.iloc[0]
+    assert row["status"] == "ok" and row["error"] == ""
+    assert "boundary" in row["warning"] and "pooled" in row["warning"]
+    # the random-intercept variance is 0, so the REML fixed effect is the pooled fit
+    pooled = sm.OLS(tiny.to_numpy(), sm.add_constant(X["original__f"].to_numpy())).fit(use_t=False)
+    assert np.isclose(row["coef"], pooled.params[1]) and np.isclose(row["se"], pooled.bse[1])
+    assert np.isclose(row["p_value"], pooled.pvalues[1])
+    assert len(res.top_hits(mode="ranked")) == 1
+
+
+def test_mixedlm_not_converged_flag(monkeypatch):
+    from statsmodels.regression.mixed_linear_model import MixedLM
+
+    original = MixedLM.fit
+
+    def _fit(self, *args, **kwargs):
+        res = original(self, *args, **kwargs)
+        res.converged = False  # no natural case is stable, so force the flag
+        return res
+
+    monkeypatch.setattr(MixedLM, "fit", _fit)
+    X, meta, _, _ = _survival_binary()
+    y = _mixed_continuous_outcome(X, meta)
+    res = compute_feature_associations(X, y, groups="patient", covariate_data=meta)
+    row = res.table.set_index("feature").loc["original__f0"]
+    assert row["status"] == "not_converged" and row["error"] == "the optimizer did not converge."
+    assert np.isfinite(row["coef"]) and np.isfinite(row["p_fdr"])  # stays in the FDR family
+    assert res.top_hits(mode="ranked").empty
+    assert res.bar(value="coef").data.isna().all()
+    fig = plot_volcano(res)
+    assert not fig.axes[0].collections  # the plot shows only "ok" rows
+    plt.close(fig)
+
+
+def test_hessian_inversion_warning_is_a_note(monkeypatch):
+    import warnings
+
+    from statsmodels.discrete.discrete_model import Logit
+    from statsmodels.tools.sm_exceptions import HessianInversionWarning
+
+    original = Logit.fit
+
+    def _fit(self, *args, **kwargs):
+        warnings.warn("Inverting hessian failed", HessianInversionWarning, stacklevel=2)
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Logit, "fit", _fit)
+    X, meta, _, binary = _survival_binary()
+    res = compute_feature_associations(X, binary, covariate_data=meta)
+    assert (res.table["status"] == "ok").all()
+    assert (res.table["warning"] == "Inverting hessian failed").all()
+
+
+@pytest.mark.parametrize("engine", ["logit", "gee", "cox"])
+def test_separation_marks_not_converged(engine):
+    X, meta, _, separated = _convergence_data()
+    if engine == "cox":
+        # the shortest time has the highest feature value: complete separation
+        rank = np.argsort(np.argsort(-X["original__f"].to_numpy()))
+        outcome: object = pd.DataFrame({"time": rank + 1.0, "event": np.ones(len(X))})
+        kwargs: dict = {}
+    else:
+        outcome = separated
+        kwargs = {"groups": "g", "covariate_data": meta} if engine == "gee" else {}
+    res = compute_feature_associations(X, outcome, **kwargs)
+    row = res.table.iloc[0]
+    assert row["status"] == "not_converged" and row["error"]
+    assert np.isfinite(row["coef"])
+
+
+def test_glmm_not_converged_warning(monkeypatch):
+    import warnings
+
+    from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
+
+    original = BinomialBayesMixedGLM.fit_vb
+
+    def _warn(self, *args, **kwargs):
+        warnings.warn("VB fitting did not converge", stacklevel=2)  # a plain UserWarning
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(BinomialBayesMixedGLM, "fit_vb", _warn)
+    X, meta, _, binary = _survival_binary(n=60)
+    res = compute_feature_associations(
+        X, binary, covariate_data=meta, groups="patient", mixed_method="glmm"
+    )
+    assert (res.table["status"] == "not_converged").all()
+    assert res.table["error"].str.contains("VB fitting").all()

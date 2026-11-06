@@ -140,7 +140,10 @@ cleans each feature column independently while **preserving NaN values**
 every column it applies, in order:
 
 1. **Winsorization** — clip values to the `winsor_lower` / `winsor_upper`
-   quantiles (defaults 0.01 / 0.99) to tame extreme outliers.
+   quantiles (defaults 0.01 / 0.99) to tame extreme outliers. The bounds come
+   from the training data and also clip new data at `transform`, so quantiles
+   0 and 1 still cut external values to the training range. Set a side to
+   `None` to turn clipping off there.
 2. **Yeo-Johnson** power transform — reduce skew (skip with
    `skip_yeo_johnson=True`). A column that is constant after winsorizing skips
    this step.

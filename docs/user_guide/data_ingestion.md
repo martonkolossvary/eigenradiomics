@@ -108,7 +108,8 @@ result = merge_tables(
 merged = result.merged
 result.left_only     # radiomics rows with no clinical match
 result.right_only    # clinical rows with no radiomics match
-result.n_matched     # number of matched keys
+result.n_matched     # number of distinct matched keys
+result.n_left_matched_rows, result.n_right_matched_rows, result.n_merged_rows  # row counts
 ```
 
 `resolve_duplicates` supports `policy` values `"error"` (default), `"first"`,

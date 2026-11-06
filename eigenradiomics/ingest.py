@@ -51,26 +51,52 @@ def normalize_id_column(
     normalized : pandas.DataFrame
         Copy of *df* with *column* normalized.
     changes : pandas.DataFrame
-        Rows whose value changed, with ``before`` and ``after`` columns.
+        Rows whose value changed, and rows whose normalized ID is shared with a
+        row that had a different raw value. Columns: ``before`` (the raw value
+        as text), ``after``, ``reason`` (``integer-valued float``,
+        ``whitespace``, ``lowercase``, ``blank token``, joined by ``"; "``) and
+        ``collision`` (True when different raw values give this normalized ID).
     """
     if column not in df.columns:
         raise ValueError(f"Column {column!r} not found in the table.")
 
+    raw_text = pd.Series(
+        [pd.NA if pd.isna(value) else str(value) for value in df[column]],
+        index=df.index,
+        dtype="string",
+    )
     # Write an integer-valued float ID as an integer ("1", not "1.0"), so it
     # matches the same ID that is stored as an integer.
     values = [_integer_float_as_int(value) for value in df[column]]
     original = pd.Series(values, index=df.index, dtype=object).astype("string")
-    cleaned = original.str.strip().str.replace(r"\s+", " ", regex=True)
-    if lower:
-        cleaned = cleaned.str.lower()
-    cleaned = cleaned.mask(cleaned.str.lower().isin(_BLANK_TOKENS))
+    spaced = original.str.strip().str.replace(r"\s+", " ", regex=True)
+    cased = spaced.str.lower() if lower else spaced
+    cleaned = cased.mask(cased.str.lower().isin(_BLANK_TOKENS))
 
-    changed = original.fillna(_SENTINEL) != cleaned.fillna(_SENTINEL)
+    def differs(a: pd.Series, b: pd.Series) -> pd.Series:
+        return a.fillna(_SENTINEL) != b.fillna(_SENTINEL)
+
+    reasons = pd.DataFrame(
+        {
+            "integer-valued float": differs(raw_text, original),
+            "whitespace": differs(original, spaced),
+            "lowercase": differs(spaced, cased),
+            "blank token": differs(cased, cleaned),
+        }
+    )
+    reason = reasons.apply(lambda row: "; ".join(row.index[row]), axis=1)
+    known = cleaned.notna()
+    n_raw = raw_text[known].groupby(cleaned[known]).transform("nunique")
+    collision = pd.Series(False, index=df.index)
+    collision[known] = n_raw.to_numpy() > 1
+    report = differs(raw_text, cleaned) | collision
     changes = pd.DataFrame(
         {
-            column: original[changed].to_numpy(),
-            "before": original[changed].to_numpy(),
-            "after": cleaned[changed].to_numpy(),
+            column: raw_text[report].to_numpy(),
+            "before": raw_text[report].to_numpy(),
+            "after": cleaned[report].to_numpy(),
+            "reason": reason[report].to_numpy(),
+            "collision": collision[report].to_numpy(),
         }
     )
 
@@ -161,6 +187,14 @@ class MergeResult:
     left_only: pd.DataFrame
     right_only: pd.DataFrame
     n_matched: int
+    #: Rows of each table whose key matched a row of the other table.
+    n_left_matched_rows: int = 0
+    n_right_matched_rows: int = 0
+    #: Rows of each table with a missing key value (they match no row).
+    n_left_missing_keys: int = 0
+    n_right_missing_keys: int = 0
+    #: Rows in ``merged``.
+    n_merged_rows: int = 0
 
 
 def merge_tables(
@@ -193,7 +227,9 @@ def merge_tables(
     -------
     result : MergeResult
         ``merged`` plus ``left_only`` / ``right_only`` (rows whose key matched
-        nothing in the other table) and ``n_matched`` (number of matched keys).
+        nothing in the other table), ``n_matched`` (number of distinct matched
+        keys), the matched row counts of each side, the missing-key row counts
+        of each side, and ``n_merged_rows``.
         A row with a missing key value matches no row, so it goes to
         ``left_only`` / ``right_only`` and does not count in ``n_matched``.
     """
@@ -234,4 +270,9 @@ def merge_tables(
         left_only=left_only,
         right_only=right_only,
         n_matched=len(matched),
+        n_left_matched_rows=len(left) - len(left_only),
+        n_right_matched_rows=len(right) - len(right_only),
+        n_left_missing_keys=int((~left_ok).sum()),
+        n_right_missing_keys=int((~right_ok).sum()),
+        n_merged_rows=len(merged),
     )

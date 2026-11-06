@@ -31,7 +31,8 @@ class TestNormalizeIdColumn:
         left, _ = normalize_id_column(pd.DataFrame({"id": [1, 2, 3], "f": [1.0, 2.0, 3.0]}), "id")
         right, changes = normalize_id_column(pd.DataFrame({"id": [1.0, 2.0, np.nan]}), "id")
         assert right["id"].tolist()[:2] == ["1", "2"]
-        assert changes.empty
+        assert changes["before"].tolist() == ["1.0", "2.0"]
+        assert changes["reason"].tolist() == ["integer-valued float"] * 2
         result = merge_tables(left, right, left_on="id", right_on="id")
         assert result.n_matched == 2
         decimals, _ = normalize_id_column(pd.DataFrame({"id": [1.5, 2.0]}), "id")
@@ -148,3 +149,24 @@ class TestMergeTables:
         right = pd.DataFrame({"c": [1]})
         with pytest.raises(ValueError, match="same number"):
             merge_tables(left, right, left_on=["a", "b"], right_on="c")
+
+
+def test_id_report_lists_reasons_and_collisions() -> None:
+    df = pd.DataFrame({"id": [" A1", "A1", "B  2", "none", "C3"]})
+    _, changes = normalize_id_column(df, "id")
+    by_before = changes.set_index("before")
+    assert by_before.loc[" A1", "reason"] == "whitespace"
+    assert bool(by_before.loc[" A1", "collision"]) and bool(by_before.loc["A1", "collision"])
+    assert by_before.loc["A1", "reason"] == ""  # unchanged, but it collides
+    assert by_before.loc["none", "reason"] == "blank token"
+    assert "C3" not in by_before.index
+
+
+def test_merge_reports_row_counts() -> None:
+    left = pd.DataFrame({"id": ["a", "a", "b", None], "v": [1, 2, 3, 4]})
+    right = pd.DataFrame({"id": ["a", "b", "b", "c"], "w": [1, 2, 3, 4]})
+    result = merge_tables(left, right, left_on="id", right_on="id")
+    assert result.n_matched == 2
+    assert (result.n_left_matched_rows, result.n_right_matched_rows) == (3, 3)
+    assert (result.n_left_missing_keys, result.n_right_missing_keys) == (1, 0)
+    assert result.n_merged_rows == len(result.merged) == 5

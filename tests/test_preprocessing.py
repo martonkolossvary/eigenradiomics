@@ -641,3 +641,17 @@ class TestRadiomicsPrepTransformer:
         df = pd.DataFrame({"feat1": [1, 2], "feat2": [3, 4], "meta": ["a", "b"]})
         cols = resolve_analysis_features(df, features=["feat1", "feat2"])
         np.testing.assert_array_equal(cols, np.array(["feat1", "feat2"]))
+
+
+def test_prep_without_clipping_keeps_out_of_range_values():
+    rng = np.random.default_rng(0)
+    train = pd.DataFrame({"a": rng.normal(size=50), "b": rng.normal(size=50)})
+    new = pd.DataFrame({"a": [10.0, -10.0], "b": [0.0, 0.0]})
+    kw = dict(skip_yeo_johnson=True, standardize=False)
+    clipped = RadiomicsPrepTransformer(winsor_lower=0.0, winsor_upper=1.0, **kw).fit(train)
+    assert np.allclose(np.asarray(clipped.transform(new))[:, 0], [train.a.max(), train.a.min()])
+    free = RadiomicsPrepTransformer(winsor_lower=None, winsor_upper=None, **kw).fit(train)
+    assert np.allclose(np.asarray(free.transform(new))[:, 0], [10.0, -10.0])
+    assert np.allclose(np.asarray(free.transform(train)), train.to_numpy())
+    with pytest.raises(ValueError, match="0 <= lower < upper <= 1"):
+        RadiomicsPrepTransformer(winsor_lower=0.9, winsor_upper=0.1).fit(train)

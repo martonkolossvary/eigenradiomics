@@ -9,7 +9,8 @@ Every model wraps a respected statistics package. Continuous outcomes use
 statsmodels OLS with HC3 robust standard errors (MacKinnon & White, 1985);
 survival uses lifelines Cox proportional hazards; binary uses statsmodels logistic
 regression. When a cluster / repeated-measures identifier is given, each switches
-to a mixed/clustered variant: statsmodels MixedLM (continuous), a marginal GEE
+to a mixed/clustered variant: an exact REML random-intercept model (continuous;
+checked against statsmodels MixedLM), a marginal GEE
 (default) or a conditional GLMM (statsmodels ``BinomialBayesMixedGLM``) (binary),
 and lifelines cluster-robust Cox. :func:`plot_volcano` renders the results, and
 :class:`FeatureAssociationResult` bridges to the clustered heatmap and to Excel.
@@ -248,17 +249,13 @@ def _clean_error(exc: Exception) -> str:
     return re.sub(r"\s+", " ", str(exc)).strip()[:300]
 
 
-#: Start of the MixedLM note for a random-effect variance near 0 (it converged).
-_BOUNDARY = "The MLE may be on the boundary"
-
-
 def _watched_fit(fit: Callable[[], Any]) -> tuple[Any, str, str]:
     """Run *fit*; return its result, the failure text, and the note text.
 
-    A failure means the fit did not converge: a ConvergenceWarning (but not the
-    boundary note), a PerfectSeparationWarning, or the ``fit_vb`` text "did not
-    converge" (a plain UserWarning). A note is the boundary ConvergenceWarning or a
-    HessianInversionWarning: the fit converged, but the caller can filter on it.
+    A failure means the fit did not converge: a ConvergenceWarning, a
+    PerfectSeparationWarning, or the ``fit_vb`` text "did not converge" (a plain
+    UserWarning). A note is a HessianInversionWarning: the fit converged, but the
+    caller can filter on it.
     The table keeps both texts, so this function does not show those warnings. It
     shows each other warning again.
     """
@@ -269,7 +266,7 @@ def _watched_fit(fit: Callable[[], Any]) -> tuple[Any, str, str]:
     for item in caught:
         names = {cls.__name__ for cls in item.category.__mro__}
         text = str(item.message)
-        if "HessianInversionWarning" in names or text.startswith(_BOUNDARY):
+        if "HessianInversionWarning" in names:
             notes.append(text)
         elif names & {"ConvergenceWarning", "PerfectSeparationWarning"} or (
             "did not converge" in text
@@ -462,56 +459,99 @@ def _fit_glmm(
     return _mark_convergence(fit, True, failed, noted)  # fit_vb has only a warning
 
 
+def _reml_random_intercept(y: NDArray, design: NDArray, groups: NDArray) -> dict[str, Any]:
+    """Exact REML fit of ``y = X b + u[group] + e`` with one random intercept per group.
+
+    The profile REML log-likelihood depends on one ratio, ``gamma = tau2 / sigma2``.
+    With ``V = I + gamma Z Z'`` (one block per group), ``V^-1`` and ``log|V|`` have
+    closed forms per group, so each evaluation is exact. The function searches
+    ``gamma`` on a log grid, refines the best point with a bounded Brent step, and
+    also tests ``gamma = 0``. Inference uses the z reference, as statsmodels
+    ``MixedLM`` does: ``Var(b) = sigma2 (X' V^-1 X)^-1``.
+
+    statsmodels 0.14 ``MixedLM`` can stop at ``gamma = 0`` when the REML maximum
+    is above 0, and it then returns other fixed effects than the pooled fit.
+    This search does not depend on a start value or on the platform.
+    """
+    from scipy.optimize import minimize_scalar
+
+    codes = pd.factorize(groups)[0]
+    n_groups = int(codes.max()) + 1
+    n, p = design.shape
+    sizes = np.bincount(codes, minlength=n_groups).astype(float)
+    sum_x = np.zeros((n_groups, p))
+    np.add.at(sum_x, codes, design)
+    sum_y = np.bincount(codes, weights=y, minlength=n_groups)
+    xtx, xty, yty = design.T @ design, design.T @ y, float(y @ y)
+
+    def parts(gamma: float) -> tuple[NDArray, NDArray, float, float]:
+        shrink = gamma / (1.0 + gamma * sizes)  # V^-1 = I - shrink_g 11' per group
+        xvx = xtx - (sum_x * shrink[:, None]).T @ sum_x
+        xvy = xty - sum_x.T @ (shrink * sum_y)
+        beta = np.linalg.solve(xvx, xvy)
+        quad = yty - float((shrink * sum_y**2).sum()) - float(xvy @ beta)  # y' P y
+        return xvx, beta, quad, float(np.log1p(gamma * sizes).sum())
+
+    def neg_loglik(log_gamma: float) -> float:
+        xvx, _, quad, logdet_v = parts(float(np.exp(log_gamma)) if log_gamma > -np.inf else 0.0)
+        if quad <= 0:
+            return np.inf
+        return float(0.5 * ((n - p) * np.log(quad) + logdet_v + np.linalg.slogdet(xvx)[1]))
+
+    grid = np.linspace(np.log(1e-8), np.log(1e4), 49)
+    values = np.array([neg_loglik(t) for t in grid])
+    best = int(np.argmin(values))
+    lo, hi = grid[max(best - 1, 0)], grid[min(best + 1, len(grid) - 1)]
+    refined = minimize_scalar(neg_loglik, bounds=(lo, hi), method="bounded")
+    log_gamma = float(refined.x) if refined.fun < values[best] else float(grid[best])
+    gamma = float(np.exp(log_gamma))
+    # gamma = 0 wins ties (the likelihood is flat when every group has one row).
+    if neg_loglik(-np.inf) <= neg_loglik(log_gamma):
+        gamma = 0.0
+    xvx, beta, quad, _ = parts(gamma)
+    sigma2 = quad / (n - p)
+    se = np.sqrt(np.diag(np.linalg.inv(xvx)) * sigma2)
+    return {"beta": beta, "se": se, "gamma": gamma, "sigma2": sigma2}
+
+
 def _fit_continuous(
     subset: pd.DataFrame, feature: str, covariates: Sequence[str], spec: _OutcomeSpec
 ) -> dict:
-    """Linear association: statsmodels ``MixedLM`` (REML random-intercept) for
-    clustered data, otherwise OLS with HC3 robust SE (see :func:`_fit_ols_hc3`).
+    """Linear association: an exact REML random-intercept model (see
+    :func:`_reml_random_intercept`) for clustered data, otherwise OLS with HC3
+    robust SE (see :func:`_fit_ols_hc3`).
     """
     design, sd = _design(subset, feature, covariates)
     y = subset[spec.outcome_cols[0]].to_numpy(dtype=float)
-    if spec.groups_col:
-        sm = _import_statsmodels()
-        try:
-            res, failed, noted = _watched_fit(
-                lambda: sm.MixedLM(y, design, groups=subset[spec.groups_col].to_numpy()).fit(
-                    method=["lbfgs"], reml=True
-                )
-            )
-            converged = _converged(res)
-            # statsmodels inverts a singular random-intercept covariance as 0. This
-            # gives the within-cluster estimate. With a zero random-intercept
-            # variance, the REML fixed effects are the pooled fit, so use OLS.
-            if float(np.asarray(res.cov_re).min()) <= 1e-10 * float(res.scale):
-                res = sm.OLS(y, design).fit(use_t=False)  # z reference, as MixedLM
-                pooled = (
-                    "the random-intercept variance is 0, so the fixed effect is the pooled fit"
-                )
-                noted = f"{noted}; {pooled}" if noted else pooled
-            params, bse, pvals = (
-                np.asarray(res.params),
-                np.asarray(res.bse),
-                np.asarray(res.pvalues),
-            )
-            conf = np.asarray(res.conf_int())
-        except Exception as exc:
-            return {"status": "fit_failed", "error": _clean_error(exc)}
-        coef, se = float(params[1]), float(bse[1])
-        fit = {
-            "status": "ok",
-            "model_family": "mixedlm",
-            "coef": coef,
-            "effect": coef,
-            "effect_name": "beta",
-            "se": se,
-            "statistic": coef / se if se > 0 else np.nan,
-            "p_value": float(pvals[1]),
-            "ci_low": float(conf[1, 0]),
-            "ci_high": float(conf[1, 1]),
-        }
-        fit = _mark_convergence(fit, converged, failed, noted)
-    else:
-        fit = _fit_ols_hc3(y, design, feature_idx=1)
+    if not spec.groups_col:
+        return _to_raw_units(_fit_ols_hc3(y, design, feature_idx=1), sd)
+    if len(y) <= design.shape[1]:
+        return {"status": "not_enough_degrees_of_freedom"}
+    try:
+        res = _reml_random_intercept(y, design, subset[spec.groups_col].to_numpy())
+    except (np.linalg.LinAlgError, ValueError) as exc:
+        return {"status": "fit_failed", "error": _clean_error(exc)}
+    coef, se = float(res["beta"][1]), float(res["se"][1])
+    z = coef / se if se > 0 else np.nan
+    half = float(stats.norm.ppf(0.975)) * se
+    fit = {
+        "status": "ok",
+        "model_family": "mixedlm",
+        "coef": coef,
+        "effect": coef,
+        "effect_name": "beta",
+        "se": se,
+        "statistic": z,
+        "p_value": float(2 * stats.norm.sf(abs(z))) if np.isfinite(z) else np.nan,
+        "ci_low": coef - half,
+        "ci_high": coef + half,
+        "warning": (
+            "the REML random-intercept variance is 0, so the fixed effect equals the "
+            "pooled fit (common with few rows per cluster)"
+            if res["gamma"] == 0.0
+            else ""
+        ),
+    }
     return _to_raw_units(fit, sd)
 
 
@@ -643,8 +683,9 @@ def compute_feature_associations(
         index; its index must be unique and cover every sample of *X*.
     groups : Series, array-like, or column name, optional
         Cluster / repeated-measures identifier (it must not also be a covariate).
-        When given, the engine switches to a mixed/clustered variant: MixedLM
-        (continuous), GEE or GLMM (binary), and cluster-robust Cox (survival). A
+        When given, the engine switches to a mixed/clustered variant: an exact
+        REML random-intercept model (continuous), GEE or GLMM (binary), and
+        cluster-robust Cox (survival). A
         Series is aligned to *X* by index (the index must be unique and cover every
         sample); an array or list is aligned by position and must have one value
         per sample.
@@ -677,12 +718,10 @@ def compute_feature_associations(
         ``bar``, ``matrix``, and the plots use only ``"ok"`` rows.
 
         The ``warning`` column (an empty string when there is none) records a note
-        that keeps the status ``"ok"``: a HessianInversionWarning, or the MixedLM
-        note "MLE may be on the boundary" (random-intercept variance near 0).
-        Boundary fits are common with few rows per cluster. When that variance is
-        0, statsmodels gives the within-cluster estimate, so the MixedLM row uses
-        the pooled OLS fit (the REML answer at variance 0) and says so in
-        ``warning``.
+        that keeps the status ``"ok"``: a HessianInversionWarning, or a clustered
+        continuous fit whose REML random-intercept variance is 0. Such fits are
+        common with few rows per cluster; the fixed effect then equals the pooled
+        fit, and its model-based SE does not allow for within-cluster correlation.
     """
     if isinstance(X, RadiomicsDataset):
         feature_matrix = X.features

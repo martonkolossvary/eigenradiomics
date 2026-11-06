@@ -366,12 +366,10 @@ def test_cox_fit_failed(monkeypatch):
 
 
 def test_mixedlm_fit_failed(monkeypatch):
-    import types as _types
+    def _boom(*args, **kwargs):
+        raise np.linalg.LinAlgError("singular matrix")
 
-    fake_sm = _types.SimpleNamespace(
-        MixedLM=lambda *a, **k: (_ for _ in ()).throw(RuntimeError("mixedlm boom"))
-    )
-    monkeypatch.setattr("eigenradiomics.feature_models._import_statsmodels", lambda: fake_sm)
+    monkeypatch.setattr("eigenradiomics.feature_models._reml_random_intercept", _boom)
     X, meta, _, _ = _survival_binary(n=30)
     y = pd.Series(X["original__f0"].to_numpy(), index=X.index)
     res = compute_feature_associations(X, y, covariate_data=meta, groups="patient")
@@ -673,7 +671,7 @@ def test_groups_series_aligned_by_index():
     by_name = compute_feature_associations(X, y, groups="patient", covariate_data=meta)
     shuffled = meta["patient"].sample(frac=1, random_state=0)  # same labels, new order
     by_series = compute_feature_associations(X, y, groups=shuffled)
-    assert np.allclose(by_series.table["coef"], by_name.table["coef"])
+    assert np.allclose(by_series.table["coef"], by_name.table["coef"], equal_nan=True)
     with pytest.raises(ValueError, match="unique index"):
         compute_feature_associations(X, y, groups=pd.Series(0, index=[0] * len(X)))
     with pytest.raises(ValueError, match="does not cover"):
@@ -875,7 +873,7 @@ def _convergence_data():
     n = 40
     X = pd.DataFrame({"original__f": rng.normal(size=n)})
     meta = pd.DataFrame({"g": np.repeat(np.arange(20), 2)})
-    tiny = pd.Series(rng.normal(size=n) * 1e-8)  # MixedLM hits the boundary
+    tiny = pd.Series(rng.normal(size=n) * 1e-8)  # a near-zero outcome
     separated = pd.Series((X["original__f"].to_numpy() > 0).astype(int))  # perfect separation
     return X, meta, tiny, separated
 
@@ -883,33 +881,89 @@ def _convergence_data():
 def test_mixedlm_boundary_is_ok_with_warning_and_pooled_fit():
     import statsmodels.api as sm
 
-    X, meta, tiny, _ = _convergence_data()
-    with pytest.warns(UserWarning, match="singular"):  # other warnings still show
-        res = compute_feature_associations(X, tiny, groups="g", covariate_data=meta)
+    # Opposite noise inside each pair gives a REML random-intercept variance of 0.
+    rng = np.random.default_rng(0)
+    X = pd.DataFrame({"original__f": rng.normal(size=40)})
+    meta = pd.DataFrame({"g": np.repeat(np.arange(20), 2)})
+    e = rng.normal(size=20)
+    y = pd.Series(
+        0.3 * X["original__f"].to_numpy()
+        + np.column_stack([e, -e]).ravel()
+        + 0.1 * rng.normal(size=40)
+    )
+    res = compute_feature_associations(X, y, groups="g", covariate_data=meta)
     row = res.table.iloc[0]
     assert row["status"] == "ok" and row["error"] == ""
-    assert "boundary" in row["warning"] and "pooled" in row["warning"]
+    assert "variance is 0" in row["warning"] and "pooled" in row["warning"]
     # the random-intercept variance is 0, so the REML fixed effect is the pooled fit
-    pooled = sm.OLS(tiny.to_numpy(), sm.add_constant(X["original__f"].to_numpy())).fit(use_t=False)
+    pooled = sm.OLS(y.to_numpy(), sm.add_constant(X["original__f"].to_numpy())).fit(use_t=False)
     assert np.isclose(row["coef"], pooled.params[1]) and np.isclose(row["se"], pooled.bse[1])
     assert np.isclose(row["p_value"], pooled.pvalues[1])
     assert len(res.top_hits(mode="ranked")) == 1
 
 
-def test_mixedlm_not_converged_flag(monkeypatch):
-    from statsmodels.regression.mixed_linear_model import MixedLM
+def _reml_profile(y, design, groups, gamma):
+    """Dense REML profile log-likelihood, used as an independent reference."""
+    codes = pd.factorize(groups)[0]
+    z = np.eye(codes.max() + 1)[codes]
+    v_inv = np.linalg.inv(np.eye(len(y)) + gamma * z @ z.T)
+    a = design.T @ v_inv @ design
+    proj = v_inv - v_inv @ design @ np.linalg.solve(a, design.T @ v_inv)
+    n, p = design.shape
+    return -0.5 * (
+        (n - p) * np.log(y @ proj @ y)
+        + np.linalg.slogdet(np.eye(len(y)) + gamma * z @ z.T)[1]
+        + np.linalg.slogdet(a)[1]
+    )
 
-    original = MixedLM.fit
+
+def test_reml_random_intercept_matches_statsmodels_and_finds_the_maximum():
+    import statsmodels.api as sm
+
+    from eigenradiomics.feature_models import _reml_random_intercept
+
+    # Interior case: a strong random intercept; statsmodels MixedLM and the exact
+    # search reach the same REML maximum.
+    rng = np.random.default_rng(1)
+    groups = np.repeat(np.arange(30), 4)
+    x = rng.normal(size=120)
+    y = 0.3 * x + 2.0 * rng.normal(size=30)[groups] + rng.normal(size=120)
+    design = sm.add_constant(x)
+    ours = _reml_random_intercept(y, design, groups)
+    ref = sm.MixedLM(y, design, groups=groups).fit(method=["lbfgs"], reml=True)
+    assert np.allclose(ours["beta"], ref.fe_params, atol=1e-4)
+    assert np.isclose(ours["sigma2"], ref.scale, rtol=1e-3)
+    assert np.isclose(ours["se"][1], ref.bse_fe[1], rtol=1e-3)
+    # A small unbalanced sample whose REML maximum is above 0 (statsmodels
+    # 0.14.6 stops at 0 here on macOS).
+    rng = np.random.default_rng(0)
+    n_groups = int(rng.integers(8, 30))
+    groups = np.repeat(np.arange(n_groups), rng.integers(1, 5, n_groups))
+    x = rng.normal(size=len(groups))
+    u = rng.normal(scale=rng.choice([0, 0.3, 1.0]), size=n_groups)[groups]
+    y = 0.3 * x + u + rng.normal(size=len(groups))
+    design = sm.add_constant(x)
+    ours = _reml_random_intercept(y, design, groups)
+    assert ours["gamma"] > 0
+    assert _reml_profile(y, design, groups, ours["gamma"]) > _reml_profile(y, design, groups, 0.0)
+    grid = np.r_[0.0, np.logspace(-4, 1, 60)]
+    best = max(_reml_profile(y, design, groups, g) for g in grid)
+    assert _reml_profile(y, design, groups, ours["gamma"]) >= best - 1e-9
+
+
+def test_not_converged_rows_stay_in_fdr_but_leave_plots(monkeypatch):
+    from statsmodels.discrete.discrete_model import Logit
+
+    original = Logit.fit
 
     def _fit(self, *args, **kwargs):
         res = original(self, *args, **kwargs)
-        res.converged = False  # no natural case is stable, so force the flag
+        res.mle_retvals["converged"] = False  # force the flag
         return res
 
-    monkeypatch.setattr(MixedLM, "fit", _fit)
-    X, meta, _, _ = _survival_binary()
-    y = _mixed_continuous_outcome(X, meta)
-    res = compute_feature_associations(X, y, groups="patient", covariate_data=meta)
+    monkeypatch.setattr(Logit, "fit", _fit)
+    X, _, _, binary = _survival_binary()
+    res = compute_feature_associations(X, binary)
     row = res.table.set_index("feature").loc["original__f0"]
     assert row["status"] == "not_converged" and row["error"] == "the optimizer did not converge."
     assert np.isfinite(row["coef"]) and np.isfinite(row["p_fdr"])  # stays in the FDR family

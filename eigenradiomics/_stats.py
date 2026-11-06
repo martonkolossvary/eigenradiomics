@@ -126,8 +126,8 @@ def _icc_2_1_weighted(Y: NDArray, W: NDArray) -> dict[str, NDArray]:
     W = np.atleast_2d(np.asarray(W, dtype=float))
     n_draws = W.shape[0]
     n, k = Y.shape
-    nan = np.full(n_draws, np.nan)
-    out = {
+    nan: NDArray = np.full(n_draws, np.nan)
+    out: dict[str, NDArray] = {
         "icc": nan,
         "ms_between_subjects": nan,
         "ms_between_observers": nan,

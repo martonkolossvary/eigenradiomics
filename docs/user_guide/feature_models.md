@@ -38,7 +38,9 @@ with its confidence interval; survival rows also carry the **c-index**. The fit
 ## Mixed / repeated-measures models
 
 Pass `groups` (a cluster identifier — e.g. patient ID for per-lesion data) and the
-engine switches to a mixed/clustered variant: **MixedLM** (continuous), a
+engine switches to a mixed/clustered variant: an exact **REML random-intercept**
+linear model (continuous; it gives the same answer as statsmodels MixedLM when
+MixedLM reaches the REML maximum), a
 random-intercept **GLMM** or cluster-robust **GEE** (binary, via `mixed_method=`),
 and **cluster-robust Cox** (survival).
 

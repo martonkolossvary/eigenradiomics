@@ -38,8 +38,8 @@ pip install 'eigenradiomics[survival,modeling]'
 ```
 
 The `survival` extra installs `lifelines` (Cox models) and `modeling` installs
-`statsmodels` (logistic, GLMM/GEE, MixedLM). Continuous OLS+HC3 models need
-neither. You can combine extras, e.g.
+`statsmodels` (OLS+HC3, logistic, GLMM/GEE). The clustered continuous model
+(REML random intercept) needs only NumPy and SciPy. You can combine extras, e.g.
 `pip install 'eigenradiomics[wgcna,combat,survival,modeling]'`.
 
 ## Install from Source

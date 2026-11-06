@@ -18,7 +18,35 @@ from sklearn.utils.validation import check_is_fitted
 from eigenradiomics.reducers._base import BaseReducer
 
 
-class TSNEReducer(BaseReducer):
+class _KwargsReducer(BaseReducer):
+    """Base for reducers that send extra ``**kwargs`` to the wrapped estimator.
+
+    sklearn reads parameters from the ``__init__`` signature only, so it does
+    not see ``**kwargs``. This class shows each extra argument as a parameter,
+    so ``clone``, ``GridSearchCV`` and ``cross_validate`` keep it.
+    """
+
+    kwargs: dict[str, Any]
+
+    def get_params(self, deep: bool = True) -> dict[str, Any]:
+        params: dict[str, Any] = super().get_params(deep=deep)
+        params.update(self.kwargs)
+        return params
+
+    def set_params(self, **params: Any) -> _KwargsReducer:
+        # Put a plain name that is not in the signature into the extra
+        # arguments. sklearn checks the other names.
+        own = set(self._get_param_names())
+        extra = {
+            key: params.pop(key) for key in list(params) if "__" not in key and key not in own
+        }
+        if extra:
+            self.kwargs = {**self.kwargs, **extra}
+        super().set_params(**params)
+        return self
+
+
+class TSNEReducer(_KwargsReducer):
     """t-Distributed Stochastic Neighbor Embedding (t-SNE) reducer.
 
     TSNE is a transductive-only method and does not support transforming
@@ -36,7 +64,7 @@ class TSNEReducer(BaseReducer):
         the embedded space and how much space will be between them.
     learning_rate : float or str, default="auto"
         The learning rate for t-SNE is usually in the range [10.0, 1000.0].
-    n_iter : int, default=1000
+    max_iter : int, default=1000
         Maximum number of iterations for the optimization.
     random_state : int, RandomState instance or None, default=None
         Determines the random number generator.
@@ -91,7 +119,7 @@ class TSNEReducer(BaseReducer):
         return cast(NDArray, self.embedding_)
 
 
-class MDSReducer(BaseReducer):
+class MDSReducer(_KwargsReducer):
     """Multidimensional Scaling (MDS) reducer.
 
     MDS is a transductive-only method and does not support transforming
@@ -163,7 +191,7 @@ class MDSReducer(BaseReducer):
         return cast(NDArray, self.embedding_)
 
 
-class SpectralReducer(BaseReducer):
+class SpectralReducer(_KwargsReducer):
     """Spectral Embedding reducer.
 
     Spectral Embedding is a transductive-only method and does not support
@@ -224,7 +252,7 @@ class SpectralReducer(BaseReducer):
         return cast(NDArray, self.embedding_)
 
 
-class IsomapReducer(BaseReducer):
+class IsomapReducer(_KwargsReducer):
     """Isomap (Isometric Feature Mapping) reducer.
 
     Supports true inductive out-of-sample projection via transform.
@@ -269,7 +297,7 @@ class IsomapReducer(BaseReducer):
         return cast(NDArray, self.isomap_.transform(X_arr))
 
 
-class LLEReducer(BaseReducer):
+class LLEReducer(_KwargsReducer):
     """Locally Linear Embedding (LLE) reducer.
 
     Supports true inductive out-of-sample projection via transform.
@@ -324,7 +352,7 @@ class LLEReducer(BaseReducer):
         return cast(NDArray, self.lle_.transform(X_arr))
 
 
-class UMAPReducer(BaseReducer):
+class UMAPReducer(_KwargsReducer):
     """Uniform Manifold Approximation and Projection (UMAP) reducer.
 
     Supports true inductive out-of-sample projection via transform.
@@ -383,7 +411,7 @@ class UMAPReducer(BaseReducer):
         return cast(NDArray, self.umap_.transform(X_arr))
 
 
-class PaCMAPReducer(BaseReducer):
+class PaCMAPReducer(_KwargsReducer):
     """Pairwise Controlled Manifold Approximation (PaCMAP) reducer.
 
     Supports true inductive out-of-sample projection via transform.
@@ -436,7 +464,7 @@ class PaCMAPReducer(BaseReducer):
         return cast(NDArray, self.pacmap_.transform(X_arr))
 
 
-class TriMAPReducer(BaseReducer):
+class TriMAPReducer(_KwargsReducer):
     """TriMap dimensionality reduction reducer.
 
     Supports true inductive out-of-sample projection via transform.

@@ -44,6 +44,8 @@ def _feature_qc(
     """Calculate feature QC flags and missing statistics."""
     rows = []
     batches = sorted(batch.astype(str).unique())
+    # A study with fewer batches than min_batches_per_feature needs all of them.
+    required_batches = min(min_batches_per_feature, len(batches))
 
     for feature in values.columns:
         series = pd.to_numeric(values[feature], errors="coerce")
@@ -63,7 +65,7 @@ def _feature_qc(
                 valid.sum() >= min_valid_samples
                 and (1 - valid.mean()) <= max_missing_fraction
                 and series.nunique(dropna=True) >= min_unique_values
-                and valid_batches >= min_batches_per_feature
+                and valid_batches >= required_batches
             ),
         }
         for b in batches:
@@ -222,12 +224,13 @@ def _compute_global_diagnostics(
     matrix_label: str,
     permanova_components: int,
     permutations: int,
+    random_state: int = 42,
 ) -> tuple[dict[str, Any], pd.DataFrame, PCA]:
     """Calculate PCA explained variances, Silhouette scores, and permutation pseudo-F PERMANOVA."""
     n_samples, n_features = X_global.shape
     max_components = min(permanova_components, n_samples - 1, n_features)
 
-    pca = PCA(n_components=max_components, random_state=42)
+    pca = PCA(n_components=max_components, random_state=random_state)
     scores_arr = pca.fit_transform(X_global)
     scores = pd.DataFrame(
         scores_arr,
@@ -240,7 +243,7 @@ def _compute_global_diagnostics(
         scores,
         batch_subset,
         permutations=permutations,
-        random_state=42,
+        random_state=random_state,
     )
 
     # PC1 and PC2 one-way ANOVA p-values
@@ -272,7 +275,7 @@ def _compute_global_diagnostics(
     # LISI (low -> batch effect, high -> well mixed).
     coords = scores.to_numpy()
     batch_arr = batch_subset.astype(str).to_numpy()
-    kbet = _kbet_rejection_rate(coords, batch_arr)
+    kbet = _kbet_rejection_rate(coords, batch_arr, random_state=random_state)
     lisi = _lisi_score(coords, batch_arr)
 
     diag_dict = {
@@ -305,13 +308,25 @@ def _annotate_features(table: pd.DataFrame, catalog: pd.DataFrame | None) -> pd.
     if catalog is None or catalog.empty:
         return table
 
-    # Match based on feature name keys
-    has_legacy = "feature" in catalog.columns
-    if not has_legacy and {"config", "feature_key"}.issubset(catalog.columns):
-        catalog = catalog.copy()
-        catalog["feature"] = (
-            catalog["config"].astype(str) + "__" + catalog["feature_key"].astype(str)
+    # Match based on feature name keys. A row without a config (or a catalog
+    # without a config column) matches the bare feature key.
+    catalog = catalog.copy()
+    if "feature" not in catalog.columns:
+        if "feature_key" not in catalog.columns:
+            return table
+        key = catalog["feature_key"].astype(str)
+        if "config" in catalog.columns:
+            has_config = catalog["config"].notna()
+            key = (catalog["config"].astype(str) + "__" + key).where(has_config, key)
+        catalog["feature"] = key
+    n_duplicates = int(catalog["feature"].duplicated().sum())
+    if n_duplicates:
+        warnings.warn(
+            f"catalog has {n_duplicates} duplicate feature row(s); the first row is used.",
+            UserWarning,
+            stacklevel=3,
         )
+        catalog = catalog.drop_duplicates(subset="feature", keep="first")
 
     annotated = table.merge(
         catalog,
@@ -356,6 +371,7 @@ def compute_batch_effects(
     combat_nonparametric: bool = False,
     combat_reference_batch: Any = None,
     combat_covariates: pd.DataFrame | None = None,
+    random_state: int = 42,
 ) -> dict[str, pd.DataFrame]:
     """Evaluate scanner/center-associated batch effects across a radiomics dataset.
 
@@ -363,8 +379,10 @@ def compute_batch_effects(
     ----------
     X : pd.DataFrame or ndarray of shape (n_samples, n_features)
         Wide-format feature matrix.
-    batch : sequence of shape (n_samples,)
-        Center/batch identifiers corresponding to each sample.
+    batch : pandas Series or sequence of shape (n_samples,)
+        Center/batch identifiers corresponding to each sample. A Series aligns
+        to ``X`` by index when ``X`` is a DataFrame; a list or array is
+        positional (row ``i`` of ``X`` gets label ``i``). Missing labels raise.
     features, configs, families, family_groups, catalog : selectors
         Standard Pictologics selectors used to isolate target features.
     pipeline : TransformerMixin, default=RadiomicsPrepTransformer()
@@ -376,7 +394,8 @@ def compute_batch_effects(
     min_valid_per_batch : int, default=5
         Minimum valid non-NaN samples required inside each batch to count as valid.
     min_batches_per_feature : int, default=3
-        Minimum number of valid batches required per feature.
+        Minimum number of valid batches required per feature. It is capped at
+        the number of batches in the data, so a 2-batch study needs both.
     min_unique_values : int, default=3
         Minimum unique values required per feature.
     global_missing_strategy : {"complete-features", "complete-cases", "median-impute"}
@@ -394,7 +413,19 @@ def compute_batch_effects(
     combat_reference_batch : Any, default=None
         Optionally specifies a batch to use as reference.
     combat_covariates : pd.DataFrame, default=None
-        Categorical covariates to preserve during ComBat.
+        Covariates to preserve during ComBat, aligned to ``X`` by index. Numeric
+        columns are continuous; text, boolean and category columns are
+        categorical.
+    random_state : int, default=42
+        Seed for PCA, the PERMANOVA permutations and kBET.
+
+    Notes
+    -----
+    Before ComBat, features with (near) zero pooled within-batch variance are
+    left out of the correction and counted in ``combat_adjustment_notes``. Such
+    a feature differs between batches only; it would make the standardized
+    data non-finite or distort the shared empirical-Bayes priors of the other
+    features. PERMANOVA permutes single rows, so it assumes independent rows.
 
     Returns
     -------
@@ -402,26 +433,32 @@ def compute_batch_effects(
         Multi-sheet statistics tables containing batch-effect diagnostics.
     """
     X_df = X if isinstance(X, pd.DataFrame) else pd.DataFrame(X)
-    batch_series = pd.Series(batch)
+    if not X_df.index.is_unique:
+        raise ValueError("X has duplicate row index labels; give each sample a unique key.")
 
-    # 1. Quality Control validation and index matching
-    if isinstance(X, pd.DataFrame):
-        if set(X.index) != set(batch_series.index):
-            missing = list(set(X.index) - set(batch_series.index))
-            unexpected = list(set(batch_series.index) - set(X.index))
+    # 1. Quality Control validation and index matching. Only a Series carries
+    # keys; a list or array is positional.
+    if isinstance(X, pd.DataFrame) and isinstance(batch, pd.Series):
+        if not batch.index.is_unique:
+            raise ValueError("batch has duplicate index labels.")
+        if set(X.index) != set(batch.index):
+            missing = list(set(X.index) - set(batch.index))
+            unexpected = list(set(batch.index) - set(X.index))
             raise ValueError(
                 "Indices of X and batch do not match. "
                 f"Missing in batch: {missing[:5]}. Unexpected in batch: {unexpected[:5]}."
             )
-        # Reorder batch to align perfectly with X.index
-        batch_series = batch_series.reindex(index=X.index)
+        batch_series = batch.reindex(index=X.index)
     else:
-        if X_df.shape[0] != len(batch_series):
+        batch_values = np.asarray(batch)
+        if batch_values.ndim != 1 or X_df.shape[0] != len(batch_values):
             raise ValueError(
-                f"Length of batch ({len(batch_series)}) must match "
+                f"Length of batch ({len(batch_values)}) must match "
                 f"number of samples in X ({X_df.shape[0]})."
             )
-        batch_series.index = X_df.index
+        batch_series = pd.Series(batch_values, index=X_df.index, name=getattr(batch, "name", None))
+    if batch_series.isna().any():
+        raise ValueError(f"batch has {int(batch_series.isna().sum())} missing label(s).")
 
     # Load catalog (DataFrame, FeatureCatalog, or CSV path) — same handling as
     # compute_reproducibility, so dataset.catalog can be passed to either.
@@ -492,7 +529,12 @@ def compute_batch_effects(
     pca_results = {}
     if X_global.shape[0] >= 3 and X_global.shape[1] >= 2:
         diag, scores, pca_model = _compute_global_diagnostics(
-            X_global, batch_series, "raw_transformed", permanova_components, permutations
+            X_global,
+            batch_series,
+            "raw_transformed",
+            permanova_components,
+            permutations,
+            random_state,
         )
         global_rows.append(diag)
         pca_results[("raw_transformed", "scores")] = scores
@@ -537,11 +579,41 @@ def compute_batch_effects(
                 stacklevel=2,
             )
 
+        batch_sizes = batch_series.loc[X_global.index].astype(str).value_counts()
+        if inmoose_installed and (batch_sizes < 2).any():
+            inmoose_installed = False
+            warnings.warn(
+                "ComBat sensitivity diagnostics skipped: ComBat needs at least 2 samples in "
+                f"each batch; these batches have 1: "
+                f"{', '.join(batch_sizes.index[batch_sizes < 2])}.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         if inmoose_installed:
-            # Check variance in complete matrix
+            # Check variance in complete matrix. A feature also needs pooled
+            # within-batch (residual) variance: one that differs between
+            # batches only gives non-finite standardized data and distorts the
+            # shared empirical-Bayes priors of all other features.
+            total_var = X_global.var(axis=0, ddof=1)
             finite_variance = X_global.std(axis=0) > 1e-12
-            combat_features = finite_variance[finite_variance].index.tolist()
+            batch_global = batch_series.loc[X_global.index].astype(str)
+            resid = X_global - X_global.groupby(batch_global).transform("mean")
+            dof = max(len(X_global) - batch_global.nunique(), 1)
+            pooled_var = (resid**2).sum(axis=0) / dof
+            residual_ok = pooled_var > 1e-10 * total_var
+            combat_mask = finite_variance & residual_ok
+            combat_features = combat_mask[combat_mask].index.tolist()
             skipped_features = int((~finite_variance).sum())
+            residual_skipped = finite_variance & ~residual_ok
+            if residual_skipped.any():
+                names = residual_skipped[residual_skipped].index.tolist()
+                warnings.warn(
+                    f"{len(names)} feature(s) have no within-batch variance and are left out "
+                    f"of ComBat: {', '.join(map(str, names[:5]))}.",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
             if combat_features:
                 covar_mod = None
@@ -552,7 +624,15 @@ def compute_batch_effects(
                             f"combat_covariates is missing {len(missing)} sample(s) present "
                             f"in X (e.g. {list(missing[:3])}); its index must cover X's index."
                         )
-                    covar_mod = combat_covariates.loc[X_global.index].astype("category")
+                    covar_mod = combat_covariates.loc[X_global.index].copy()
+                    for col in covar_mod.columns:
+                        if not pd.api.types.is_numeric_dtype(covar_mod[col]) or (
+                            pd.api.types.is_bool_dtype(covar_mod[col])
+                        ):
+                            covar_mod[col] = covar_mod[col].astype("category")
+                    # inmoose builds a patsy formula from the column names, so use
+                    # plain names (a space, a hyphen or a number breaks it).
+                    covar_mod.columns = [f"covariate_{i}" for i in range(covar_mod.shape[1])]
 
                 # Transpose complete matrix for inmoose (features x samples)
                 combat_input = X_global[combat_features].T
@@ -582,6 +662,12 @@ def compute_batch_effects(
                 if nonfinite_mask.any().any():
                     n_vals_replaced = int(nonfinite_mask.to_numpy().sum())
                     n_feats_replaced = int(nonfinite_mask.any(axis=0).sum())
+                    warnings.warn(
+                        f"ComBat gave {n_vals_replaced} non-finite value(s) in "
+                        f"{n_feats_replaced} feature(s); they keep their uncorrected values.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
                     corrected_df = corrected_df.mask(nonfinite_mask, X_global[combat_features])
                     # Defensive median fill: unreachable in practice because the
                     # complete matrix used for the mask has no missing values.
@@ -598,6 +684,7 @@ def compute_batch_effects(
                             "nonfinite_values_replaced": n_vals_replaced,
                             "nonfinite_features_replaced": n_feats_replaced,
                             "zero_variance_features_skipped": skipped_features,
+                            "within_batch_constant_features_skipped": int(residual_skipped.sum()),
                         }
                     ]
                 )
@@ -621,7 +708,12 @@ def compute_batch_effects(
 
                 # Re-calculate PCA/PERMANOVA on ComBat corrected matrix
                 diag_c, scores_c, pca_c = _compute_global_diagnostics(
-                    corrected_df, batch_series, "combat", permanova_components, permutations
+                    corrected_df,
+                    batch_series,
+                    "combat",
+                    permanova_components,
+                    permutations,
+                    random_state,
                 )
                 global_rows.append(diag_c)
                 pca_results[("combat", "scores")] = scores_c

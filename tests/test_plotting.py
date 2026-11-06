@@ -17,7 +17,10 @@ from eigenradiomics import (  # noqa: E402
     CorrPanel,
     ReductionArtifacts,
     Strip,
+    plot_batch_distributions,
     plot_clustered_heatmap,
+    plot_eigengene_profiles,
+    plot_hub_significance,
 )
 
 
@@ -118,6 +121,55 @@ def test_unknown_order_name_raises():
     df, _, _ = _blocks()
     with pytest.raises(ValueError, match="absent from the similarity index"):
         plot_clustered_heatmap(df, order=[*list(df.index)[:-1], "ghost"])
+
+
+def test_label_sequence_follows_display_order():
+    df, z, _ = _blocks()
+    names = list(df.index)
+    # Reverse the row and column order, so the linkage order is not the index order.
+    df = df.loc[names[::-1], names[::-1]]
+    z = linkage(squareform(1.0 - df.to_numpy(), checks=False), method="average")
+    labels = [f"L_{name}" for name in df.index]
+    fig = plot_clustered_heatmap(df, linkage=z, labels=labels)
+    shown = [tick.get_text() for tick in fig.axes[0].get_yticklabels()]
+    expected = [f"L_{df.index[i]}" for i in leaves_list(z)]
+    assert expected != labels
+    assert shown == expected
+    plt.close(fig)
+    series = pd.Series(labels[::-1], index=list(df.index)[::-1])
+    fig = plot_clustered_heatmap(df, linkage=z, labels=series)
+    assert [tick.get_text() for tick in fig.axes[0].get_yticklabels()] == expected
+    plt.close(fig)
+    with pytest.raises(ValueError, match="entries"):
+        plot_clustered_heatmap(df, labels=labels[:-1])
+
+
+def test_subset_order():
+    df, z, lab = _blocks()
+    order = list(df.index)[:5][::-1]
+    fig = plot_clustered_heatmap(df, cluster_labels=lab, order=order)
+    heat = fig.axes[0]
+    assert heat.images[0].get_array().shape == (5, 5)
+    assert [tick.get_text() for tick in heat.get_yticklabels()] == order
+    plt.close(fig)
+    with pytest.raises(ValueError, match="cannot align"):
+        plot_clustered_heatmap(df, linkage=z, order=order)
+    fig = plot_clustered_heatmap(df, linkage=z, order=order, show_dendrogram=False)
+    plt.close(fig)
+    with pytest.raises(ValueError, match="duplicate"):
+        plot_clustered_heatmap(df, order=[*order, order[0]])
+
+
+def test_order_must_match_leaves_when_dendrogram_drawn():
+    df, z, _ = _blocks()
+    leaves = [df.index[i] for i in leaves_list(z)]
+    fig = plot_clustered_heatmap(df, linkage=z, order=leaves)
+    plt.close(fig)
+    with pytest.raises(ValueError, match="leaf order"):
+        plot_clustered_heatmap(df, linkage=z, order=leaves[::-1])
+    fig = plot_clustered_heatmap(df, linkage=z, order=leaves[::-1], show_dendrogram=False)
+    assert [t.get_text() for t in fig.axes[0].get_yticklabels()] == leaves[::-1]
+    plt.close(fig)
 
 
 def test_all_nan_similarity_raises():
@@ -679,3 +731,61 @@ class TestSyntenyPlottingCoverageGaps:
         )
         fig_np = plot_reproducibility_synteny(df_nan_p, show_discretisation_ribbon=True)
         plt.close(fig_np)
+
+
+# ---- sample pairing and column checks in the analysis plots -------------
+
+
+def test_hub_significance_column_lookup_and_label():
+    names = [f"f{i}" for i in range(6)]
+    kme = pd.DataFrame(
+        {
+            "blue_0": [0.9, 0.8, 0.7, 0.1, 0.2, 0.3],
+            "blue_1": [0.0] * 6,
+            "brown_0": [0.1, 0.2, 0.3, 0.9, 0.8, 0.7],
+        },
+        index=names,
+    )
+    sig = pd.Series([0.6, 0.5, 0.4, 0.3, 0.2, 0.1], index=names)
+    modules = pd.Series(["blue"] * 3 + ["brown"] * 3, index=names)
+    fig = plot_hub_significance(kme, sig, modules, target_cluster="blue")
+    ax = fig.axes[0]
+    assert ax.collections[0].get_offsets()[:, 0].tolist() == [0.9, 0.8, 0.7]
+    text = " ".join(t.get_text() for t in ax.texts)
+    assert "rho" in text
+    assert "\np =" not in text
+    plt.close(fig)
+    with pytest.raises(ValueError, match="not a column"):
+        plot_hub_significance(kme, sig, modules, target_cluster="green")
+
+
+def test_eigengene_profiles_pair_by_index():
+    index = [f"s{i}" for i in range(20)]
+    eigengenes = pd.DataFrame({"blue": np.arange(20.0)}, index=index)
+    trait = pd.Series(np.arange(20.0) * 2.0 + np.sin(np.arange(20.0)), index=index)
+    fig = plot_eigengene_profiles(eigengenes, trait.iloc[::-1])
+    offsets = fig.axes[0].collections[0].get_offsets()
+    np.testing.assert_allclose(offsets[:, 0], trait.to_numpy())
+    np.testing.assert_allclose(offsets[:, 1], eigengenes["blue"].to_numpy())
+    plt.close(fig)
+    with pytest.raises(ValueError, match="same unique index"):
+        plot_eigengene_profiles(eigengenes, trait.reset_index(drop=True))
+    with pytest.raises(ValueError, match="same number of samples"):
+        plot_eigengene_profiles(eigengenes.to_numpy(), trait.to_numpy()[:-1])
+
+
+def test_batch_distributions_pair_by_index():
+    index = [f"s{i}" for i in range(20)]
+    values = np.r_[np.linspace(0.0, 1.0, 10), np.linspace(10.0, 11.0, 10)]
+    before = pd.DataFrame({"f": values}, index=index)
+    batch = pd.Series(["A"] * 10 + ["B"] * 10, index=index)
+    fig = plot_batch_distributions(before, before.iloc[::-1], batch.iloc[::-1], "f")
+    for ax in fig.axes[:2]:
+        line_a = ax.lines[0].get_xdata()
+        assert line_a.min() == 0.0
+        assert line_a.max() == 1.0
+    plt.close(fig)
+    with pytest.raises(ValueError, match="same unique index"):
+        plot_batch_distributions(before, before, batch.reset_index(drop=True), "f")
+    with pytest.raises(ValueError, match="same number of samples"):
+        plot_batch_distributions(before.to_numpy(), before.to_numpy(), batch.to_numpy()[:-1], 0)

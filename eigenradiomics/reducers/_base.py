@@ -98,13 +98,14 @@ class BaseReducer(ABC, TransformerMixin, BaseEstimator):
         X_post : array-like of shape (n_samples, n_features)
             Follow-up feature matrix.
         relative : bool, default=False
-            If True, compute relative change: delta / (|baseline| + epsilon).
+            If True, compute relative change: delta / |baseline|. The value is NaN
+            where |baseline| < epsilon.
         compute_distance : bool, default=True
             If True, compute Euclidean trajectory distance ||ME_post - ME_pre||_2 per sample.
         align_indices : bool, default=True
             If True and inputs are DataFrames, align on common index before transformation.
         epsilon : float, default=1e-8
-            Small constant for numerical stability in relative change calculation.
+            Smallest |baseline| for a relative change. A smaller |baseline| gives NaN.
 
         Returns
         -------

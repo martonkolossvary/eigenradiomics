@@ -16,7 +16,7 @@ flowchart LR
 
 1. **Ingest and align first** with [`from_pictologics`](data_ingestion.md#loading-a-pictologics-export) / `merge_tables`, so features and metadata stay index-aligned for everything downstream.
 2. **Screen before you model.** Run [reproducibility](reproducibility.md) and [batch-effect](batch_effects.md) QC on the *raw* features — both need information (multiple readers, batch labels) that does not exist inside a single-`X` fit.
-3. **Preprocess, then reduce.** Always scale (`RadiomicsPrepTransformer`) *before* `WGCNAReducer`: the network is built on correlations, and an unscaled feature can dominate. Keep them in one `Pipeline`.
+3. **Preprocess, then reduce.** Put `RadiomicsPrepTransformer` *before* the reducer, in one `Pipeline`. WGCNA uses correlations, so a change of feature units does not change its result. Winsorizing and Yeo-Johnson do change the correlations: they decrease the effect of outliers and skew. PCA and most other reducers also need the z-score step.
 
 ## Leakage safety
 
@@ -44,13 +44,14 @@ flowchart LR
 - **`orient_eigengenes` in predictive vs longitudinal studies:**
     - `"mean_correlation"` (default) aligns the eigengene positive sign with the overall average feature trajectory of that module, making positive eigengene changes intuitive in longitudinal and phenotype analyses.
     - `"hub_feature"` aligns the eigengene strictly with the single most central hub feature in the module.
-- **`soft_power="auto"`** picks the threshold from the scale-free fit; inspect `wgcna_plot_soft_power()` if modules look off.
+- **`soft_power="auto"`** picks the lowest power that meets the scale-free criteria (R², mean connectivity, negative slope); if none does, it uses the best-R² power, warns, and sets `soft_power_criteria_met_` to False (`soft_power_fallback="raise"` stops instead); inspect `wgcna_plot_soft_power()` if modules look off.
+- **Module merging** uses `merge_policy="auto"`: signed (`1 - r`) for signed and signed hybrid networks, so modules with opposite eigengenes stay apart.
 - **`min_module_size`** controls granularity; too large yields all-grey (no modules → a `(n, 0)` output, with a warning). Lower it or set `include_grey=True`.
 - **Constant features** can't enter the network (they're left unassigned with a warning) — drop them upstream.
 
 ## Figures
 
-- The defaults are **colourblind-safe and greyscale-legible** (magma, RdBu_r, Okabe-Ito), verified under a deuteranopia simulation. Beyond **eight** categorical levels the strip palette falls back to `tab20`, which is **not** safe — keep ≤ 8 categories or pass explicit colours. See the [Clustered Heatmap](clustered_heatmap.md#accessibility) guide.
+- The continuous maps are **colourblind-safe and greyscale-legible** (`magma` for similarity, `RdBu_r` for correlation). Categorical strips, module strips, and volcano points use the package's eight-colour `EIGEN_VIBRANT` palette. This palette is not a published colourblind-safe set. For a colourblind-safe set, pass explicit colours (for example, the Okabe-Ito colours). Beyond **eight** categorical levels the palette changes to `tab20`, which is **not** safe. See the [Clustered Heatmap](clustered_heatmap.md#accessibility) guide.
 
 ## Performance
 

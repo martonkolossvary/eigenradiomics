@@ -497,3 +497,136 @@ class TestBatchEffectsCoverageGaps:
         fig_tsne = plot_batch_effects(res, embedding="tsne", title="My Batch Title")
         assert isinstance(fig_tsne, plt.Figure)
         plt.close(fig_tsne)
+
+
+# ----------------------------------------------------------------------
+# Regression tests: batch alignment, ComBat variance guard, covariate types
+# ----------------------------------------------------------------------
+
+
+def _three_site_frame(seed: int = 0):
+    rng = np.random.default_rng(seed)
+    labels = np.repeat(["s1", "s2", "s3"], 20)
+    X = pd.DataFrame(rng.normal(size=(60, 6)), columns=[f"f{i}" for i in range(6)])
+    X.loc[labels == "s2"] += 1.5
+    return X, labels
+
+
+def test_positional_batch_list_on_shuffled_integer_index():
+    X, labels = _three_site_frame()
+    perm = np.random.default_rng(1).permutation(len(X))
+    kw = dict(no_combat=True, permutations=0, min_batches_per_feature=2)
+    ref = compute_batch_effects(X, list(labels), **kw)["feature_stats"]
+    out = compute_batch_effects(X.iloc[perm], list(labels[perm]), **kw)["feature_stats"]
+    assert np.allclose(ref["eta_squared"], out["eta_squared"])
+
+
+def test_batch_metadata_errors():
+    X, labels = _three_site_frame()
+    bad = labels.astype(object)
+    bad[0] = None
+    with pytest.raises(ValueError, match="1 missing label"):
+        compute_batch_effects(X, bad, no_combat=True, permutations=0)
+    with pytest.raises(ValueError, match="duplicate row index"):
+        compute_batch_effects(X.set_axis([0] * 60), labels, no_combat=True, permutations=0)
+    keyed = pd.Series(labels, index=X.index)
+    with pytest.raises(ValueError, match="duplicate index labels"):
+        compute_batch_effects(X, keyed.set_axis([0] * 60), no_combat=True, permutations=0)
+
+
+@pytest.mark.skipif(not _HAS_INMOOSE, reason="inmoose not installed")
+def test_within_batch_constant_feature_is_left_out_of_combat():
+    X, labels = _three_site_frame()
+    step = X.assign(step=np.select([labels == "s1", labels == "s2"], [0.0, 1.0], 2.0))
+    kw = dict(permutations=0, min_batches_per_feature=2, min_unique_values=2)
+    batch = pd.Series(labels, index=X.index)
+    with pytest.warns(UserWarning, match="no within-batch variance.*step"):
+        res = compute_batch_effects(step, batch, **kw)
+    ref = compute_batch_effects(X, batch, **kw)
+    assert "step" not in res["_combat_corrected"].columns
+    assert res["combat_adjustment_notes"]["within_batch_constant_features_skipped"].iloc[0] == 1
+    pd.testing.assert_series_equal(res["_combat_corrected"]["f0"], ref["_combat_corrected"]["f0"])
+
+
+@pytest.mark.skipif(not _HAS_INMOOSE, reason="inmoose not installed")
+def test_numeric_combat_covariate_stays_continuous(monkeypatch):
+    import inmoose.pycombat as pycombat
+
+    seen = {}
+    real = pycombat.pycombat_norm
+
+    def spy(data, batch, covar_mod=None, **kwargs):
+        seen["dtypes"] = covar_mod.dtypes.astype(str).to_dict()
+        return real(data, batch, covar_mod=covar_mod, **kwargs)
+
+    monkeypatch.setattr(pycombat, "pycombat_norm", spy)
+    X, labels = _three_site_frame()
+    rng = np.random.default_rng(2)
+    covars = pd.DataFrame(
+        {"age": rng.normal(60, 8, 60), "sex": rng.choice(["F", "M"], 60)}, index=X.index
+    )
+    compute_batch_effects(
+        X,
+        pd.Series(labels, index=X.index),
+        permutations=0,
+        min_batches_per_feature=2,
+        combat_covariates=covars,
+    )
+    assert seen["dtypes"] == {"covariate_0": "float64", "covariate_1": "category"}
+
+
+def test_random_state_controls_permutations():
+    X, labels = _three_site_frame()
+    kw = dict(no_combat=True, permutations=49, min_batches_per_feature=2)
+    a = compute_batch_effects(X, labels, random_state=1, **kw)["global_diagnostics"]
+    b = compute_batch_effects(X, labels, random_state=1, **kw)["global_diagnostics"]
+    pd.testing.assert_frame_equal(a, b)
+
+
+def test_catalog_without_config_and_duplicate_rows_annotate_once():
+    X, labels = _three_site_frame()
+    cat = pd.DataFrame(
+        {"feature_key": [f"f{i}" for i in range(6)], "family": list("AABBCC"), "family_group": "x"}
+    )
+    kw = dict(no_combat=True, permutations=0, min_batches_per_feature=2)
+    res = compute_batch_effects(X, labels, catalog=cat, **kw)["feature_stats"]
+    assert list(res["family"]) == list("AABBCC")
+    dup = pd.concat([cat, cat.iloc[:1]])
+    with pytest.warns(UserWarning, match="1 duplicate feature row"):
+        res = compute_batch_effects(X, labels, catalog=dup, **kw)["feature_stats"]
+    assert len(res) == 6
+
+
+def test_two_batch_study_passes_default_qc():
+    X, labels = _three_site_frame()
+    keep = labels != "s3"
+    res = compute_batch_effects(X[keep], labels[keep], no_combat=True, permutations=0)
+    assert len(res["feature_stats"]) == 6
+
+
+@pytest.mark.skipif(not _HAS_INMOOSE, reason="inmoose not installed")
+def test_single_sample_batch_skips_combat_with_warning():
+    X, labels = _three_site_frame()
+    labels = labels.astype(object)
+    labels[0] = "solo"
+    with pytest.warns(UserWarning, match="at least 2 samples in each batch"):
+        res = compute_batch_effects(X, labels, permutations=0, min_batches_per_feature=2)
+    assert "combat_feature_stats" not in res
+
+
+@pytest.mark.skipif(not _HAS_INMOOSE, reason="inmoose not installed")
+def test_spaced_covariate_names_work_in_combat_step():
+    X, labels = _three_site_frame()
+    rng = np.random.default_rng(4)
+    covars = pd.DataFrame(
+        {"age at scan": rng.normal(60, 8, 60), "sex-code": rng.choice(["F", "M"], 60)},
+        index=X.index,
+    )
+    res = compute_batch_effects(
+        X,
+        pd.Series(labels, index=X.index),
+        permutations=0,
+        min_batches_per_feature=2,
+        combat_covariates=covars,
+    )
+    assert "combat_feature_stats" in res

@@ -97,6 +97,77 @@ def _fisher_mean(coefficients: NDArray | list[float]) -> float:
 # ----------------------------------------------------------------------
 
 
+def _icc_2_1_weighted(Y: NDArray, W: NDArray) -> dict[str, NDArray]:
+    """Calculate ICC(2,1) for each row of a matrix of row multiplicities.
+
+    This is the one ICC(2,1) kernel (two-way random effects, absolute agreement,
+    single measure; McGraw and Wong ICC(A,1)) for the point estimate and for the
+    bootstrap. Row ``i`` of ``Y`` counts ``W[b, i]`` times in draw ``b``, so each
+    result is equal to the ICC of the expanded matrix with ``sum(W[b])`` targets.
+
+    The kernel subtracts one value of ``Y`` (a common origin) and divides by a
+    power of two. Both steps are exact, so equal measurements give exact zeros.
+    The residual sum of squares is a direct sum of squared residuals, not a
+    difference of large sums.
+
+    Parameters
+    ----------
+    Y : ndarray of shape (n_targets, n_observers)
+        Finite measurements.
+    W : ndarray of shape (n_draws, n_targets)
+        Nonnegative row multiplicities.
+
+    Returns
+    -------
+    dict of ndarray of shape (n_draws,)
+        ``icc``, ``ms_between_subjects``, ``ms_between_observers`` and
+        ``ms_error``, on the scale of ``Y``.
+    """
+    W = np.atleast_2d(np.asarray(W, dtype=float))
+    n_draws = W.shape[0]
+    n, k = Y.shape
+    nan = np.full(n_draws, np.nan)
+    out = {
+        "icc": nan,
+        "ms_between_subjects": nan,
+        "ms_between_observers": nan,
+        "ms_error": nan,
+    }
+    if n < 1 or k < 2 or not np.isfinite(Y).all():
+        return out
+    centered = Y - Y.flat[0]
+    spread = float(np.abs(centered).max())
+    if spread == 0.0:
+        return out  # exactly constant input: the ICC is undefined
+    # Divide by a power of two (an exact operation) so the squares cannot overflow.
+    unit = float(np.ldexp(1.0, int(np.frexp(spread)[1])))
+    centered = centered / unit
+
+    total = W.sum(axis=1)  # number of targets in each expanded draw
+    row_mean = centered.mean(axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        grand = (W @ row_mean) / total
+        col_effect = (W @ centered) / total[:, None] - grand[:, None]
+        ss_rows = k * (W * (row_mean[None, :] - grand[:, None]) ** 2).sum(axis=1)
+        ss_cols = total * (col_effect**2).sum(axis=1)
+        resid = (centered - row_mean[:, None])[None, :, :] - col_effect[:, None, :]
+        ss_err = (W[:, :, None] * resid**2).sum(axis=(1, 2))
+        df_rows = total - 1
+        msr = ss_rows / df_rows
+        msc = ss_cols / (k - 1)
+        mse = ss_err / (df_rows * (k - 1))
+        denom = msr + (k - 1) * mse + (k / total) * (msc - mse)
+        icc = np.where((df_rows > 0) & (denom > 0), (msr - mse) / denom, np.nan)
+    sq = unit * unit
+    out.update(
+        icc=icc,
+        ms_between_subjects=np.where(df_rows > 0, msr * sq, np.nan),
+        ms_between_observers=np.where(df_rows > 0, msc * sq, np.nan),
+        ms_error=np.where(df_rows > 0, mse * sq, np.nan),
+    )
+    return out
+
+
 def _icc_2_1_estimate(Y: NDArray) -> dict[str, float]:
     """Calculate two-way random-effects, absolute-agreement, single-measure ICC(2,1).
 
@@ -111,100 +182,57 @@ def _icc_2_1_estimate(Y: NDArray) -> dict[str, float]:
         Dictionary of computed ANOVA MS values and the ICC estimate.
     """
     n, k = Y.shape
-    if n < 2 or k < 2:
-        return {
-            "icc": np.nan,
-            "ms_between_subjects": np.nan,
-            "ms_between_observers": np.nan,
-            "ms_error": np.nan,
-            "f_stat": np.nan,
-            "p_value": np.nan,
-        }
-
-    # Grand mean
-    grand_mean = np.mean(Y)
-
-    # Sum of squares
-    ss_total = np.sum((Y - grand_mean) ** 2)
-
-    # Between subjects
-    subject_means = np.mean(Y, axis=1)
-    ss_between_subjects = k * np.sum((subject_means - grand_mean) ** 2)
-    df_between_subjects = n - 1
-    ms_between_subjects = ss_between_subjects / df_between_subjects
-
-    # Between observers
-    observer_means = np.mean(Y, axis=0)
-    ss_between_observers = n * np.sum((observer_means - grand_mean) ** 2)
-    df_between_observers = k - 1
-    ms_between_observers = ss_between_observers / df_between_observers
-
-    # Residual / Error. Clamp tiny negative floating-point noise to zero; do NOT
-    # inflate to a fake positive (the old 1e-15 floor fabricated a finite F and a
-    # near-zero p for perfect-agreement features).
-    ss_error = ss_total - ss_between_subjects - ss_between_observers
-    df_error = df_between_subjects * df_between_observers
-    ms_error = max(ss_error / df_error, 0.0)
-
-    # F-statistic and p-value for a subject effect.
-    if ms_error > 0:
-        f_stat = ms_between_subjects / ms_error
-        p_value = float(stats.f.sf(f_stat, df_between_subjects, df_error))
-    elif ms_between_subjects > 0:
+    res = _icc_2_1_weighted(Y, np.ones((1, n)))
+    icc = float(res["icc"][0])
+    msr = float(res["ms_between_subjects"][0])
+    msc = float(res["ms_between_observers"][0])
+    mse = float(res["ms_error"][0])
+    if n < 2 or k < 2 or np.isnan(msr):
+        f_stat, p_value = np.nan, np.nan
+    elif mse > 0:
+        f_stat = msr / mse
+        p_value = float(stats.f.sf(f_stat, n - 1, (n - 1) * (k - 1)))
+    elif msr > 0:
         # Perfect agreement with real between-subject variance: subjects are
         # perfectly separable, so the effect is infinitely significant.
-        f_stat = np.inf
-        p_value = 0.0
+        f_stat, p_value = np.inf, 0.0
     else:
-        # No variance anywhere (fully constant input): the test is undefined.
-        f_stat = np.nan
-        p_value = np.nan
-
-    # ICC(2,1) formula
-    denominator = (
-        ms_between_subjects + (k - 1) * ms_error + (k / n) * (ms_between_observers - ms_error)
-    )
-    if denominator <= 0 or np.isnan(denominator):
-        icc = np.nan
-    else:
-        icc = (ms_between_subjects - ms_error) / denominator
-
+        f_stat, p_value = np.nan, np.nan
     return {
-        "icc": float(icc),
-        "ms_between_subjects": float(ms_between_subjects),
-        "ms_between_observers": float(ms_between_observers),
-        "ms_error": float(ms_error),
+        "icc": icc,
+        "ms_between_subjects": msr,
+        "ms_between_observers": msc,
+        "ms_error": mse,
         "f_stat": float(f_stat),
         "p_value": float(p_value),
     }
 
 
-def _icc_2_1_batch(Yb: NDArray) -> NDArray:
-    """Vectorized ICC(2,1) over a stack of measurement matrices.
+def _row_bootstrap_weights(n: int, iterations: int, seed: int) -> NDArray:
+    """Return row multiplicities for an ordinary (independent-row) bootstrap."""
+    rng = np.random.default_rng(seed)
+    indices = np.array([rng.choice(n, size=n, replace=True) for _ in range(iterations)])
+    return _indices_to_weights(indices, n)
 
-    Mirrors :func:`_icc_2_1_estimate` (same SS decomposition, same ``MS_error``
-    clamp and ``denominator <= 0 -> NaN`` rule) but over ``Yb`` of shape
-    ``(batch, n_samples, n_observers)``, returning one ICC per batch element. Used
-    to evaluate all bootstrap resamples at once.
+
+def _indices_to_weights(indices: NDArray, n: int) -> NDArray:
+    """Convert a (draws, size) matrix of row indices into row multiplicities."""
+    indices = np.asarray(indices, dtype=int)
+    weights = np.zeros((indices.shape[0], n))
+    np.add.at(weights, (np.arange(indices.shape[0])[:, None], indices), 1.0)
+    return weights
+
+
+def _percentile_ci(estimates: NDArray, iterations: int) -> tuple[float, float, int]:
+    """Return the 95% percentile interval and the number of valid draws.
+
+    At least half of the draws must give a finite ICC. With fewer valid draws
+    the feature is degenerate and the function returns a NaN interval.
     """
-    _, n, k = Yb.shape
-    grand = Yb.mean(axis=(1, 2))
-    ss_total = ((Yb - grand[:, None, None]) ** 2).sum(axis=(1, 2))
-    ss_between_subjects = k * ((Yb.mean(axis=2) - grand[:, None]) ** 2).sum(axis=1)
-    ss_between_observers = n * ((Yb.mean(axis=1) - grand[:, None]) ** 2).sum(axis=1)
-    ms_between_subjects = ss_between_subjects / (n - 1)
-    ms_between_observers = ss_between_observers / (k - 1)
-    ms_error = np.maximum(
-        (ss_total - ss_between_subjects - ss_between_observers) / ((n - 1) * (k - 1)), 0.0
-    )
-    denominator = (
-        ms_between_subjects + (k - 1) * ms_error + (k / n) * (ms_between_observers - ms_error)
-    )
-    with np.errstate(invalid="ignore", divide="ignore"):
-        icc: NDArray = np.where(
-            denominator > 0, (ms_between_subjects - ms_error) / denominator, np.nan
-        )
-    return icc
+    valid = estimates[np.isfinite(estimates)]
+    if valid.size == 0 or valid.size < max(1, iterations // 2):
+        return np.nan, np.nan, int(valid.size)
+    return float(np.percentile(valid, 2.5)), float(np.percentile(valid, 97.5)), int(valid.size)
 
 
 def _bootstrap_icc_ci(
@@ -223,26 +251,13 @@ def _bootstrap_icc_ci(
     n, k = Y.shape
     if n < 3 or k < 2 or iterations <= 0:
         return np.nan, np.nan
-
     if bootstrap_indices is not None:
-        estimates = _icc_2_1_batch(Y[bootstrap_indices])
+        weights = _indices_to_weights(bootstrap_indices, n)
     else:
         seed = _get_deterministic_seed(feature_name, base_seed=base_seed)
-        rng = np.random.default_rng(seed)
-        indices = np.array([rng.choice(n, size=n, replace=True) for _ in range(iterations)])
-        estimates = _icc_2_1_batch(Y[indices])
-
-    boot_estimates = estimates[~np.isnan(estimates)]
-
-    # Require at least half the resamples to yield a valid ICC; fewer means the
-    # feature is degenerate and the percentile CI would be meaningless. (The old
-    # min(10, iterations // 2) gate accepted as few as 10 successes out of 1000.)
-    if boot_estimates.size < max(1, iterations // 2):
-        return np.nan, np.nan
-
-    ci_low = float(np.percentile(boot_estimates, 2.5))
-    ci_high = float(np.percentile(boot_estimates, 97.5))
-    return ci_low, ci_high
+        weights = _row_bootstrap_weights(n, iterations, seed)
+    low, high, _ = _percentile_ci(_icc_2_1_weighted(Y, weights)["icc"], iterations)
+    return low, high
 
 
 # ----------------------------------------------------------------------

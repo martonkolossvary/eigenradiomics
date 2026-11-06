@@ -1,0 +1,1 @@
+`FeatureScoreSelector` now raises on duplicate score keys, also when two keys give the same text (for example 1 and "1"). An infinite score counts as missing. `on_missing="raise"` is new, `decisions_` reports the decision and reason for each feature in input order, and integer column names now work in `transform`.

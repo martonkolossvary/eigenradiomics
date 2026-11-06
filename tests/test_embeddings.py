@@ -170,3 +170,24 @@ def test_trimap_fallback_fit_transform(dummy_data):
         reducer = TriMAPReducer(n_components=2)
         reducer.fit(dummy_data)
         mock_estimator.fit_transform.assert_called_once()
+
+
+def test_clone_keeps_extra_kwargs(dummy_data):
+    from sklearn.base import clone
+
+    tsne = clone(TSNEReducer(perplexity=5.0, metric="cosine", random_state=0))
+    assert tsne.kwargs == {"metric": "cosine"}
+    assert tsne.get_params()["metric"] == "cosine"
+    assert tsne.fit_transform(dummy_data).shape == (15, 2)
+    assert tsne.tsne_.metric == "cosine"
+
+    isomap = IsomapReducer(n_neighbors=3, metric="manhattan")
+    isomap.set_params(n_neighbors=4, p=1)
+    copy = clone(isomap)
+    assert copy.n_neighbors == 4
+    assert copy.kwargs == {"metric": "manhattan", "p": 1}
+    copy.fit(dummy_data)
+    assert copy.isomap_.metric == "manhattan"
+
+    with pytest.raises(ValueError, match="Invalid parameter"):
+        TSNEReducer().set_params(bad__x=1)

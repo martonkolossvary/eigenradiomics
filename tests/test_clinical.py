@@ -69,6 +69,17 @@ def test_encode_mostly_categorical_with_one_numeric_token():
     assert out.nunique() == 4
 
 
+def test_encode_partial_token_match_uses_categories():
+    # One token ("no") is in the binary map, but the others are not. The
+    # column must use the categorical path, not turn the others into NaN.
+    out = encode_clinical_series(pd.Series(["never", "former", "current", "no"]))
+    assert out.notna().all()
+    assert out.nunique() == 4
+    stage = encode_clinical_series(pd.Series(["IIIA", "IIIB", "IIIA", None]))
+    assert stage.tolist()[:3] == [1.0, 2.0, 1.0]
+    assert np.isnan(stage.iloc[3])
+
+
 # ---- compute_clinical_correlations ---------------------------------------
 
 
@@ -105,6 +116,18 @@ def test_dataframe_inputs_drop_constant_variable():
     assert set(corr.columns) == {"drives_a", "sex"}
     # f0/f1 (driven by a) correlate with drives_a more than f2 (driven by b)
     assert corr.loc["original__f0", "drives_a"] > corr.loc["original__f2", "drives_a"]
+
+
+def test_clinical_name_same_as_feature_name_stays_apart():
+    X, clinical = _toy()
+    # A clinical variable with the same name as a feature, but other values.
+    clinical = clinical.rename(columns={"drives_a": "original__f2"})
+    corr = compute_clinical_correlations(X, clinical, min_pairs=20)
+    assert corr.shape == (3, 2)
+    assert list(corr.index) == list(X.columns)
+    assert list(corr.columns) == ["original__f2", "sex"]
+    expected = X["original__f2"].corr(clinical["original__f2"], method="spearman")
+    assert corr.loc["original__f2", "original__f2"] == pytest.approx(expected)
 
 
 def test_radiomics_dataset_with_column_names():

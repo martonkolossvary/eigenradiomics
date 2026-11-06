@@ -1,0 +1,1 @@
+`compute_reproducibility` now rejects missing or duplicate row and feature keys, and drops rows with infinite values as well as NaN. A `groups` Series aligns by row key, missing group labels raise, and a group column named in `groups=` is no longer analysed as a feature.

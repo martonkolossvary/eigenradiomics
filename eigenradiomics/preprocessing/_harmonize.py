@@ -71,9 +71,16 @@ class ComBatHarmonizer(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
     ``batch`` (required) and ``covariates`` (optional) are passed as keyword
     arguments to :meth:`fit` / :meth:`transform`; scikit-learn metadata routing
     (``set_fit_request`` / ``set_transform_request``) lets them flow through a
-    ``Pipeline``. Covariates must be a **numeric** model matrix (encode
-    categoricals first); features that are constant in the training data are
-    passed through unchanged. Requires the optional ``inmoose`` dependency.
+    ``Pipeline``. When ``X`` is a DataFrame, a ``batch`` Series and a
+    ``covariates`` DataFrame align to ``X`` by index; arrays are positional.
+    Missing batch labels raise; a batch that was not seen during ``fit`` follows
+    ``on_unseen_batch``. Covariates must be a **numeric** model matrix (encode
+    categoricals first) with no missing values, and ``transform`` needs every
+    fitted covariate column. Features that are constant in the training data are
+    passed through unchanged. A feature with (near) zero pooled within-batch
+    variance, or a fit with non-finite batch parameters, raises a ValueError.
+    This is a cross-sectional ComBat: it does not model repeated measurements of
+    one subject. Requires the optional ``inmoose`` dependency.
     """
 
     def __init__(
@@ -105,11 +112,17 @@ class ComBatHarmonizer(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
             )
         X_arr = validate_estimator_input(self, X, reset=True, allow_nan=False)
         n_samples = X_arr.shape[0]
-        batch_arr = self._check_batch(batch, n_samples)
+        batch_arr = self._check_batch(batch, X, n_samples)
         categories = list(pd.unique(batch_arr))
         if len(categories) < 2:
             raise ValueError(
                 f"ComBatHarmonizer needs at least 2 batches to harmonize; got {len(categories)}."
+            )
+        sizes = pd.Series(batch_arr).astype(str).value_counts()
+        if (sizes < 2).any():
+            raise ValueError(
+                "ComBatHarmonizer needs at least 2 samples in each batch; these batches have 1: "
+                f"{', '.join(sizes.index[sizes < 2])}."
             )
         if self.reference_batch is not None and str(self.reference_batch) not in {
             str(c) for c in categories
@@ -131,7 +144,7 @@ class ComBatHarmonizer(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
         if not active.any():
             raise ValueError("all features are constant; nothing to harmonize.")
 
-        covariate_frame = self._prepare_fit_covariates(covariates, n_samples)
+        covariate_frame = self._prepare_fit_covariates(covariates, X, n_samples)
 
         (
             make_design_matrix,
@@ -159,6 +172,18 @@ class ComBatHarmonizer(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
         b_hat, grand_mean, var_pooled = calculate_mean_var(
             design, batches_ind, ref, dat, batch_sizes, n_batch, n
         )
+        # A feature without within-batch (residual) variance cannot be
+        # standardized, and it makes the shared priors of all features
+        # non-finite. Stop with a clear error.
+        pooled = np.asarray(var_pooled, dtype=float).ravel()
+        total = X_arr[:, active].var(axis=0, ddof=1)
+        unstable = ~(np.isfinite(pooled) & (pooled > 1e-10 * total))
+        if unstable.any():
+            names = ", ".join(map(str, self.feature_names_in_[active][unstable][:5]))
+            raise ValueError(
+                f"{int(unstable.sum())} feature(s) have (near) zero pooled within-batch "
+                f"variance and cannot be harmonized: {names}. Remove them before ComBat."
+            )
         stand_mean = calculate_stand_mean(grand_mean, n, design, n_batch, b_hat)
         s_data = standardise_data(dat, stand_mean, var_pooled, n)
         gamma_star, delta_star, _ = fit_model(
@@ -166,8 +191,13 @@ class ComBatHarmonizer(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
         )
 
         fitted_categories = [str(c) for c in vci.batch.categories]
-        gamma_star = np.asarray(gamma_star)
-        delta_star = np.asarray(delta_star)
+        gamma_star = np.asarray(gamma_star, dtype=float)
+        delta_star = np.asarray(delta_star, dtype=float)
+        if (
+            not (np.isfinite(gamma_star).all() and np.isfinite(delta_star).all())
+            or (delta_star <= 0).any()
+        ):
+            raise ValueError("ComBat estimation gave non-finite or non-positive batch parameters.")
         self.batches_ = fitted_categories
         self.grand_mean_ = np.asarray(grand_mean).ravel()
         self.var_pooled_ = np.asarray(var_pooled).ravel()
@@ -194,8 +224,8 @@ class ComBatHarmonizer(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
         check_is_fitted(self, "gamma_star_")
         X_arr = validate_estimator_input(self, X, reset=False, allow_nan=False)
         n_samples = X_arr.shape[0]
-        batch_arr = self._check_batch(batch, n_samples)
-        covar_aligned = self._align_transform_covariates(covariates, n_samples)
+        batch_arr = self._check_batch(batch, X, n_samples)
+        covar_aligned = self._align_transform_covariates(covariates, X, n_samples)
 
         active = ~self.constant_mask_
         out = X_arr.astype(float).copy()
@@ -249,27 +279,61 @@ class ComBatHarmonizer(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
 
     # ------------------------------------------------------------------
     @staticmethod
-    def _check_batch(batch: Any, n_samples: int) -> NDArray:
+    def _check_batch(batch: Any, X: Any, n_samples: int) -> NDArray:
         if batch is None:
             raise ValueError("ComBatHarmonizer requires `batch` (a per-sample batch label).")
-        batch_arr = np.asarray(batch)
-        if batch_arr.shape[0] != n_samples:
-            raise ValueError(
-                f"batch has {batch_arr.shape[0]} labels but X has {n_samples} samples."
-            )
-        return batch_arr
+        if isinstance(batch, pd.Series) and isinstance(X, pd.DataFrame):
+            if not batch.index.is_unique:
+                raise ValueError("batch has duplicate index labels.")
+            missing = X.index.difference(batch.index)
+            if len(missing) > 0:
+                raise ValueError(
+                    f"batch has no label for {len(missing)} sample(s) of X, "
+                    f"e.g. {list(missing[:3])}."
+                )
+            batch_arr = batch.loc[X.index].to_numpy()
+        else:
+            batch_arr = np.asarray(batch)
+            if batch_arr.ndim != 1 or batch_arr.shape[0] != n_samples:
+                raise ValueError(
+                    f"batch has {batch_arr.shape[0]} labels but X has {n_samples} samples."
+                )
+        if pd.isna(batch_arr).any():
+            raise ValueError(f"batch has {int(pd.isna(batch_arr).sum())} missing label(s).")
+        labels = [str(b) for b in pd.unique(batch_arr)]
+        if len(set(labels)) != len(labels):
+            raise ValueError("Two batch labels have the same text form (e.g. 1 and '1').")
+        checked: NDArray = batch_arr
+        return checked
 
-    def _prepare_fit_covariates(
-        self, covariates: pd.DataFrame | None, n_samples: int
-    ) -> pd.DataFrame | None:
-        if covariates is None:
-            self.covariate_columns_ = None
-            return None
+    @staticmethod
+    def _align_covariates(covariates: Any, X: Any, n_samples: int) -> pd.DataFrame:
+        """Align a covariate DataFrame to X by index; use other inputs by position."""
         frame = covariates if isinstance(covariates, pd.DataFrame) else pd.DataFrame(covariates)
+        if isinstance(covariates, pd.DataFrame) and isinstance(X, pd.DataFrame):
+            if not frame.index.is_unique:
+                raise ValueError("covariates has duplicate index labels.")
+            missing = X.index.difference(frame.index)
+            if len(missing) > 0:
+                raise ValueError(
+                    f"covariates has {frame.shape[0]} rows but X has {n_samples} samples; "
+                    f"{len(missing)} sample key(s) of X have no covariate row. Pass a "
+                    "NumPy array for positional covariates."
+                )
+            return frame.loc[X.index]
         if frame.shape[0] != n_samples:
             raise ValueError(
                 f"covariates has {frame.shape[0]} rows but X has {n_samples} samples."
             )
+        return frame
+
+    def _prepare_fit_covariates(
+        self, covariates: pd.DataFrame | None, X: Any, n_samples: int
+    ) -> pd.DataFrame | None:
+        if covariates is None:
+            self.covariate_columns_ = None
+            return None
+        frame = self._align_covariates(covariates, X, n_samples)
         if not all(pd.api.types.is_numeric_dtype(frame[col]) for col in frame.columns):
             raise ValueError(
                 "covariates must be a numeric model matrix; encode categorical covariates "
@@ -277,11 +341,13 @@ class ComBatHarmonizer(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
             )
         self.covariate_columns_ = [str(c) for c in frame.columns]
         frame = frame.copy()
-        frame.columns = self.covariate_columns_
+        # inmoose builds a patsy formula from the column names. Use plain names,
+        # because "0", "1" (NumPy input) or a name with a space breaks it.
+        frame.columns = [f"covariate_{i}" for i in range(frame.shape[1])]
         return frame.reset_index(drop=True)
 
     def _align_transform_covariates(
-        self, covariates: pd.DataFrame | None, n_samples: int
+        self, covariates: pd.DataFrame | None, X: Any, n_samples: int
     ) -> NDArray | None:
         if self.covariate_columns_ is None:
             if covariates is not None:
@@ -289,15 +355,17 @@ class ComBatHarmonizer(OneToOneFeatureMixin, TransformerMixin, BaseEstimator):
             return None
         if covariates is None:
             raise ValueError("fitted with covariates; transform requires the same covariates.")
-        frame = covariates if isinstance(covariates, pd.DataFrame) else pd.DataFrame(covariates)
-        if frame.shape[0] != n_samples:
-            raise ValueError(
-                f"covariates has {frame.shape[0]} rows but X has {n_samples} samples."
-            )
-        frame = frame.copy()
+        frame = self._align_covariates(covariates, X, n_samples).copy()
         frame.columns = [str(c) for c in frame.columns]
-        aligned = frame.reindex(columns=self.covariate_columns_, fill_value=0.0)
+        missing_cols = [c for c in self.covariate_columns_ if c not in frame.columns]
+        if missing_cols:
+            raise ValueError(f"transform covariates lack fitted column(s): {missing_cols}.")
+        aligned = frame[self.covariate_columns_]
+        if not all(pd.api.types.is_numeric_dtype(aligned[col]) for col in aligned.columns):
+            raise ValueError("covariates must be a numeric model matrix.")
         result: NDArray = aligned.to_numpy(dtype=float)
+        if not np.isfinite(result).all():
+            raise ValueError("transform covariates have missing or non-finite values.")
         return result
 
     def __sklearn_tags__(self) -> Any:

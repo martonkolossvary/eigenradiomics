@@ -57,8 +57,9 @@ def encode_clinical_series(series: pd.Series) -> pd.Series:
     """Coerce a clinical variable to a numeric Series for correlation.
 
     Applied in order: (1) numeric parse; (2) common binary/ordinal string tokens
-    (``yes``/``no``, ``true``/``false``, ``male``/``female``, ``I``–``IV``);
-    (3) alphabetical ordinal encoding of the remaining categories.
+    (``yes``/``no``, ``true``/``false``, ``male``/``female``, ``I``–``IV``),
+    used only when every non-missing value is such a token; (3) alphabetical
+    ordinal encoding of the categories.
 
     Parameters
     ----------
@@ -79,7 +80,10 @@ def encode_clinical_series(series: pd.Series) -> pd.Series:
         return numeric
     cleaned = series.astype("string").str.strip().str.lower()
     mapped = cleaned.map(_BINARY_MAP)
-    if mapped.notna().any():
+    # Use the token map only when it covers every non-missing value. A partial
+    # match must not turn the other values into NaN.
+    n_mapped = int(mapped.notna().sum())
+    if n_mapped and n_mapped == int(cleaned.notna().sum()):
         return mapped.astype(float)
     categories = sorted(cleaned.dropna().unique())
     category_map = {category: index + 1 for index, category in enumerate(categories)}
@@ -159,9 +163,15 @@ def compute_clinical_correlations(
             "No clinical variable has enough non-missing, varying values "
             f"(need >= {min_pairs} pairs with >1 unique value)."
         )
-    combined = pd.concat([feature_matrix, encoded[usable]], axis=1)
+    # Join by position, not by name. A clinical variable can have the same name
+    # as a feature, and the two must stay apart.
+    n_features = feature_matrix.shape[1]
+    combined = pd.concat([feature_matrix, encoded[usable]], axis=1, ignore_index=True)
     correlations = combined.corr(method=method, min_periods=min_pairs)
-    return correlations.loc[list(feature_matrix.columns), usable]
+    correlations = correlations.iloc[:n_features, n_features:]
+    correlations.index = feature_matrix.columns
+    correlations.columns = pd.Index(usable)
+    return correlations
 
 
 def compute_module_trait_associations(

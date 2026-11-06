@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import numbers
 import os
 import threading
 import warnings
@@ -33,6 +34,17 @@ if TYPE_CHECKING:
     import matplotlib.figure
 
 logger = logging.getLogger(__name__)
+
+# R WGCNA cutreeHybrid defaults for maxCoreScatter, indexed by deepSplit 0-4.
+# PyWGCNA 2.2.1 reads them with a 1-based index: deepSplit 0 acts as 1, and
+# deepSplit 4 raises IndexError. The reducer passes the R values directly.
+_MAX_CORE_SCATTER = (0.64, 0.73, 0.82, 0.91, 0.95)
+
+
+def _is_integer(value: Any) -> bool:
+    """Return True for Python and NumPy integers."""
+    return isinstance(value, numbers.Integral)
+
 
 # Lock shared across all WGCNAReducer instances to serialise fd-level
 # stdout redirection, making _capture_output safe in threaded callers.
@@ -73,21 +85,41 @@ class WGCNAReducer(BaseReducer):
         eigengene loadings are computed on the original scale so ``transform``
         of unseen data stays leakage-safe.
     soft_power : int or ``"auto"``
-        Soft-thresholding power.  ``"auto"`` selects via scale-free topology.
+        Soft-thresholding power.  ``"auto"`` selects via scale-free topology:
+        the lowest candidate power whose scale-free fit R² is above
+        ``r_squared_cut``, whose mean connectivity is at most ``mean_cut``, and
+        whose fitted slope is negative.
     r_squared_cut : float
         R² threshold for automatic soft-power selection.
     mean_cut : float
         Mean connectivity threshold for soft-power selection.
     power_min, power_max : int
         Inclusive range of candidate powers evaluated when ``soft_power="auto"``.
+    soft_power_fallback : {"best_r2", "raise"}, default="best_r2"
+        What ``soft_power="auto"`` does when no candidate meets all criteria.
+        ``"best_r2"`` keeps the PyWGCNA choice (the power with the highest R²),
+        warns, and sets ``soft_power_criteria_met_`` to False. ``"raise"``
+        raises a ValueError. The scale-free R² can change much between nearby
+        powers, also for clear modules, so inspect the power table.
     min_module_size : int
         Minimum number of features per module.
     me_diss_threshold : float
         Module eigengene dissimilarity threshold for merging (0–1).
+    merge_policy : {"auto", "signed", "absolute"}, default="auto"
+        Eigengene dissimilarity for module merging. ``"signed"`` uses
+        ``1 - r`` (as R WGCNA), so modules with opposite eigengenes do not
+        merge. ``"absolute"`` uses ``1 - |r|`` (the legacy behaviour).
+        ``"auto"`` uses signed for signed and signed hybrid networks and
+        absolute for unsigned networks.
     deep_split : int
-        ``cutreeHybrid`` sensitivity (0–4).
-    pam_respect_dendro : bool
-        Passed to ``cutreeHybrid``.
+        ``cutreeHybrid`` sensitivity (0–4). The reducer passes the R WGCNA
+        ``maxCoreScatter`` and ``minGap`` for this value, because PyWGCNA 2.2.1
+        maps them wrongly (0 acts as 1, and 4 raises an error).
+    pam_respect_dendro : bool, default=False
+        Passed to ``cutreeHybrid``. The reducer always sets
+        ``respectSmallClusters=False``: in PyWGCNA 2.2.1 that step assigns small
+        clusters to the wrong module (an off-by-one label). With True,
+        PyWGCNA 2.2.1 can raise a ValueError for some inputs.
     store_tom : bool
         If True, keep the TOM matrix as ``tom_`` (memory-intensive).
     include_grey : bool
@@ -110,7 +142,10 @@ class WGCNAReducer(BaseReducer):
         - "mean": Impute NaNs with the training feature-wise mean.
         - "median": Impute NaNs with the training feature-wise median.
         - "pairwise": Compute adjacency via pairwise-complete correlation,
-          falling back to training-mean imputation for SVD projection.
+          falling back to training-mean imputation for SVD projection. A pair
+          with fewer than 3 shared samples has no edge (adjacency 0).
+        Features that are constant in the training data do not enter the
+        network; they are unassigned (``"grey"``).
     orient_eigengenes : {"mean_correlation", "hub_feature", "sum_loadings", False} or bool,
         default="mean_correlation"
         Sign alignment mode for module eigengenes:
@@ -132,8 +167,10 @@ class WGCNAReducer(BaseReducer):
         mean_cut: float = 100,
         power_min: int = 1,
         power_max: int = 30,
+        soft_power_fallback: str = "best_r2",
         min_module_size: int = 50,
         me_diss_threshold: float = 0.2,
+        merge_policy: str = "auto",
         deep_split: int = 2,
         pam_respect_dendro: bool = False,
         store_tom: bool = False,
@@ -153,8 +190,10 @@ class WGCNAReducer(BaseReducer):
         self.mean_cut = mean_cut
         self.power_min = power_min
         self.power_max = power_max
+        self.soft_power_fallback = soft_power_fallback
         self.min_module_size = min_module_size
         self.me_diss_threshold = me_diss_threshold
+        self.merge_policy = merge_policy
         self.deep_split = deep_split
         self.pam_respect_dendro = pam_respect_dendro
         self.store_tom = store_tom
@@ -185,7 +224,7 @@ class WGCNAReducer(BaseReducer):
     def _validate_params(self) -> None:
         """Validate constructor parameters at fit time."""
         if self.soft_power != "auto" and (
-            not isinstance(self.soft_power, int) or self.soft_power < 1
+            not _is_integer(self.soft_power) or int(self.soft_power) < 1
         ):
             raise ValueError(
                 f"soft_power must be a positive integer or 'auto', got {self.soft_power!r}."
@@ -194,21 +233,21 @@ class WGCNAReducer(BaseReducer):
             raise ValueError(f"r_squared_cut must be in (0, 1], got {self.r_squared_cut}.")
         if self.mean_cut <= 0:
             raise ValueError(f"mean_cut must be positive, got {self.mean_cut}.")
-        if not isinstance(self.min_module_size, int) or self.min_module_size < 1:
+        if not _is_integer(self.min_module_size) or self.min_module_size < 1:
             raise ValueError(
                 f"min_module_size must be a positive integer, got {self.min_module_size}."
             )
         if not 0 <= self.me_diss_threshold <= 1:
             raise ValueError(f"me_diss_threshold must be in [0, 1], got {self.me_diss_threshold}.")
-        if not isinstance(self.n_module_components, int) or self.n_module_components < 1:
+        if not _is_integer(self.n_module_components) or self.n_module_components < 1:
             raise ValueError(
                 f"n_module_components must be a positive integer, got {self.n_module_components}."
             )
-        if self.n_jobs is not None and (not isinstance(self.n_jobs, int) or self.n_jobs == 0):
+        if self.n_jobs is not None and (not _is_integer(self.n_jobs) or self.n_jobs == 0):
             raise ValueError(f"n_jobs must be a non-zero integer or None, got {self.n_jobs!r}.")
         if self.deep_split not in {0, 1, 2, 3, 4}:
             raise ValueError(f"deep_split must be 0, 1, 2, 3, or 4, got {self.deep_split}.")
-        if not isinstance(self.verbose, int) or self.verbose < 0:
+        if not _is_integer(self.verbose) or self.verbose < 0:
             raise ValueError(f"verbose must be a non-negative integer, got {self.verbose}.")
         valid_network_types = {"signed hybrid", "signed", "unsigned"}
         if self.network_type not in valid_network_types:
@@ -224,9 +263,9 @@ class WGCNAReducer(BaseReducer):
                 f"correlation_method must be one of {valid_correlation_methods}, "
                 f"got {self.correlation_method!r}."
             )
-        if not isinstance(self.power_min, int) or self.power_min < 1:
+        if not _is_integer(self.power_min) or self.power_min < 1:
             raise ValueError(f"power_min must be a positive integer, got {self.power_min}.")
-        if not isinstance(self.power_max, int) or self.power_max < self.power_min:
+        if not _is_integer(self.power_max) or self.power_max < self.power_min:
             raise ValueError(
                 f"power_max must be an integer >= power_min ({self.power_min}), "
                 f"got {self.power_max}."
@@ -236,6 +275,15 @@ class WGCNAReducer(BaseReducer):
             raise ValueError(
                 f"missing_strategy must be one of {valid_missing_strategies}, "
                 f"got {self.missing_strategy!r}."
+            )
+        if self.soft_power_fallback not in {"raise", "best_r2"}:
+            raise ValueError(
+                "soft_power_fallback must be 'raise' or 'best_r2', "
+                f"got {self.soft_power_fallback!r}."
+            )
+        if self.merge_policy not in {"auto", "signed", "absolute"}:
+            raise ValueError(
+                f"merge_policy must be 'auto', 'signed' or 'absolute', got {self.merge_policy!r}."
             )
         valid_orient_modes = {"mean_correlation", "hub_feature", "sum_loadings", True, False}
         if self.orient_eigengenes not in valid_orient_modes:
@@ -249,6 +297,8 @@ class WGCNAReducer(BaseReducer):
         fitted_attrs = [
             "soft_power_",
             "soft_power_table_",
+            "soft_power_criteria_met_",
+            "network_features_",
             "dendrogram_",
             "tom_",
             "module_colors_",
@@ -333,7 +383,8 @@ class WGCNAReducer(BaseReducer):
             self._guard_all_nan_features(feature_names)
             X_imputed = np.where(np.isnan(X_arr), self.impute_values_, X_arr)
 
-        # Constant features check
+        # Constant features check. The check (and the eigengene loadings) use
+        # the same imputed matrix that transform() sees.
         if self.missing_strategy != "pairwise":
             check_mat = X_imputed
         else:
@@ -349,17 +400,29 @@ class WGCNAReducer(BaseReducer):
                 f"correlation network (left unassigned): {names}{suffix}.",
                 stacklevel=2,
             )
+        # Only non-constant features enter the topology.
+        self.network_features_ = np.flatnonzero(~constant_mask)
+        n_net = self.network_features_.size
+        if n_net < 3:
+            raise ValueError(
+                "WGCNAReducer requires at least 3 non-constant features to build a "
+                f"correlation network; got {n_net}."
+            )
+        net_names = feature_names[self.network_features_]
 
         if self.correlation_method == "spearman":
             X_net = pd.DataFrame(X_imputed).rank(axis=0).to_numpy()
         else:
             X_net = X_imputed
+        X_topo = X_net[:, self.network_features_]
 
         with self._capture_output():
             if self.missing_strategy == "pairwise":
-                df_net = pd.DataFrame(X_net, columns=feature_names)
-                corr_df = df_net.corr(method="pearson")
-                corr_mat = np.nan_to_num(corr_df.to_numpy(), nan=0.0)
+                df_net = pd.DataFrame(X_topo, columns=net_names)
+                corr = df_net.corr(method="pearson", min_periods=3).to_numpy()
+                undefined = ~np.isfinite(corr)
+                np.fill_diagonal(undefined, False)
+                corr_mat = np.nan_to_num(corr, nan=0.0)
                 corr_mat = 0.5 * (corr_mat + corr_mat.T)
                 np.fill_diagonal(corr_mat, 1.0)
 
@@ -370,77 +433,57 @@ class WGCNAReducer(BaseReducer):
                 else:  # "signed hybrid"
                     sim_mat = np.maximum(0.0, corr_mat)
                 sim_mat = 0.5 * (sim_mat + sim_mat.T)
+                # A pair without a defined correlation has no edge. (Zero
+                # correlation would give a signed adjacency of 0.5**power.)
+                sim_mat[undefined | undefined.T] = 0.0
                 np.fill_diagonal(sim_mat, 1.0)
-                sim_df = pd.DataFrame(sim_mat, columns=feature_names, index=feature_names)
-
-                # --- 1. Soft power selection ---
-                if self.soft_power == "auto":
-                    power_est, power_table = WGCNA.pickSoftThreshold(
-                        sim_df,
-                        dataIsExpr=False,
-                        RsquaredCut=self.r_squared_cut,
-                        MeanCut=self.mean_cut,
-                        powerVector=list(range(self.power_min, self.power_max + 1)),
-                        networkType=self.network_type,
+                n_undefined = int(np.triu(undefined | undefined.T, k=1).sum())
+                if n_undefined > 0:
+                    warnings.warn(
+                        f"{n_undefined} feature pair(s) have fewer than 3 shared samples; "
+                        "they get no edge in the network.",
+                        stacklevel=2,
                     )
-                    if power_est is None:
-                        raise ValueError(
-                            "Automatic soft-power selection failed — no power "
-                            "reached the R² threshold. Try lowering r_squared_cut "
-                            "or setting soft_power to an explicit integer."
-                        )
-                    self.soft_power_ = int(power_est)
-                    self.soft_power_table_ = power_table
-                    logger.info("Auto-selected soft power: %d", self.soft_power_)
-                else:
-                    self.soft_power_ = int(self.soft_power)
-                    self.soft_power_table_ = None
-
-                # --- 2. Adjacency matrix ---
-                adj_mat = (sim_mat**self.soft_power_).astype(float)
-                np.fill_diagonal(adj_mat, 1.0)
-
-                # --- 3. TOM ---
-                tom = WGCNA.TOMsimilarity(adj_mat, TOMType=self.tom_type)
-                tom_arr = tom.values if isinstance(tom, pd.DataFrame) else np.asarray(tom)
-
+                sim_df = pd.DataFrame(sim_mat, columns=net_names, index=net_names)
+                power_input, data_is_expr = sim_df, False
             else:
-                df = pd.DataFrame(X_net, columns=feature_names)
+                power_input, data_is_expr = pd.DataFrame(X_topo, columns=net_names), True
 
-                # --- 1. Soft power selection ---
-                if self.soft_power == "auto":
-                    power_est, power_table = WGCNA.pickSoftThreshold(
-                        df,
-                        dataIsExpr=True,
-                        RsquaredCut=self.r_squared_cut,
-                        MeanCut=self.mean_cut,
-                        powerVector=list(range(self.power_min, self.power_max + 1)),
-                        networkType=self.network_type,
-                    )
-                    if power_est is None:
-                        raise ValueError(
-                            "Automatic soft-power selection failed — no power "
-                            "reached the R² threshold. Try lowering r_squared_cut "
-                            "or setting soft_power to an explicit integer."
-                        )
-                    self.soft_power_ = int(power_est)
-                    self.soft_power_table_ = power_table
-                    logger.info("Auto-selected soft power: %d", self.soft_power_)
-                else:
-                    self.soft_power_ = int(self.soft_power)
-                    self.soft_power_table_ = None
+            # --- 1. Soft power selection ---
+            if self.soft_power == "auto":
+                power_est, power_table = WGCNA.pickSoftThreshold(
+                    power_input,
+                    dataIsExpr=data_is_expr,
+                    RsquaredCut=self.r_squared_cut,
+                    MeanCut=self.mean_cut,
+                    powerVector=list(range(self.power_min, self.power_max + 1)),
+                    networkType=self.network_type,
+                )
+                self.soft_power_table_ = power_table
+                power, criteria_met = self._select_soft_power(power_table, power_est)
+                self.soft_power_ = power
+                self.soft_power_criteria_met_: bool | None = criteria_met
+                logger.info("Auto-selected soft power: %d", self.soft_power_)
+            else:
+                self.soft_power_ = int(self.soft_power)
+                self.soft_power_table_ = None
+                self.soft_power_criteria_met_ = None
 
-                # --- 2. Adjacency matrix ---
+            # --- 2. Adjacency matrix ---
+            if self.missing_strategy == "pairwise":
+                adj: Any = (sim_mat**self.soft_power_).astype(float)
+                np.fill_diagonal(adj, 1.0)
+            else:
                 adj = WGCNA.adjacency(
-                    df,
+                    power_input,
                     adjacencyType=self.network_type,
                     power=self.soft_power_,
                 )
 
-                # --- 3. TOM ---
-                tom = WGCNA.TOMsimilarity(adj, TOMType=self.tom_type)
-                tom_arr = tom.values if isinstance(tom, pd.DataFrame) else np.asarray(tom)
-                del adj
+            # --- 3. TOM ---
+            tom = WGCNA.TOMsimilarity(adj, TOMType=self.tom_type)
+            tom_arr = tom.values if isinstance(tom, pd.DataFrame) else np.asarray(tom)
+            del adj
 
             if self.store_tom:
                 self.tom_ = tom_arr
@@ -448,20 +491,23 @@ class WGCNAReducer(BaseReducer):
             # --- 4. Hierarchical clustering on 1 - TOM ---
             dist = 1.0 - tom_arr
             np.fill_diagonal(dist, 0.0)
-            dist_condensed = dist[np.triu_indices(n_features, k=1)]
+            dist_condensed = dist[np.triu_indices(n_net, k=1)]
             dendro = linkage(dist_condensed, method="average")
             del dist_condensed
 
             self.dendrogram_ = dendro
 
             # --- 5. Dynamic tree cut ---
-            dist_df = pd.DataFrame(dist, columns=feature_names, index=feature_names)
+            dist_df = pd.DataFrame(dist, columns=net_names, index=net_names)
             cut_result = WGCNA.cutreeHybrid(
                 dendro,
                 dist_df,
-                minClusterSize=self.min_module_size,
-                deepSplit=self.deep_split,
+                minClusterSize=int(self.min_module_size),
+                deepSplit=int(self.deep_split),
+                maxCoreScatter=_MAX_CORE_SCATTER[int(self.deep_split)],
+                minGap=(1.0 - _MAX_CORE_SCATTER[int(self.deep_split)]) * 0.75,
                 pamRespectsDendro=self.pam_respect_dendro,
+                respectSmallClusters=False,
             )
             del dist, dist_df
             if isinstance(cut_result, pd.DataFrame):
@@ -472,14 +518,16 @@ class WGCNAReducer(BaseReducer):
             # --- 6. Map numeric labels → colors ---
             label_df = pd.DataFrame({"Value": numeric_labels})
             colors = WGCNA.labels2colors(label_df)
-            color_list = colors.tolist() if isinstance(colors, np.ndarray) else list(colors)
+            net_colors = colors.tolist() if isinstance(colors, np.ndarray) else list(colors)
 
-        # Identify the unassigned ("grey") module
-        numeric_labels_arr = np.asarray(numeric_labels)
-        grey_color: str | None = None
-        if (numeric_labels_arr == 0).any():
-            grey_idx = int(np.flatnonzero(numeric_labels_arr == 0)[0])
-            grey_color = color_list[grey_idx]
+        # Label 0 (and every constant feature) is the unassigned "grey" module.
+        # PyWGCNA 2.2.1 colours label 0 "black", so set it here.
+        color_list = ["grey"] * n_features
+        for pos, label, color in zip(
+            self.network_features_, numeric_labels, net_colors, strict=True
+        ):
+            color_list[pos] = "grey" if label == 0 else str(color)
+        grey_color: str | None = "grey" if "grey" in color_list else None
 
         # --- 7. Merge close modules ---
         merged_colors = self._merge_close_modules(X_net, color_list, protect=grey_color)
@@ -498,7 +546,7 @@ class WGCNAReducer(BaseReducer):
             )
 
         # --- 9. Compute eigengene loadings via SVD ---
-        self._compute_module_loadings(X_arr, self.n_module_components)
+        self._compute_module_loadings(check_mat, self.n_module_components)
 
         self.n_components_ = sum(
             self.module_loadings_[mod].shape[1] if self.module_loadings_[mod].ndim == 2 else 1
@@ -786,7 +834,7 @@ class WGCNAReducer(BaseReducer):
         leaves = d["leaves"]
         colors_rgba = []
         for idx in leaves:
-            c = self.module_colors_[idx]
+            c = self.module_colors_[self.network_features_[idx]]
             try:
                 colors_rgba.append(to_rgba(c))
             except ValueError:
@@ -812,7 +860,7 @@ class WGCNAReducer(BaseReducer):
         """Topological Overlap Matrix (only available when ``store_tom=True``)."""
         if not hasattr(self, "tom_"):
             return None
-        names = self.feature_names_in_
+        names = self.feature_names_in_[self.network_features_]
         return pd.DataFrame(self.tom_, index=names, columns=names)
 
     def _artifact_linkage(self) -> NDArray | None:
@@ -826,7 +874,9 @@ class WGCNAReducer(BaseReducer):
 
     def _artifact_feature_order(self) -> NDArray | None:
         """Feature names in dendrogram-leaf order."""
-        order = leaves_list(self.dendrogram_)
+        # Network features in leaf order. Constant features are not in the
+        # network, so they are not in the dendrogram or the TOM either.
+        order = self.network_features_[leaves_list(self.dendrogram_)]
         ordered: NDArray = np.asarray(self.feature_names_in_)[order]
         return ordered
 
@@ -844,6 +894,37 @@ class WGCNAReducer(BaseReducer):
     # ------------------------------------------------------------------
     # internal helpers
     # ------------------------------------------------------------------
+
+    def _select_soft_power(self, table: pd.DataFrame, legacy_power: Any) -> tuple[int, bool]:
+        """Return the selected soft power and whether it meets all criteria.
+
+        The lowest candidate power passes when its scale-free R² is above
+        ``r_squared_cut``, its mean connectivity is at most ``mean_cut``, and its
+        fitted slope is negative. PyWGCNA 2.2.1 does not check the slope and
+        silently returns its best-R² power when no power passes.
+        """
+        powers = table["Power"].to_numpy()
+        passed = (
+            (table["SFT.R.sq"].to_numpy(dtype=float) > self.r_squared_cut)
+            & (table["mean(k)"].to_numpy(dtype=float) <= self.mean_cut)
+            & (table["slope"].to_numpy(dtype=float) < 0)
+        )
+        if passed.any():
+            return int(powers[passed].min()), True
+        if self.soft_power_fallback == "raise":
+            raise ValueError(
+                "Automatic soft-power selection failed: no power in "
+                f"[{self.power_min}, {self.power_max}] has a scale-free R² above "
+                f"{self.r_squared_cut}, a mean connectivity of at most {self.mean_cut} and a "
+                "negative slope. Set soft_power to an integer, change the cut-offs, or set "
+                "soft_power_fallback='best_r2' for the legacy best-R² power."
+            )
+        warnings.warn(
+            f"No soft power meets the scale-free criteria; using the best-R² power "
+            f"{int(legacy_power)} (soft_power_fallback='best_r2').",
+            stacklevel=3,
+        )
+        return int(legacy_power), False
 
     def _merge_close_modules(
         self, X_arr: NDArray, color_list: list[str], protect: str | None = None
@@ -877,10 +958,11 @@ class WGCNAReducer(BaseReducer):
                     )
                     scales[scales == 0] = 1.0
                 X_scaled = np.nan_to_num((X_mod - centers) / scales, nan=0.0)
-                eg, _ = _wgcna_compute_eigengene(X_scaled, 1, self.orient_eigengenes)
+                # Orient along the module mean, so that a signed merge is defined.
+                eg, _ = _wgcna_compute_eigengene(X_scaled, 1, "mean_correlation")
                 eigengenes[:, col] = eg
 
-            # Dissimilarity matrix: 1 - |cor| (abs for radiomics)
+            # Dissimilarity: 1 - cor (signed) or 1 - |cor| (absolute).
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=RuntimeWarning)
                 corr_mat = np.corrcoef(eigengenes, rowvar=False)
@@ -894,7 +976,10 @@ class WGCNAReducer(BaseReducer):
                     stacklevel=2,
                 )
                 np.nan_to_num(corr_mat, copy=False, nan=0.0)
-            diss_mat = 1.0 - np.abs(corr_mat)
+            signed = self.merge_policy == "signed" or (
+                self.merge_policy == "auto" and self.network_type != "unsigned"
+            )
+            diss_mat = np.asarray(1.0 - corr_mat if signed else 1.0 - np.abs(corr_mat))
             np.fill_diagonal(diss_mat, 0.0)
 
             # Hierarchical clustering (average linkage) + cut at threshold

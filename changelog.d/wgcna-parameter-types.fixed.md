@@ -1,0 +1,1 @@
+`WGCNAReducer` now accepts NumPy integers for its integer parameters, so `GridSearchCV` over `np.arange(...)` works. Every `deep_split` from 0 to 4 now uses the R WGCNA `maxCoreScatter` and `minGap`; in PyWGCNA 2.2.1, 0 acted as 1 and 4 raised IndexError.

@@ -1,0 +1,1 @@
+A fit with a rank-deficient design (for example, collinear covariates) gets the status `collinear` and no coefficient or p-value. Before, statsmodels used a pseudo-inverse and gave a wrong fit with the status `ok`.

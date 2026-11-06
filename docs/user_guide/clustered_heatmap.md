@@ -66,8 +66,9 @@ omit `cluster_labels` and the colour strip is dropped.
 
 Pass up to a few categorical strips via `top`. Each is a per-feature `pandas`
 Series (its name becomes the strip title), or a `Strip` for explicit control of
-the title and colours. Each strip gets a colourblind-safe **Okabe-Ito** palette
-(override with `colors=`) and a titled block in the stacked right-edge legend:
+the title and colours. Each strip gets the package's eight-colour
+**`EIGEN_VIBRANT`** palette (override with `colors=`) and a titled block in the
+stacked right-edge legend:
 
 ```python
 from eigenradiomics import plot_clustered_heatmap, Strip
@@ -156,8 +157,8 @@ fig = plot_clustered_heatmap(
 
 ## Accessibility
 
-The defaults are chosen to stay legible for colourblind readers and in greyscale,
-and were verified under a deuteranopia simulation:
+The continuous colour maps are chosen to stay legible for colourblind readers
+and in greyscale:
 
 - **Similarity (`magma`)** — a perceptually-uniform sequential map whose
   luminance increases monotonically, so magnitude reads correctly even in
@@ -165,9 +166,11 @@ and were verified under a deuteranopia simulation:
 - **Correlation (`RdBu_r`)** — a diverging map centred on a near-neutral grey at
   zero, using red↔blue (not red↔green); the two ends remain clearly separable
   under deuteranopia, so the *sign* of a correlation is never lost.
-- **Categories (modules / strips)** — the colourblind-safe **Okabe-Ito** palette
-  for up to eight categories; all eight stay mutually distinct under
-  deuteranopia.
+- **Categories (modules / strips)** — the package's eight-colour
+  **`EIGEN_VIBRANT`** palette (indigo, rose, teal, amber, emerald, sky blue,
+  violet, slate). This palette is not a published colourblind-safe set. For a
+  colourblind-safe set, pass explicit `colors=` / `cluster_colors=`, for example
+  the Okabe-Ito colours.
 
 Two compact colourbars sit in the bottom corners (similarity bottom-left,
 correlation bottom-right) to keep the central matrix uncluttered.
@@ -185,7 +188,7 @@ correlation bottom-right) to keep the central matrix uncluttered.
 | `cluster_labels` | per-feature label → colour strip and default ordering |
 | `linkage` | SciPy linkage → dendrogram and leaf ordering |
 | `order` | explicit feature ordering (overrides the linkage leaves) |
-| `cluster_colors` | `{label: colour}` (otherwise a colourblind-safe palette) |
+| `cluster_colors` | `{label: colour}` (otherwise the `EIGEN_VIBRANT` palette) |
 | `top` | categorical strips above the heatmap (Series or `Strip`) |
 | `bottom` | numeric bars below the heatmap (Series or `Bar`) |
 | `right` | feature × variable correlation panel (DataFrame or `CorrPanel`) |

@@ -129,7 +129,7 @@ flowchart TD
 
 ## Functional Catalog Over-Representation Analysis (ORA)
 
-Discovered WGCNA modules can be functionally characterized by testing for over-representation of metadata categories (such as IBSI feature families, image filters, or anatomical compartments) from a [`FeatureCatalog`](file:///Users/mjk2/Library/CloudStorage/OneDrive-Personal/Python/eigenradiomics/eigenradiomics/catalog.py):
+Discovered WGCNA modules can be functionally characterized by testing for over-representation of metadata categories (such as IBSI feature families, image filters, or anatomical compartments) from a [`FeatureCatalog`](../api/ingestion.md):
 
 ```python
 from eigenradiomics import FeatureCatalog, WGCNAReducer
@@ -139,15 +139,15 @@ reducer = WGCNAReducer(soft_power=6, min_module_size=20)
 reducer.fit(X_df)
 
 # Run Over-Representation Analysis across all catalog families
-catalog = FeatureCatalog.from_preset("ibsi")
+catalog = FeatureCatalog.from_csv("feature_catalog.csv")   # Pictologics describe_features() table
 enrichment = reducer.get_catalog_enrichment(catalog, columns=["family", "family_group"])
 print(enrichment.head())
 ```
 
-| catalog_column | cluster | group | n_overlap | cluster_size | group_size | total_features | odds_ratio | p_value | fdr_q_value |
+| catalog_column | cluster | group | n_overlap | cluster_size | group_size | total_features | p_value | odds_ratio | fdr_q_value |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `family` | `blue` | `glcm` | 32 | 45 | 40 | 180 | 14.2 | 1.4e-12 | 2.8e-11 |
-| `family` | `brown` | `firstorder` | 28 | 35 | 36 | 180 | 18.5 | 3.1e-14 | 9.3e-13 |
+| `family` | `dimgrey` | `glcm` | 32 | 45 | 40 | 180 | 1.4e-12 | 14.2 | 2.8e-11 |
+| `family` | `silver` | `firstorder` | 28 | 35 | 36 | 180 | 3.1e-14 | 18.5 | 9.3e-13 |
 
 ---
 
@@ -198,7 +198,8 @@ The reducer exposes helper methods to inspect the fitted model:
 | `network_type` | `"signed hybrid"` | How correlations are turned into adjacencies: `"signed hybrid"`, `"signed"`, or `"unsigned"`. Signed variants keep the direction of correlation. |
 | `tom_type` | `"signed"` | Topological Overlap Matrix type: `"signed"` or `"unsigned"`. |
 | `correlation_method` | `"pearson"` | `"pearson"` or `"spearman"`. Spearman rank-transforms features for network construction (robust to monotone non-linearities) while keeping eigengene loadings on the original scale. |
-| `soft_power` | `"auto"` | Soft-thresholding power $\beta$ for the adjacency matrix. `"auto"` selects a value via scale-free topology fit; an integer fixes it for deterministic pipelines. |
+| `soft_power` | `"auto"` | Soft-thresholding power $\beta$ for the adjacency matrix. `"auto"` picks the lowest power that meets the scale-free criteria (R², mean connectivity, negative slope); an integer fixes it for deterministic pipelines. |
+| `soft_power_fallback` | `"best_r2"` | What `soft_power="auto"` does when no power meets the criteria. `"best_r2"` warns, uses the power with the highest R², and sets `soft_power_criteria_met_` to False. `"raise"` raises a `ValueError`. |
 | `r_squared_cut` | `0.9` | Target R² for scale-free topology when `soft_power="auto"`. Lower it if automatic selection fails to reach the threshold. |
 | `mean_cut` | `100` | Mean-connectivity ceiling used during automatic soft-power selection. |
 | `power_min`, `power_max` | `1`, `30` | Inclusive range of candidate powers evaluated when `soft_power="auto"`. |

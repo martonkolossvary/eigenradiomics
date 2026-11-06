@@ -80,3 +80,42 @@ def test_invalid_keep_and_on_missing_raise():
         FeatureScoreSelector({"f0": 1.0}, threshold=0.5, keep="sideways").fit(_X())
     with pytest.raises(ValueError, match="on_missing must be"):
         FeatureScoreSelector({"f0": 1.0}, threshold=0.5, on_missing="maybe").fit(_X())
+
+
+def test_duplicate_score_keys_raise():
+    icc = pd.DataFrame({"feature": ["f0", "f0", "f1"], "icc_2_1": [0.95, 0.1, 0.9]})
+    with pytest.raises(ValueError, match="more than one entry for feature 'f0'"):
+        FeatureScoreSelector(icc, threshold=0.9, score_column="icc_2_1").fit(_X())
+    with pytest.raises(ValueError, match="more than one entry for feature '1'"):
+        FeatureScoreSelector({1: 0.95, "1": 0.1}, threshold=0.9).fit(_X())
+
+
+def test_gate_boundaries_and_decision_table():
+    scores = {"f0": 0.90, "f1": 0.8999, "f2": np.nan, "f3": np.inf}
+    sel = FeatureScoreSelector(scores, threshold=0.90, on_missing="drop").fit(_X().assign(f4=0.0))
+    assert list(sel.get_feature_names_out()) == ["f0"]  # inclusive >= threshold
+    assert list(sel.decisions_["reason"]) == [
+        "passed",
+        "below_threshold",
+        "nonfinite_score",
+        "nonfinite_score",
+        "unscored",
+    ]
+    assert list(sel.decisions_["feature"]) == ["f0", "f1", "f2", "f3", "f4"]
+
+
+def test_on_missing_raise_and_invalid_threshold():
+    with pytest.raises(ValueError, match="2 feature\\(s\\) have no finite score"):
+        FeatureScoreSelector(
+            {"f0": 0.9, "f1": np.nan, "f2": 0.9}, threshold=0.5, on_missing="raise"
+        ).fit(_X().iloc[:, :3].assign(f9=1.0))
+    with pytest.raises(ValueError, match="threshold must be finite"):
+        FeatureScoreSelector({"f0": 0.9}, threshold=np.nan).fit(_X())
+
+
+def test_integer_column_names_work():
+    X = pd.DataFrame(np.zeros((3, 2)), columns=[0, 1])
+    sel = FeatureScoreSelector({"0": 0.95, "1": 0.5}, threshold=0.9).fit(X)
+    assert list(sel.transform(X).columns) == [0]
+    with pytest.raises(ValueError, match="duplicate column names"):
+        sel.fit(pd.DataFrame(np.zeros((2, 2)), columns=[1, "1"]))

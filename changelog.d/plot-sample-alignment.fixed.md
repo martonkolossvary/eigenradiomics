@@ -1,0 +1,1 @@
+`plot_eigengene_profiles` and `plot_batch_distributions` pair the samples of pandas inputs by index label, and raise `ValueError` when the labels are different. Arrays still pair by position, and a length mismatch now raises `ValueError`.

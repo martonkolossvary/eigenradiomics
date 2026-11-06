@@ -142,9 +142,11 @@ every column it applies, in order:
 1. **Winsorization** — clip values to the `winsor_lower` / `winsor_upper`
    quantiles (defaults 0.01 / 0.99) to tame extreme outliers.
 2. **Yeo-Johnson** power transform — reduce skew (skip with
-   `skip_yeo_johnson=True`; constant columns are passed through unchanged).
+   `skip_yeo_johnson=True`). A column that is constant after winsorizing skips
+   this step.
 3. **Standardization** — z-score to zero mean / unit variance (disable with
-   `standardize=False`).
+   `standardize=False`). A constant column has no spread. Thus, the transformer
+   only centers it, and every value becomes 0.
 
 ```python
 from eigenradiomics.preprocessing import RadiomicsPrepTransformer
@@ -160,8 +162,10 @@ while missing values pass straight through:
 
 !!! tip "Order matters"
     Winsorization caps outliers *before* the Yeo-Johnson fit, so a handful of
-    extreme values can't dominate the power-transform parameter. Constant columns
-    are detected and passed through unchanged rather than erroring.
+    extreme values can't dominate the power-transform parameter. A constant column
+    does not cause an error. With `standardize=True` (the default), its output is
+    0 for every sample. With `standardize=False`, it keeps the constant value
+    from `fit`. A column that is all NaN in `fit` stays NaN, with a warning.
 
 The fitted parameters (per-column winsor bounds, power transform, and scaling)
 are stored, so `transform` applies exactly the same cleaning to unseen data. As

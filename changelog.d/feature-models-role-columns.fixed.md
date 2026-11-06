@@ -1,0 +1,1 @@
+`compute_feature_associations` does not model the outcome, covariate, or group columns as features when they are in the feature table. Before, they entered the FDR family, and a covariate column in the same table made the fit crash.

@@ -1,0 +1,1 @@
+A second catalog annotation (for example `plot_rwas_manhattan(result, catalog=...)` or `plot_reproducibility_synteny`) replaces the old `family`, `family_group`, and `config` columns. Before, the merge made `family_x` and `family_y` columns, and all features went into one group.

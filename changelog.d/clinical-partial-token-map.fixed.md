@@ -1,0 +1,1 @@
+`encode_clinical_series` uses the yes/no and stage token map only when every non-missing value is a token. A column such as `never`/`former`/`current`/`no` or `IIIA`/`IIIB` now gets the categorical codes, not NaN.

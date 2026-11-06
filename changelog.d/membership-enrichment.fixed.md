@@ -1,0 +1,1 @@
+`compute_module_membership` now raises on an unknown `method` (it used Spearman) and pairs eigengene rows with X by index label. `compute_group_enrichment` with `method="chi2"` now respects `alternative`, and a feature without a cluster or group label is no longer part of the background on any input path.

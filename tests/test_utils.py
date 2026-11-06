@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import scipy.sparse
+from sklearn.base import BaseEstimator
 
 from eigenradiomics._utils import (
     _check_feature_names,
@@ -130,6 +131,37 @@ class TestValidateEstimatorInputSparse:
         X_sparse = scipy.sparse.csc_matrix(np.eye(5))
         with pytest.raises(TypeError, match="Sparse matrices are not supported"):
             validate_estimator_input(est, X_sparse, reset=True)
+
+
+class _FitOnly(BaseEstimator):
+    """Minimal estimator: check_is_fitted needs a fit method."""
+
+    def fit(self, X, y=None):
+        return self
+
+
+class TestValidateEstimatorInputNames:
+    """Feature-name checks across numpy fit and DataFrame transform."""
+
+    def test_numpy_fit_dataframe_transform_warns(self):
+        est = _FitOnly()
+        X = np.arange(12.0).reshape(4, 3)
+        validate_estimator_input(est, X, reset=True)
+        assert list(est.feature_names_in_) == ["feature_0", "feature_1", "feature_2"]
+        df = pd.DataFrame(X, columns=["a", "b", "c"])
+        with pytest.warns(UserWarning, match="fitted without feature names"):
+            out = validate_estimator_input(est, df, reset=False)
+        assert out.shape == (4, 3)
+        assert list(est.feature_names_in_) == ["feature_0", "feature_1", "feature_2"]
+
+    def test_dataframe_fit_wrong_names_still_raises(self):
+        est = _FitOnly()
+        df = pd.DataFrame(np.arange(12.0).reshape(4, 3), columns=["a", "b", "c"])
+        validate_estimator_input(est, df, reset=True)
+        validate_estimator_input(est, df.to_numpy(), reset=True)
+        validate_estimator_input(est, df, reset=True)
+        with pytest.raises(ValueError, match="feature names"):
+            validate_estimator_input(est, df[["b", "a", "c"]], reset=False)
 
 
 class TestCheckConstantFeatures:

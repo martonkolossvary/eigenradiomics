@@ -136,9 +136,10 @@ class TestAnalysisStats:
         )
         assert len(hubs_raw_numpy) > 0
 
-        # Non-overlapping cluster labels (triggers specific falls - Line 199-200)
-        hubs_fall = identify_hub_features(X, ["ghost1", "ghost2"] * 3, eigengenes)
-        assert len(hubs_fall) > 0
+        # Labels without a matching eigengene column are skipped (no positional map).
+        with pytest.warns(UserWarning, match="no matching eigengene column"):
+            hubs_fall = identify_hub_features(X, ["ghost1", "ghost2"] * 3, eigengenes)
+        assert len(hubs_fall) == 0
 
         # Trigger line 185 (neither Series nor dict, sequence input)
         hubs_sequence_direct = identify_hub_features(
@@ -156,25 +157,16 @@ class TestAnalysisStats:
         reducer_dummy = WGCNAReducer(soft_power=6, min_module_size=2, include_grey=True, verbose=0)
         reducer_dummy.fit(X)
         hubs_arr_fall = identify_hub_features(
-            X.to_numpy(), list(cluster_labels), reducer=reducer_dummy
+            X.to_numpy(), list(reducer_dummy.module_colors_), reducer=reducer_dummy
         )
-        assert len(hubs_arr_fall) > 0
+        assert set(hubs_arr_fall["cluster"]) == set(reducer_dummy.module_names_)
 
-        # No column names whatsoever in a fallback scenario where model does not resolve names
-        hubs_unlabelled = identify_hub_features(
-            X.to_numpy(), list(cluster_labels), eigengenes.to_numpy()
-        )
-        assert len(hubs_unlabelled) > 0
-
-        # Trigger fallback col_name matching for ghost labels (Line 199-200)
-        hubs_ghost = identify_hub_features(X, ["ghost1", "ghost2"] * 3, eigengenes)
-        assert len(hubs_ghost) > 0
-
-        # Reducer and custom inputs. Set min_module_size lower to avoid empty module returns.
-        reducer = WGCNAReducer(soft_power=6, min_module_size=2, include_grey=True, verbose=0)
-        reducer.fit(X)
-        hubs_red = identify_hub_features(X.to_numpy(), list(cluster_labels), reducer=reducer)
-        assert len(hubs_red) > 0
+        # Unnamed eigengene columns cannot be matched to labels, so nothing is reported.
+        with pytest.warns(UserWarning, match="no matching eigengene column"):
+            hubs_unlabelled = identify_hub_features(
+                X.to_numpy(), list(cluster_labels), eigengenes.to_numpy()
+            )
+        assert len(hubs_unlabelled) == 0
 
     def test_compute_group_enrichment(self, sample_data):
         _, _, cluster_labels, group_assignments = sample_data
@@ -288,12 +280,11 @@ class TestAccessiblePlotting:
         assert isinstance(fig_auto_title, plt.Figure)
         plt.close(fig_auto_title)
 
-        # Mismatched name index coverage trigger
-        fig_mismatch = plot_hub_significance(
-            kme, sig, cluster_labels.to_dict(), target_cluster="unknown_column", top_n_labels=1
-        )
-        assert isinstance(fig_mismatch, plt.Figure)
-        plt.close(fig_mismatch)
+        # An unknown module name raises (no silent fallback to the first column).
+        with pytest.raises(ValueError, match="not a column"):
+            plot_hub_significance(
+                kme, sig, cluster_labels.to_dict(), target_cluster="unknown_column", top_n_labels=1
+            )
 
         # File writing path trigger
         import tempfile
@@ -409,13 +400,15 @@ class TestAnalysisCoverageGaps:
 
         # Cluster label c2 has features, but c3 has none in k_me (hits line 184)
         labels_sparse = pd.Series(["c1", "c2", "c3"], index=["f1", "f2", "f_other"])
+        eigengenes = eigengenes.rename(columns={"col_1": "c1"})
         hubs_sparse = identify_hub_features(X, cluster_labels=labels_sparse, eigengenes=eigengenes)
-        assert len(hubs_sparse) >= 1
+        assert list(hubs_sparse["cluster"]) == ["c1"]
 
-        # Multiple clusters mapped to fewer eigengene columns (hits lines 195-196 and 199)
+        # Clusters without their own eigengene column are skipped, not mapped by position.
         labels_many = pd.Series(["c1", "c2", "c3"], index=["f1", "f2", "f3"])
-        hubs_many = identify_hub_features(X, cluster_labels=labels_many, eigengenes=eigengenes)
-        assert len(hubs_many) >= 1
+        with pytest.warns(UserWarning, match="2 cluster label"):
+            hubs_many = identify_hub_features(X, cluster_labels=labels_many, eigengenes=eigengenes)
+        assert list(hubs_many["cluster"]) == ["c1"]
 
         # Empty eigengenes (hits line 202)
         eigengenes_empty = pd.DataFrame(index=X.index)
@@ -506,3 +499,62 @@ class TestAnalysisCoverageGaps:
         res_empty = compute_group_enrichment(cluster_labels, df_empty_vals)
         assert isinstance(res_empty, pd.DataFrame)
         assert len(res_empty) == 0
+
+
+def test_hubs_use_own_module_with_multiple_components():
+    """Each module's hub uses its own first component, also for 2 components per module."""
+    rng = np.random.default_rng(0)
+    n = 80
+    f1, f2 = rng.normal(size=n), rng.normal(size=n)
+    X = pd.DataFrame(
+        np.hstack(
+            [
+                f1[:, None] + 0.4 * rng.normal(size=(n, 20)),
+                f2[:, None] + 0.4 * rng.normal(size=(n, 20)),
+            ]
+        ),
+        columns=[f"a{i}" for i in range(20)] + [f"b{i}" for i in range(20)],
+    )
+    r = WGCNAReducer(soft_power=6, min_module_size=10, n_module_components=2).fit(X)
+    labels = pd.Series(r.module_colors_, index=X.columns)
+    hubs = identify_hub_features(X, labels, reducer=r, top_n=1, method="pearson")
+    assert len(hubs) == len(r.module_names_) >= 2
+    assert (hubs["k_ME"].abs() > 0.8).all()
+
+
+def test_membership_rejects_unknown_method_and_aligns_eigengenes(sample_data):
+    X, eigengenes, _, _ = sample_data
+    with pytest.raises(ValueError, match="method must be"):
+        compute_module_membership(X, eigengenes, method="pearsonn")
+    ref = compute_module_membership(X, eigengenes, method="pearson")
+    shuffled = eigengenes.sample(frac=1, random_state=2)
+    pd.testing.assert_frame_equal(ref, compute_module_membership(X, shuffled, method="pearson"))
+    with pytest.raises(ValueError, match="same unique index labels"):
+        compute_module_membership(X, eigengenes.set_axis(range(1, 21)), method="pearson")
+
+
+def test_chi2_enrichment_respects_alternative():
+    labels = pd.Series(["m1"] * 20 + ["m2"] * 20, index=[f"f{i}" for i in range(40)])
+    groups = pd.Series(["g1"] * 18 + ["g2"] * 2 + ["g1"] * 2 + ["g2"] * 18, index=labels.index)
+    res = compute_group_enrichment(labels, groups, method="chi2", alternative="greater")
+    less = compute_group_enrichment(labels, groups, method="chi2", alternative="less")
+    two = compute_group_enrichment(labels, groups, method="chi2", alternative="two-sided")
+    key = (res["cluster"] == "m1") & (res["group"] == "g1")
+    assert res.loc[key, "p_value"].iloc[0] < 1e-4
+    assert less.loc[key, "p_value"].iloc[0] > 0.99
+    assert np.isclose(res.loc[key, "p_value"].iloc[0] * 2, two.loc[key, "p_value"].iloc[0])
+
+
+def test_missing_group_label_is_not_background():
+    idx = [f"f{i}" for i in range(12)]
+    labels = pd.Series(["m1"] * 6 + ["m2"] * 6, index=idx)
+    groups = pd.Series(["a"] * 4 + [None] * 2 + ["b"] * 6, index=idx)
+    series_res = compute_group_enrichment(labels, groups)
+    catalog_res = compute_group_enrichment(
+        labels, pd.DataFrame({"feature": idx, "family": groups.to_numpy()}), columns="family"
+    )
+    assert (series_res["total_features"] == 10).all()
+    assert np.allclose(
+        series_res.sort_values(["cluster", "group"])["p_value"].to_numpy(),
+        catalog_res.sort_values(["cluster", "group"])["p_value"].to_numpy(),
+    )

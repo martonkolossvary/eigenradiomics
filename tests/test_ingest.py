@@ -27,6 +27,16 @@ class TestNormalizeIdColumn:
         out, _ = normalize_id_column(df, "id", lower=True)
         assert out["id"].iloc[0] == "abc"
 
+    def test_integer_valued_float_ids_match_integer_ids(self) -> None:
+        left, _ = normalize_id_column(pd.DataFrame({"id": [1, 2, 3], "f": [1.0, 2.0, 3.0]}), "id")
+        right, changes = normalize_id_column(pd.DataFrame({"id": [1.0, 2.0, np.nan]}), "id")
+        assert right["id"].tolist()[:2] == ["1", "2"]
+        assert changes.empty
+        result = merge_tables(left, right, left_on="id", right_on="id")
+        assert result.n_matched == 2
+        decimals, _ = normalize_id_column(pd.DataFrame({"id": [1.5, 2.0]}), "id")
+        assert decimals["id"].tolist() == ["1.5", "2"]
+
     def test_does_not_mutate_input(self) -> None:
         df = pd.DataFrame({"id": [" 1 "]})
         normalize_id_column(df, "id")
@@ -118,6 +128,20 @@ class TestMergeTables:
         result = merge_tables(left, right, left_on="id", right_on="id", how="inner")
         assert result.merged.shape[0] == 2
         assert result.n_matched == 2
+
+    def test_missing_keys_do_not_match(self) -> None:
+        left = pd.DataFrame({"id": ["1", None, np.nan], "f": [1.0, 2.0, 3.0]})
+        right = pd.DataFrame({"id": ["1", None], "age": [60, 70]})
+        result = merge_tables(left, right, left_on="id", right_on="id", how="left")
+        assert result.n_matched == 1
+        assert result.left_only["f"].tolist() == [2.0, 3.0]
+        assert result.right_only["age"].tolist() == [70]
+        assert result.merged.shape[0] == 3
+        assert result.merged["age"].tolist()[0] == 60
+        assert result.merged["age"].iloc[1:].isna().all()
+        assert list(result.merged.columns) == ["id", "f", "age"]
+        inner = merge_tables(left, right, left_on="id", right_on="id", how="inner")
+        assert inner.merged["f"].tolist() == [1.0]
 
     def test_mismatched_key_lengths_raises(self) -> None:
         left = pd.DataFrame({"a": [1], "b": [2]})

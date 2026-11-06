@@ -1,0 +1,1 @@
+`compute_feature_associations` aligns the outcome, the covariate data, and a groups column to X by index, and raises a `ValueError` when an index is not unique or does not cover every sample of X. Before, a different index gave `no_complete_cases` with no warning, and `n_missing` also counted rows that were not in X.

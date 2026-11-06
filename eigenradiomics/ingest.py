@@ -9,11 +9,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 
 # Strings treated as "blank" identifiers and masked to missing during normalization.
 _BLANK_TOKENS = {"", "nan", "none", "<na>", "null", "na"}
 _SENTINEL = "\x00"
+
+
+def _integer_float_as_int(value: object) -> object:
+    """Return an integer-valued float as an int; return other values unchanged."""
+    if isinstance(value, (float, np.floating)) and float(value).is_integer():
+        return int(value)
+    return value
 
 
 def normalize_id_column(
@@ -26,7 +34,8 @@ def normalize_id_column(
 
     Strips leading/trailing whitespace, collapses internal whitespace runs to a
     single space, and masks blank-like tokens (``""``, ``"nan"``, ``"none"``,
-    ...) to missing values.
+    ...) to missing values. An integer-valued float ID becomes integer text
+    (``1.0`` -> ``"1"``); a real decimal such as ``1.5`` stays ``"1.5"``.
 
     Parameters
     ----------
@@ -47,7 +56,10 @@ def normalize_id_column(
     if column not in df.columns:
         raise ValueError(f"Column {column!r} not found in the table.")
 
-    original = df[column].astype("string")
+    # Write an integer-valued float ID as an integer ("1", not "1.0"), so it
+    # matches the same ID that is stored as an integer.
+    values = [_integer_float_as_int(value) for value in df[column]]
+    original = pd.Series(values, index=df.index, dtype=object).astype("string")
     cleaned = original.str.strip().str.replace(r"\s+", " ", regex=True)
     if lower:
         cleaned = cleaned.str.lower()
@@ -182,26 +194,40 @@ def merge_tables(
     result : MergeResult
         ``merged`` plus ``left_only`` / ``right_only`` (rows whose key matched
         nothing in the other table) and ``n_matched`` (number of matched keys).
+        A row with a missing key value matches no row, so it goes to
+        ``left_only`` / ``right_only`` and does not count in ``n_matched``.
     """
     left_cols = [left_on] if isinstance(left_on, str) else list(left_on)
     right_cols = [right_on] if isinstance(right_on, str) else list(right_on)
     if len(left_cols) != len(right_cols):
         raise ValueError("left_on and right_on must have the same number of columns.")
 
-    # Key-level match diagnostics (independent of `how`).
+    # Key-level match diagnostics (independent of `how`). A row with a
+    # missing key part matches no row.
+    left_ok = left[left_cols].notna().all(axis=1)
+    right_ok = right[right_cols].notna().all(axis=1)
     left_keys = left[left_cols].apply(tuple, axis=1)
     right_keys = right[right_cols].apply(tuple, axis=1)
-    matched = set(left_keys) & set(right_keys)
-    left_only = left[~left_keys.isin(matched)].reset_index(drop=True)
-    right_only = right[~right_keys.isin(matched)].reset_index(drop=True)
+    matched = set(left_keys[left_ok]) & set(right_keys[right_ok])
+    left_only = left[~(left_ok & left_keys.isin(matched))].reset_index(drop=True)
+    right_only = right[~(right_ok & right_keys.isin(matched))].reset_index(drop=True)
 
-    merged = left.merge(
-        right,
-        left_on=left_cols,
-        right_on=right_cols,
-        how=how,
-        validate=validate,
-        suffixes=suffixes,
+    # pandas joins a missing key to a missing key. Give each row with a
+    # missing key its own guard value, so that row matches no row.
+    guard = "__eigenradiomics_merge_guard__"
+    left_guard = np.where(left_ok, 0, -np.arange(1, len(left) + 1))
+    right_guard = np.where(right_ok, 0, np.arange(1, len(right) + 1))
+    merged = (
+        left.assign(**{guard: left_guard})
+        .merge(
+            right.assign(**{guard: right_guard}),
+            left_on=[*left_cols, guard],
+            right_on=[*right_cols, guard],
+            how=how,
+            validate=validate,
+            suffixes=suffixes,
+        )
+        .drop(columns=guard)
     )
     return MergeResult(
         merged=merged,

@@ -101,27 +101,51 @@ scorer. Useful intrinsic metrics include:
 3. **Silhouette score:** how cleanly the discovered modules separate.
 
 Pairing such a scorer with the search lets it evaluate reductions without any
-target `y`.
+target `y`. Two rules apply:
+
+1. End the pipeline at the reducer. A supervised step such as `RidgeClassifier`
+   needs `y` in `fit`.
+2. Send `X` through the steps before the reducer in the scorer. The reducer
+   learned its mapping on the imputed and scaled data, not on the raw `X`.
 
 ```python
-from sklearn.metrics import mean_squared_error, make_scorer
+from sklearn.feature_selection import VarianceThreshold
+from sklearn.impute import SimpleImputer
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
-# Define a function returning negative MSE (since GridSearchCV inherently maximizes scores)
+from eigenradiomics import WGCNAReducer
+
+# Return negative MSE, because GridSearchCV maximizes the score
 def reconstruction_scorer(estimator, X, y=None):
-    # Grab the fitted reducer step
+    # Apply the fitted steps before the reducer, so the reducer gets its usual input
+    position = list(estimator.named_steps).index("reduce")
+    X_in = estimator[:position].transform(X)
     reducer = estimator.named_steps["reduce"]
 
     # Project, then reconstruct
-    Y_subspace = reducer.transform(X)
+    Y_subspace = reducer.transform(X_in)
     X_reconstructed = reducer.inverse_transform(Y_subspace)
 
-    return -mean_squared_error(X, X_reconstructed)
+    return -mean_squared_error(X_in, X_reconstructed)
+
+# The pipeline ends at the reducer, so fit does not need y
+unsupervised_pipe = Pipeline(
+    [
+        ("impute", SimpleImputer(strategy="median")),
+        ("var", VarianceThreshold(threshold=0.0)),
+        ("scale", StandardScaler()),
+        ("reduce", WGCNAReducer(soft_power=6, min_module_size=20, verbose=0)),
+    ]
+)
 
 unsupervised_search = GridSearchCV(
-    pipe, 
-    param_grid={"reduce__me_diss_threshold": [0.15, 0.2, 0.3]}, 
-    scoring=reconstruction_scorer, 
-    cv=3
+    unsupervised_pipe,
+    param_grid={"reduce__me_diss_threshold": [0.15, 0.2, 0.3]},
+    scoring=reconstruction_scorer,
+    cv=3,
 )
 
 # No y needed: the scorer measures reconstruction error
@@ -137,7 +161,9 @@ You can track several scores at once — for example a supervised metric *and*
 reconstruction error. scikit-learn evaluates each metric per fold and averages
 them separately; it does not combine them into one number. Use `refit="<key>"`
 to choose which metric selects the final `best_estimator_`; the others are
-logged in `cv_results_` for inspection:
+logged in `cv_results_` for inspection. This search uses the supervised `pipe`
+from Strategy 1. The `reconstruction_scorer` from Strategy 2 also works on it,
+because the scorer finds the `"reduce"` step by name:
 
 ```python
 multi_metrics = {

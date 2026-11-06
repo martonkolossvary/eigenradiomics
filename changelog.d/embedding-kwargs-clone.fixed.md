@@ -1,0 +1,1 @@
+The embedding reducers (`TSNEReducer`, `MDSReducer`, `IsomapReducer` and the others) now show their extra `**kwargs` as sklearn parameters. `clone`, `GridSearchCV` and `cross_validate` now keep these arguments.

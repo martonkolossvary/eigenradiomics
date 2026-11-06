@@ -1,0 +1,1 @@
+`plot_clustered_heatmap` now puts a `labels` sequence in the display order, so each label is on its own row. An `order` that is a subset of the features now plots only that subset, and an `order` that is not the linkage leaf order raises a clear `ValueError` when the dendrogram is drawn.

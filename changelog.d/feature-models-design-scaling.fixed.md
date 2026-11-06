@@ -1,0 +1,1 @@
+Every fit except Cox (lifelines scales its own inputs) centres each design column and divides it by its SD, then converts the feature coef, SE, and CI back to raw units. Before, a large gap in column units (for example 1e-12 against 1e6) gave a wrong OLS p-value, and a feature with a large SD made the GLMM stall at OR 1 and p 1, both with the status `ok`.

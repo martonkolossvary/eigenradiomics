@@ -1,0 +1,1 @@
+`compute_batch_effects` now annotates features from a catalog without a `config` column, uses the first of duplicate catalog rows with a warning, caps `min_batches_per_feature` at the number of batches (a 2-batch study no longer fails QC), and skips the ComBat step with a warning when a batch has one sample. ComBat covariate names with spaces, hyphens or digits now work.

@@ -1,0 +1,1 @@
+A binary outcome with two levels other than 0/1 (for example 1/2 or "no"/"yes") maps the lower level to 0 and the higher level to 1; text levels sort as strings, and a text outcome with more than two levels raises a `ValueError`. Before, every logistic fit failed for 1/2 coding, and a text outcome gave `no_complete_cases` for every row with no reason.

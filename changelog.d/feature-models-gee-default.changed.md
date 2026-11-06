@@ -1,0 +1,1 @@
+`compute_feature_associations` uses `mixed_method="gee"` by default for a clustered binary outcome. The GLMM uses its variational-Bayes posterior SD as a Wald SE, so its p-values are approximate and too small; use `mixed_method="glmm"` only when you need it.

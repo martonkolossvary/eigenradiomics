@@ -1,0 +1,1 @@
+An estimator or `RadiomicsFeatureRemover` fitted on a numpy array now gives the scikit-learn warning, not an error, when it gets a DataFrame at transform. A DataFrame fit still raises when the transform names are different.

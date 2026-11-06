@@ -283,7 +283,9 @@ def test_binary_gee_clustered():
 
 def test_binary_glmm_clustered():
     X, meta, _, binary = _survival_binary()
-    res = compute_feature_associations(X, binary, covariate_data=meta, groups="patient")
+    res = compute_feature_associations(
+        X, binary, covariate_data=meta, groups="patient", mixed_method="glmm"
+    )
     row = res.table.set_index(["model", "feature"]).loc[("Univariable", "original__f0")]
     assert row["model_family"] == "glmm" and row["status"] == "ok"
 
@@ -384,7 +386,9 @@ def test_glmm_fit_failed(monkeypatch):
 
     monkeypatch.setattr(BinomialBayesMixedGLM, "from_formula", staticmethod(_boom))
     X, meta, _, binary = _survival_binary(n=30)
-    res = compute_feature_associations(X, binary, covariate_data=meta, groups="patient")
+    res = compute_feature_associations(
+        X, binary, covariate_data=meta, groups="patient", mixed_method="glmm"
+    )
     assert (res.table["status"] == "fit_failed").all()
 
 
@@ -640,3 +644,227 @@ def test_plot_rwas_manhattan_custom_group_by():
     fig2 = plot_rwas_manhattan(df_str, group_by="custom_str")
     assert fig2 is not None
     plt.close(fig2)
+
+
+# ---- regression tests for the 2026-11 review fixes ------------------------
+
+
+def test_bare_frame_excludes_outcome_covariate_and_group_columns():
+    X, meta, _, _ = _survival_binary()
+    y = _mixed_continuous_outcome(X, meta)
+    frame = pd.concat([X, meta, y.rename("y")], axis=1)  # one bare table holds every role
+    res = compute_feature_associations(frame, "y", adjust_for=["age"])
+    assert set(res.table["feature"]) == {"original__f0", "original__f1", "patient"}
+    assert (res.table["status"] == "ok").all()
+    clustered = compute_feature_associations(frame, frame["y"], groups="patient")
+    assert set(clustered.table["feature"]) == {"original__f0", "original__f1", "age"}
+    assert (clustered.table["model_family"] == "mixedlm").all()
+
+
+def test_binary_clustered_default_is_gee():
+    X, meta, _, binary = _survival_binary()
+    res = compute_feature_associations(X, binary, covariate_data=meta, groups="patient")
+    assert (res.table["model_family"] == "gee_logit").all()
+
+
+def test_groups_series_aligned_by_index():
+    X, meta, _, _ = _survival_binary()
+    y = _mixed_continuous_outcome(X, meta)
+    by_name = compute_feature_associations(X, y, groups="patient", covariate_data=meta)
+    shuffled = meta["patient"].sample(frac=1, random_state=0)  # same labels, new order
+    by_series = compute_feature_associations(X, y, groups=shuffled)
+    assert np.allclose(by_series.table["coef"], by_name.table["coef"])
+    with pytest.raises(ValueError, match="unique index"):
+        compute_feature_associations(X, y, groups=pd.Series(0, index=[0] * len(X)))
+    with pytest.raises(ValueError, match="does not cover"):
+        compute_feature_associations(X, y, groups=meta["patient"].iloc[1:])
+    with pytest.raises(ValueError, match="values but X has"):
+        compute_feature_associations(X, y, groups=meta["patient"].to_numpy()[1:])
+
+
+def test_zero_p_value_kept_in_plots():
+    from eigenradiomics.feature_models import plot_rwas_manhattan
+
+    res = _volcano_result(n_tiers=1)
+    ok = res.table.index[res.table["status"].eq("ok")]
+    res.table.loc[ok[0], "p_value"] = 0.0  # an underflowed p-value
+    fig = plot_volcano(res)
+    assert len(fig.axes[0].collections) == len(ok)  # one scatter call per point
+    plt.close(fig)
+    fig = plot_rwas_manhattan(res)
+    y = fig.axes[0].collections[0].get_offsets()[:, 1]
+    assert len(y) == len(ok) and np.isclose(y.max(), -np.log10(np.nextafter(0, 1)))
+    plt.close(fig)
+
+
+def test_second_catalog_annotation_replaces_columns():
+    from eigenradiomics.feature_models import _annotate_catalog
+
+    X, meta = _data()
+    res = compute_feature_associations(X, meta["y"], covariate_data=meta, catalog=_catalog())
+    again = _annotate_catalog(res.table, _catalog())
+    assert not any(col.endswith(("_x", "_y")) for col in again.columns)
+    assert again["family_group"].nunique() == 2
+
+
+@pytest.mark.parametrize("engine", ["ols", "logit", "mixedlm"])
+def test_collinear_covariates_flagged(engine):
+    X, meta, _, binary = _survival_binary()
+    meta = meta.assign(age2=2 * meta["age"])  # exact copy of age, scaled
+    kwargs: dict = {"adjust_for": ["age", "age2"], "covariate_data": meta}
+    if engine == "ols":
+        outcome = _mixed_continuous_outcome(X, meta)
+    elif engine == "logit":
+        outcome = binary
+    else:
+        outcome = _mixed_continuous_outcome(X, meta)
+        kwargs["groups"] = "patient"
+    res = compute_feature_associations(X, outcome, **kwargs)
+    adjusted = res.table[res.table["model"] == "Adjusted"]
+    assert (adjusted["status"] == "collinear").all()
+    assert adjusted["coef"].isna().all() and adjusted["p_value"].isna().all()
+    assert (res.table.loc[res.table["model"] == "Univariable", "status"] == "ok").all()
+
+
+def test_rank_check_skips_non_finite_design():
+    X, meta = _data()
+    X = X.assign(original__inf=np.where(np.arange(len(X)) == 0, np.inf, X["original__f0"]))
+    res = compute_feature_associations(X, meta["y"], covariate_data=meta)
+    status = res.table.set_index("feature")["status"]
+    assert status["original__inf"] == "fit_failed" and status["original__f0"] == "ok"
+
+
+def test_text_covariate_raises():
+    X, meta = _data()
+    meta = meta.assign(sex=np.where(np.arange(len(meta)) % 2, "M", "F"))
+    with pytest.raises(ValueError, match="not numeric: sex"):
+        compute_feature_associations(X, meta["y"], adjust_for=["sex"], covariate_data=meta)
+
+
+def test_binary_outcome_coded_one_two():
+    X, meta, _, binary = _survival_binary()
+    base = compute_feature_associations(X, binary, covariate_data=meta)
+    recoded = compute_feature_associations(X, binary + 1, covariate_data=meta)  # 1/2 coding
+    assert recoded.outcome_type == "binary"
+    assert (recoded.table["status"] == "ok").all()
+    assert np.allclose(recoded.table["coef"], base.table["coef"])
+    assert (recoded.table["n_events"] == base.table["n_events"]).all()
+
+
+def test_log2_effect_nan_for_linear_beta():
+    X, meta = _data()
+    res = compute_feature_associations(X, -meta["y"], covariate_data=meta)  # negative betas
+    assert res.bar(value="log2_effect").data.isna().all()
+    X, meta, _, binary = _survival_binary()
+    res = compute_feature_associations(X, binary, covariate_data=meta)
+    uni = res.table.set_index("feature")
+    expected = np.log2(uni["effect"])
+    assert np.allclose(res.bar(value="log2_effect").data, expected)
+
+
+def test_volcano_reference_line_labelled_nominal():
+    fig = plot_volcano(_volcano_result(n_tiers=1), fdr_alpha=0.05)
+    labels = [text.get_text() for text in fig.legends[0].get_texts()]
+    assert "p = 0.05 (nominal)" in labels
+    assert not any("(FDR)" in label for label in labels)
+    plt.close(fig)
+
+
+def test_extreme_scale_gap_matches_rescaled_fit():
+    import statsmodels.api as sm
+
+    rng = np.random.default_rng(3)
+    n = 80
+    X = pd.DataFrame({"original__tiny": rng.normal(0, 1e-12, n)})
+    meta = pd.DataFrame({"age": rng.normal(60, 8, n), "vol": rng.normal(1e6, 1e5, n)})
+    y = pd.Series(rng.normal(size=n))
+    res = compute_feature_associations(X, y, adjust_for=["age", "vol"], covariate_data=meta)
+    row = res.table.set_index("model").loc["Adjusted"]
+    # Reference: the same OLS + HC3 fit with each column in units of its SD.
+    raw = np.column_stack([X["original__tiny"], meta["age"], meta["vol"]])
+    sd = raw.std(axis=0)
+    ref = sm.OLS(y.to_numpy(), np.column_stack([np.ones(n), raw / sd])).fit(
+        cov_type="HC3", use_t=True
+    )
+    assert np.isclose(row["p_value"], ref.pvalues[1])
+    assert np.isclose(row["coef"], ref.params[1] / sd[0])
+    assert np.isclose(row["se"], ref.bse[1] / sd[0])
+
+
+def test_binary_min_events():
+    X, meta, _, binary = _survival_binary()
+    n_events = int(binary.sum())
+    res = compute_feature_associations(X, binary, covariate_data=meta, min_events=n_events + 1)
+    assert (res.table["status"] == "no_events").all()
+    res = compute_feature_associations(X, binary, covariate_data=meta, min_events=n_events)
+    assert (res.table["status"] == "ok").all()
+
+
+def test_manhattan_nominal_line_uses_fdr_alpha():
+    from eigenradiomics.feature_models import plot_rwas_manhattan
+
+    fig = plot_rwas_manhattan(_volcano_result(n_tiers=1), fdr_alpha=0.01)
+    dashed = [line for line in fig.axes[0].lines if line.get_linestyle() == "--"]
+    assert len(dashed) == 1 and np.isclose(dashed[0].get_ydata()[0], 2.0)
+    plt.close(fig)
+
+
+def test_group_column_as_covariate_raises():
+    X, meta, _, binary = _survival_binary()
+    with pytest.raises(ValueError, match="both the group and a covariate"):
+        compute_feature_associations(
+            X, binary, adjust_for=["patient"], covariate_data=meta, groups="patient"
+        )
+
+
+def test_glmm_large_sd_feature_agrees_with_gee():
+    rng = np.random.default_rng(7)
+    n = 150
+    cluster = np.repeat(np.arange(50), 3)
+    f = rng.normal(0, 200, n)  # SD 200: raw-unit fit_vb stalls at OR 1, p 1
+    p = 1 / (1 + np.exp(-(f / 200 + rng.normal(0, 0.5, 50)[cluster])))
+    y = pd.Series((rng.uniform(size=n) < p).astype(int))
+    X, meta = pd.DataFrame({"original__big": f}), pd.DataFrame({"patient": cluster})
+    fits = {
+        method: compute_feature_associations(
+            X, y, covariate_data=meta, groups="patient", mixed_method=method
+        ).table.iloc[0]
+        for method in ("glmm", "gee")
+    }
+    assert (fits["glmm"]["status"], fits["gee"]["status"]) == ("ok", "ok")
+    assert fits["glmm"]["p_value"] < 0.01 and fits["gee"]["p_value"] < 0.01
+    assert 0.5 < fits["glmm"]["coef"] / fits["gee"]["coef"] < 3  # same sign and size
+
+
+def test_text_binary_outcome_mapped():
+    X, meta, _, binary = _survival_binary()
+    base = compute_feature_associations(X, binary, covariate_data=meta)
+    text = binary.map({0: "no", 1: "yes"})
+    res = compute_feature_associations(X, text, covariate_data=meta)
+    assert res.outcome_type == "binary" and (res.table["status"] == "ok").all()
+    assert np.allclose(res.table["coef"], base.table["coef"])
+    three = text.where(text.index % 7 != 0, "maybe")
+    with pytest.raises(ValueError, match="exactly two levels"):
+        compute_feature_associations(X, three, covariate_data=meta)
+
+
+def test_outcome_and_covariate_index_must_cover_x():
+    X, meta = _data()  # X and meta use the labels S0, S1, ...
+    with pytest.raises(ValueError, match="outcome index does not cover"):
+        compute_feature_associations(X, meta["y"].reset_index(drop=True))
+    shifted = meta.reset_index(drop=True)
+    with pytest.raises(ValueError, match="covariate data index does not cover"):
+        compute_feature_associations(X, meta["y"], adjust_for=["age"], covariate_data=shifted)
+    with pytest.raises(ValueError, match="groups column index does not cover"):
+        compute_feature_associations(X, meta["y"], groups="g", covariate_data=shifted.assign(g=0))
+
+
+def test_covariate_data_aligned_by_key_and_n_missing_over_x():
+    X, meta = _data()
+    base = compute_feature_associations(X, meta["y"], adjust_for=["age"], covariate_data=meta)
+    extra = pd.DataFrame({"y": [0.0] * 40, "age": [50.0] * 40}, index=[f"X{i}" for i in range(40)])
+    wide = pd.concat([meta, extra]).sample(frac=1, random_state=0)  # more rows, new order
+    res = compute_feature_associations(X, meta["y"], adjust_for=["age"], covariate_data=wide)
+    assert np.allclose(res.table["coef"], base.table["coef"], equal_nan=True)
+    ok = res.table["status"] == "ok"
+    assert (res.table.loc[ok, "n_missing"] == 0).all()

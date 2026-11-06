@@ -68,7 +68,7 @@ A key primitive in `eigenradiomics` is the `StudyDesign`, which provides semanti
 | `batch` | Scanner, acquisition center, or manufacturer identifier | `compute_batch_effects`, ComBat harmonization |
 | `timepoint` | Longitudinal scan timing or visit order (e.g., `"baseline"`, `"followup"`) | `transform_paired`, longitudinal trajectory analysis |
 | `target` | Supervised continuous or categorical outcome | `compute_feature_associations`, RWAS models |
-| `duration` | Survival follow-up time | Cox proportional hazards models |
+| `time` | Survival follow-up time (use it together with `event`) | Cox proportional hazards models |
 | `event` | Survival censoring indicator (1 = event, 0 = censored) | Cox proportional hazards models |
 
 ```mermaid

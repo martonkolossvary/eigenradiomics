@@ -119,7 +119,8 @@ class PairedReductionResult:
     delta : pandas.DataFrame or ndarray
         Latent change (ME_post - ME_pre).
     relative_change : pandas.DataFrame or ndarray, optional
-        Relative change delta / (|baseline| + epsilon).
+        Relative change delta / |baseline|. The value is NaN where
+        |baseline| < epsilon.
     trajectory_distance : pandas.Series or ndarray, optional
         Euclidean trajectory distance ||ME_post - ME_pre||_2 per sample.
     effect_size : pandas.Series or ndarray, optional

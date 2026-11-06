@@ -22,6 +22,15 @@ The framework computes detailed feature-level diagnostics, choosing the input ma
 * **Brown-Forsythe/Levene test** — computed on the **raw** features. Assesses heteroscedasticity (inequality of variance) across centers.
 * **FDR q-values**: Corrects all $p$-values using the Benjamini-Hochberg false discovery rate procedure.
 
+Before the tests, a QC step sets the `keep` flag of each feature in
+`results["feature_qc"]`. A feature passes when it has enough valid values
+(`min_valid_samples`, `max_missing_fraction`), enough unique values
+(`min_unique_values`), and enough valid batches. A batch is valid when it has
+at least `min_valid_per_batch` valid values. The feature needs
+`min_batches_per_feature` valid batches (default 3). The code caps this
+number at the number of batches in the data. Thus, a study with two batches
+runs with the default value, and each feature needs both batches.
+
 ---
 
 ## Multivariate Global Diagnostics
@@ -29,7 +38,7 @@ The framework computes detailed feature-level diagnostics, choosing the input ma
 To understand the global impact of batch effects across the entire radiomics feature space, the framework computes:
 * **Principal Component Analysis (PCA)**: Project features into low-dimensional orthogonal space. We report the explained variance ratio of PC1 and PC2.
 * **Silhouette Score**: Evaluates cluster separation of centers in the PCA subspace. A higher positive score ($> 0.1$) implies strong clustering by center (severe batch effect).
-* **PERMANOVA Pseudo-F test**: A non-parametric permutation-based MANOVA test (using Euclidean distance, 999 permutation steps, and a hardcoded random seed of `42` to guarantee perfect reproducibility). A significant p-value ($p < 0.05$) indicates that centers/scanners occupy statistically distinct regions of the feature space.
+* **PERMANOVA Pseudo-F test**: A non-parametric permutation-based MANOVA test (using Euclidean distance and 999 permutation steps by default). The `random_state` argument (default `42`) sets the seed for the PERMANOVA permutations, the PCA, and kBET. The same seed gives the same result. A significant p-value ($p < 0.05$) indicates that centers/scanners occupy statistically distinct regions of the feature space.
 
 ---
 
@@ -126,7 +135,8 @@ You can define a custom scikit-learn preprocessing pipeline, pass it directly to
 
 ```python
 from sklearn.pipeline import Pipeline
-from eigenradiomics.preprocessing import RadiomicsPrepTransformer, RadiomicsFeatureRemover
+from eigenradiomics import FeatureScoreSelector, compute_batch_effects
+from eigenradiomics.preprocessing import RadiomicsPrepTransformer
 
 # 1. Define your standard preprocessing configuration
 prep_pipeline = RadiomicsPrepTransformer(
@@ -143,13 +153,20 @@ results = compute_batch_effects(
     no_combat=False
 )
 
-# 3. Inspect which features failed QC or show severe batch effects
-qc_failed = results["feature_qc"][~results["feature_qc"]["keep"]]["feature"].tolist()
+# 3. Inspect which features failed QC
+qc = results["feature_qc"]
+qc_failed = qc.loc[~qc["keep"], "feature"].tolist()
 
-# 4. Construct downstream machine learning model using the same prep steps
+# 4. Construct downstream machine learning model using the same prep steps.
+#    FeatureScoreSelector selects by column name, so any names work.
+qc_keep = qc.set_index("feature")["keep"].astype(float)   # 1.0 = passed QC
 model_pipeline = Pipeline([
-    ("qc_filter", RadiomicsFeatureRemover(features=qc_failed)),
+    ("qc_filter", FeatureScoreSelector(qc_keep, threshold=1.0)),
     ("prep", prep_pipeline),
     # ... classifier, feature reducer, etc.
 ])
 ```
+
+`RadiomicsFeatureRemover(features=qc_failed)` also removes the failed features,
+but only from a table with Pictologics-style names (`config__feature_key`). On a
+table with other names, it raises a `ValueError`.

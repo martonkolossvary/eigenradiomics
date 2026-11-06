@@ -29,17 +29,26 @@ class FeatureScoreSelector(TransformerMixin, BaseEstimator):
         Per-feature scores. A Series or mapping maps feature name -> score; a
         DataFrame must carry feature names in *feature_column* and scores in
         *score_column* (e.g. ``compute_reproducibility(...)["ICC"]`` with
-        ``score_column="icc_2_1"``).
+        ``score_column="icc_2_1"``). Feature keys are compared as text. Two keys
+        that give the same text (for example ``1`` and ``"1"``) raise an error.
     threshold : float
-        Cut-off applied to the score.
+        Cut-off applied to the score (inclusive).
     keep : {"above", "below"}
         Keep features scoring ``>= threshold`` ("above", e.g. ICC reliability) or
         ``<= threshold`` ("below", e.g. a batch-effect size).
     feature_column, score_column : str
         Columns to read when *scores* is a DataFrame (``feature_column`` defaults
         to ``"feature"``; ``score_column`` is required for a DataFrame).
-    on_missing : {"keep", "drop"}
-        How to treat features absent from *scores* (or with a NaN score).
+    on_missing : {"keep", "drop", "raise"}
+        How to treat features that are absent from *scores* or have a NaN or
+        infinite score: keep them (the legacy default), drop them, or raise.
+
+    Attributes
+    ----------
+    decisions_ : DataFrame
+        One row per input feature, in input order, with ``feature``, ``score``,
+        ``kept`` and ``reason`` (``passed``, ``below_threshold``,
+        ``above_threshold``, ``unscored`` or ``nonfinite_score``).
     """
 
     def __init__(
@@ -64,11 +73,26 @@ class FeatureScoreSelector(TransformerMixin, BaseEstimator):
         if isinstance(scores, pd.DataFrame):
             if self.score_column is None:
                 raise ValueError("score_column must be set when scores is a DataFrame.")
-            keys = scores[self.feature_column].astype(str)
-            values = scores[self.score_column]
-            return {str(k): float(v) for k, v in zip(keys, values, strict=False)}
-        items = scores.items() if isinstance(scores, pd.Series) else dict(scores).items()
-        return {str(k): float(v) for k, v in items}
+            keys = scores[self.feature_column].tolist()
+            values = scores[self.score_column].tolist()
+        elif isinstance(scores, pd.Series):
+            keys, values = scores.index.tolist(), scores.tolist()
+        else:
+            keys, values = list(scores.keys()), list(scores.values())
+        score_map: dict[str, float] = {}
+        for key, value in zip(keys, values, strict=True):
+            name = str(key)
+            if name in score_map:
+                raise ValueError(f"scores has more than one entry for feature {name!r}.")
+            score_map[name] = float(value)
+        return score_map
+
+    @staticmethod
+    def _column_names(X: pd.DataFrame) -> list[str]:
+        names = [str(col) for col in X.columns]
+        if len(set(names)) != len(names):
+            raise ValueError("X has duplicate column names (compared as text).")
+        return names
 
     def fit(self, X: pd.DataFrame, y: None = None) -> FeatureScoreSelector:
         """Resolve which feature columns to keep from the scores and threshold."""
@@ -79,25 +103,41 @@ class FeatureScoreSelector(TransformerMixin, BaseEstimator):
             )
         if self.keep not in ("above", "below"):
             raise ValueError(f"keep must be 'above' or 'below', got {self.keep!r}.")
-        if self.on_missing not in ("keep", "drop"):
-            raise ValueError(f"on_missing must be 'keep' or 'drop', got {self.on_missing!r}.")
+        if self.on_missing not in ("keep", "drop", "raise"):
+            raise ValueError(
+                f"on_missing must be 'keep', 'drop' or 'raise', got {self.on_missing!r}."
+            )
+        if not np.isfinite(self.threshold):
+            raise ValueError(f"threshold must be finite, got {self.threshold!r}.")
 
         score_map = self._score_map()
-        self.feature_names_in_ = np.asarray([str(col) for col in X.columns], dtype=str)
+        names = self._column_names(X)
+        self.feature_names_in_ = np.asarray(names, dtype=str)
         self.n_features_in_ = X.shape[1]
 
-        kept: list[str] = []
-        for col in self.feature_names_in_:
-            value: float | None = score_map.get(col)
-            if value is None or (isinstance(value, float) and np.isnan(value)):
-                keep_it = self.on_missing == "keep"  # unscored / NaN score
+        records = []
+        for col in names:
+            value = score_map.get(col, np.nan)
+            if not np.isfinite(value):
+                reason = "unscored" if col not in score_map else "nonfinite_score"
+                keep_it = self.on_missing == "keep"
             elif self.keep == "above":
                 keep_it = value >= self.threshold
+                reason = "passed" if keep_it else "below_threshold"
             else:
                 keep_it = value <= self.threshold
-            if keep_it:
-                kept.append(col)
-        self.kept_features_ = np.asarray(kept, dtype=str)
+                reason = "passed" if keep_it else "above_threshold"
+            records.append({"feature": col, "score": value, "kept": keep_it, "reason": reason})
+        decisions = pd.DataFrame(records, columns=["feature", "score", "kept", "reason"])
+        if self.on_missing == "raise":
+            bad = decisions.loc[decisions["reason"].isin(["unscored", "nonfinite_score"])]
+            if not bad.empty:
+                raise ValueError(
+                    f"{len(bad)} feature(s) have no finite score: "
+                    f"{', '.join(bad['feature'].head(5))}."
+                )
+        self.decisions_ = decisions
+        self.kept_features_ = np.asarray(decisions.loc[decisions["kept"], "feature"], dtype=str)
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -105,13 +145,14 @@ class FeatureScoreSelector(TransformerMixin, BaseEstimator):
         check_is_fitted(self, "kept_features_")
         if not isinstance(X, pd.DataFrame):
             raise ValueError("FeatureScoreSelector.transform requires a pandas DataFrame.")
-        missing = [col for col in self.kept_features_ if col not in X.columns]
+        by_name = dict(zip(self._column_names(X), X.columns, strict=True))
+        missing = [col for col in self.kept_features_ if col not in by_name]
         if missing:
             raise ValueError(
                 f"transform input is missing {len(missing)} kept feature(s): "
                 f"{', '.join(map(str, missing[:5]))}."
             )
-        return X.loc[:, list(self.kept_features_)].copy()
+        return X.loc[:, [by_name[col] for col in self.kept_features_]].copy()
 
     def get_feature_names_out(self, input_features: Any = None) -> NDArray:
         """Return the names of the kept features."""

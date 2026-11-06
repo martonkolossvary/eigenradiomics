@@ -84,11 +84,12 @@ single-threaded (`WGCNAReducer(n_jobs=1)`) to avoid nested processes. See
 ### Automatic soft-power selection fails
 
 ```
-ValueError: Automatic soft-power selection failed — no power reached the R² threshold.
+UserWarning: No soft power meets the scale-free criteria; using the best-R² power ...
+ValueError: Automatic soft-power selection failed: ...   (with soft_power_fallback="raise")
 ```
 
-**Cause:** no candidate power reached `r_squared_cut` for the scale-free
-topology fit.
+**Cause:** no candidate power has a scale-free fit R² above `r_squared_cut`,
+a mean connectivity of at most `mean_cut`, and a negative slope.
 
 **Fixes:**
 
@@ -97,7 +98,8 @@ topology fit.
 3. Inspect the table to choose a power yourself:
 
 ```python
-reducer = WGCNAReducer(soft_power="auto", r_squared_cut=0.7).fit(X)
+reducer = WGCNAReducer(soft_power="auto").fit(X)
+print(reducer.soft_power_criteria_met_)        # False when the fallback power is used
 print(reducer.wgcna_get_soft_power_table())
 ```
 

@@ -392,7 +392,7 @@ def test_plot_handles_all_nan_sheet():
 
 
 def test_positional_rangeindex_columns():
-    """DataFrames with a default RangeIndex columns take the positional path."""
+    """DataFrames with default RangeIndex columns align by those labels."""
     arr = np.random.default_rng(0).standard_normal((12, 4))
     results = compute_reproducibility(
         [pd.DataFrame(arr), pd.DataFrame(arr.copy())], bootstrap_iterations=5
@@ -401,7 +401,7 @@ def test_positional_rangeindex_columns():
 
 
 def test_positional_non_string_columns():
-    """Non-string (but non-RangeIndex) column labels take the positional path."""
+    """Non-string column labels align by label, like text labels."""
     arr = np.random.default_rng(0).standard_normal((12, 3))
     d1 = pd.DataFrame(arr, columns=[10, 20, 30])
     results = compute_reproducibility([d1, d1.copy()], bootstrap_iterations=5)
@@ -446,13 +446,17 @@ def test_plot_single_sheet():
 class TestReproducibilityCoverageGaps:
     """Targeted tests for remaining uncovered branches in reproducibility.py."""
 
-    def test_cluster_bootstrap_padding_and_truncation(self):
-        from eigenradiomics.reproducibility import _generate_cluster_bootstrap_indices
+    def test_cluster_bootstrap_keeps_whole_clusters(self):
+        from eigenradiomics.reproducibility import _cluster_bootstrap_weights
 
-        # Highly unbalanced groups to test padding (L < n_samples) and truncation (L > n_samples)
+        # Unequal clusters: every row of a cluster must get the same multiplicity,
+        # and the number of rows in a draw can change (no padding, no cutting).
         groups = np.array([0, 0, 0, 0, 1, 2, 3, 4, 5, 6])
-        idx = _generate_cluster_bootstrap_indices(groups, iterations=100, seed=42)
-        assert idx.shape == (100, len(groups))
+        w = _cluster_bootstrap_weights(groups, iterations=200, seed=42)
+        assert w.shape == (200, len(groups))
+        assert (w[:, :4] == w[:, [0]]).all()
+        assert (w.reshape(200, -1)[:, [0, 4, 5, 6, 7, 8, 9]].sum(axis=1) == 7).all()
+        assert len(np.unique(w.sum(axis=1))) > 1
 
     def test_compute_reproducibility_groups_variants(self):
         rng = np.random.default_rng(42)
@@ -557,3 +561,179 @@ class TestReproducibilityCoverageGaps:
         )
         assert isinstance(fig_grid, plt.Figure)
         plt.close(fig_grid)
+
+
+# ----------------------------------------------------------------------
+# Regression tests for the ICC kernel, keyed alignment and cluster bootstrap
+# ----------------------------------------------------------------------
+
+
+def _two_readers(n=24, noise=0.3, seed=0, index=None):
+    rng = np.random.default_rng(seed)
+    truth = rng.normal(size=(n, 1))
+    idx = index if index is not None else [f"s{i}" for i in range(n)]
+    cols = ["f", "g"]
+    d0 = pd.DataFrame(truth + noise * rng.normal(size=(n, 2)), index=idx, columns=cols)
+    d1 = pd.DataFrame(truth + noise * rng.normal(size=(n, 2)), index=idx, columns=cols)
+    return d0, d1
+
+
+def test_weighted_icc_matches_row_expansion():
+    from eigenradiomics._stats import _icc_2_1_weighted
+
+    rng = np.random.default_rng(3)
+    Y = rng.normal(size=(7, 3))
+    w = np.array([[2.0, 0.0, 1.0, 1.0, 3.0, 1.0, 2.0]])
+    expanded = np.repeat(Y, w[0].astype(int), axis=0)
+    res = _icc_2_1_weighted(Y, w)
+    ref = _icc_2_1_estimate(expanded)
+    assert np.isclose(res["icc"][0], ref["icc"])
+    assert np.isclose(res["ms_error"][0], ref["ms_error"])
+
+
+def test_icc_shrout_fleiss_reference():
+    """Shrout and Fleiss (1979), 6 targets x 4 judges: ICC(2,1) = 0.29."""
+    Y = np.array(
+        [[9, 2, 5, 8], [6, 1, 3, 2], [8, 4, 6, 8], [7, 1, 2, 6], [10, 5, 6, 9], [6, 2, 4, 7]],
+        dtype=float,
+    )
+    res = _icc_2_1_estimate(Y)
+    assert round(res["icc"], 2) == 0.29
+    assert np.isclose(res["ms_between_subjects"], 11.2417, atol=1e-4)
+    assert np.isclose(res["ms_error"], 1.0194, atol=1e-4)
+
+
+def test_icc_constant_non_representable_value_is_undefined():
+    d = pd.DataFrame({"f": np.full(64, 0.1)}, index=[f"s{i}" for i in range(64)])
+    icc = compute_reproducibility([d, d.copy()], bootstrap_iterations=20)["ICC"].iloc[0]
+    assert np.isnan(icc["icc_2_1"])
+    assert icc["status"] == "constant"
+
+
+def test_icc_large_offset_identical_readers_is_one():
+    v = 1e12 + np.array([0, 1, 2, 3]) * 0.000244140625
+    d = pd.DataFrame({"f": v}, index=list("abcd"))
+    icc = compute_reproducibility([d, d.copy()], bootstrap_iterations=20)["ICC"].iloc[0]
+    assert icc["icc_2_1"] == 1.0
+    assert bool(icc["precision_limited"])
+
+
+def test_icc_negative_estimate_is_kept():
+    d0 = pd.DataFrame({"f": [1.0, 2.0, 3.0, 4.0]}, index=list("abcd"))
+    d1 = pd.DataFrame({"f": [4.0, 3.0, 2.0, 1.0]}, index=list("abcd"))
+    icc = compute_reproducibility([d0, d1], bootstrap_iterations=0)["ICC"].iloc[0]
+    assert icc["icc_2_1"] < 0
+    assert icc["ci_status"] == "disabled"
+
+
+def test_duplicate_row_and_feature_keys_raise():
+    d = pd.DataFrame({"f": [1.0, 2.0, 3.0, 4.0]}, index=["a", "a", "b", "c"])
+    with pytest.raises(ValueError, match="duplicate row keys"):
+        compute_reproducibility([d, d.copy()])
+    d2 = pd.DataFrame([[1.0, 2.0]] * 4, columns=["f", "f"], index=list("abcd"))
+    with pytest.raises(ValueError, match="duplicate feature keys"):
+        compute_reproducibility([d2, d2.copy()])
+    d3 = pd.DataFrame({"f": [1.0, 2.0, 3.0]}, index=["a", None, "c"])
+    with pytest.raises(ValueError, match="missing row keys"):
+        compute_reproducibility([d3, d3.copy()])
+
+
+def test_shuffled_named_input_gives_same_result():
+    d0, d1 = _two_readers()
+    ref = compute_reproducibility([d0, d1], bootstrap_iterations=50)["ICC"]
+    shuffled = d1.sample(frac=1, random_state=1)[["g", "f"]]
+    out = compute_reproducibility([d0, shuffled], bootstrap_iterations=50)["ICC"]
+    pd.testing.assert_frame_equal(ref, out)
+
+
+def test_infinite_values_drop_only_their_rows():
+    d0, d1 = _two_readers()
+    d0.iloc[0, 0] = np.inf
+    icc = compute_reproducibility([d0, d1], bootstrap_iterations=50)["ICC"].iloc[0]
+    assert icc["n_valid"] == len(d0) - 1
+    assert np.isfinite(icc["icc_2_1"]) and np.isfinite(icc["ci95_low"])
+
+
+def test_single_cluster_interval_is_unavailable():
+    d0, d1 = _two_readers(n=20)
+    icc = compute_reproducibility([d0, d1], groups=np.array(["p"] * 20), bootstrap_iterations=50)[
+        "ICC"
+    ].iloc[0]
+    assert np.isfinite(icc["icc_2_1"])
+    assert np.isnan(icc["ci95_low"]) and np.isnan(icc["ci95_high"])
+    assert icc["ci_status"] == "insufficient_clusters"
+    assert icc["n_clusters"] == 1
+
+
+def test_group_series_aligns_by_row_key():
+    d0, d1 = _two_readers(n=24)
+    gs = pd.Series(np.repeat([f"p{i}" for i in range(8)], 3), index=d0.index)
+    ref = compute_reproducibility([d0, d1], groups=gs, bootstrap_iterations=100)["ICC"]
+    out = compute_reproducibility(
+        [d0, d1], groups=gs.sample(frac=1, random_state=3), bootstrap_iterations=100
+    )["ICC"]
+    pd.testing.assert_frame_equal(ref, out)
+    assert ref["ci_method"].iloc[0].startswith("cluster bootstrap")
+
+
+def test_group_labels_are_validated():
+    d0, d1 = _two_readers(n=12)
+    with pytest.raises(ValueError, match="missing label"):
+        compute_reproducibility([d0, d1], groups=[1, 1, 2, 2, None, 3, 3, 4, 4, 5, 5, 6])
+    with pytest.raises(ValueError, match="11 labels"):
+        compute_reproducibility([d0, d1], groups=list(range(11)))
+    with pytest.raises(ValueError, match="no label"):
+        compute_reproducibility([d0, d1], groups=pd.Series([1] * 11, index=d0.index[:11]))
+
+
+def test_group_column_is_not_a_feature_and_naive_inference_is_withheld():
+    d0, d1 = _two_readers(n=24)
+    pid = np.repeat(np.arange(8), 3)
+    res = compute_reproducibility(
+        [d0.assign(pid=pid), d1.assign(pid=pid)], groups="pid", bootstrap_iterations=50
+    )
+    assert list(res["ICC"]["feature"]) == ["f", "g"]
+    assert res["ICC"]["p_value"].isna().all()
+    assert res["Pearson"][["p_value", "ci95_low"]].isna().all().all()
+    assert res["Pearson"]["estimate"].notna().all()
+    assert (res["ICC"]["n_clusters"] == 8).all()
+
+
+def test_cluster_bootstrap_is_reproducible_and_seeded():
+    d0, d1 = _two_readers(n=24)
+    g = np.repeat(np.arange(8), 3)
+    a = compute_reproducibility([d0, d1], groups=g, bootstrap_iterations=100)["ICC"]
+    b = compute_reproducibility([d0, d1], groups=g, bootstrap_iterations=100)["ICC"]
+    c = compute_reproducibility([d0, d1], groups=g, bootstrap_iterations=100, random_state=7)[
+        "ICC"
+    ]
+    pd.testing.assert_frame_equal(a, b)
+    assert not np.allclose(a["ci95_low"], c["ci95_low"])
+
+
+def test_invalid_arguments_raise():
+    d0, d1 = _two_readers(n=6)
+    with pytest.raises(ValueError, match="primary_threshold"):
+        compute_reproducibility([d0, d1], primary_threshold=np.nan)
+    with pytest.raises(ValueError, match="bootstrap_iterations"):
+        compute_reproducibility([d0, d1], bootstrap_iterations=-1)
+    with pytest.raises(ValueError, match="2-D"):
+        compute_reproducibility([np.zeros(5), np.zeros(5)])
+
+
+def test_mixed_column_labels_align_by_key():
+    """One non-text column label must not switch readers to positional matching."""
+    rng = np.random.default_rng(0)
+    truth = rng.normal(size=(30, 1))
+    idx = [f"s{i}" for i in range(30)]
+    d0 = pd.DataFrame(truth + 0.3 * rng.normal(size=(30, 2)), index=idx, columns=["f", 5])
+    d1 = pd.DataFrame(truth + 0.3 * rng.normal(size=(30, 2)), index=idx, columns=["f", 5])
+    ref = compute_reproducibility([d0, d1], bootstrap_iterations=20)["ICC"]
+    out = compute_reproducibility(
+        [d0, d1.sample(frac=1, random_state=1)[[5, "f"]]], bootstrap_iterations=20
+    )["ICC"]
+    pd.testing.assert_frame_equal(ref, out)
+    assert list(ref["feature"]) == ["f", 5]
+    assert compute_reproducibility([d0, d1], features=[5], bootstrap_iterations=0)["ICC"][
+        "feature"
+    ].tolist() == [5]

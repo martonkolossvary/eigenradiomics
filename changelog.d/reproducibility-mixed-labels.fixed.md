@@ -1,0 +1,1 @@
+`compute_reproducibility` now aligns readers by row and column labels whenever all datasets are DataFrames, also with integer or mixed labels. Before, one non-text column label switched all readers to positional matching, so shuffled rows gave a wrong ICC.

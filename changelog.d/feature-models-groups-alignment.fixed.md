@@ -1,0 +1,1 @@
+`compute_feature_associations` aligns a `groups` Series to the samples by index, the same as the outcome. It raises `ValueError` when that index is not unique or does not cover every sample, or when a `groups` array has the wrong length.

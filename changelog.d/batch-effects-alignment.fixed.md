@@ -1,0 +1,1 @@
+`compute_batch_effects` now uses a list or array `batch` by position. Before, a list on a DataFrame with a shuffled integer index was silently relabelled by key. A Series still aligns by index. Missing batch labels and duplicate row keys now raise, and a new `random_state` argument sets the PCA, PERMANOVA and kBET seed.

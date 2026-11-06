@@ -222,6 +222,26 @@ class TestRadiomicsFeatureSelection:
         ).fit(pictologics_table)
         assert remover.unmatched_selectors_ == ("feature:PatientID",)
 
+    def test_catalog_row_without_config_matches_all_configs(
+        self,
+        pictologics_table: pd.DataFrame,
+    ) -> None:
+        catalog = pd.DataFrame(
+            {
+                "config": [np.nan],
+                "feature_key": ["volume_RNU0"],
+                "family": ["morphology"],
+                "family_group": ["Morphology"],
+            }
+        )
+        remover = RadiomicsFeatureRemover(families="morphology", catalog=catalog).fit(
+            pictologics_table
+        )
+        assert list(remover.removed_feature_names_) == [
+            "standard_fbn_8__volume_RNU0",
+            "standard_fbs_8__volume_RNU0",
+        ]
+
     def test_legacy_catalog_full_feature_column(
         self,
         pictologics_table: pd.DataFrame,
@@ -373,6 +393,16 @@ class TestRadiomicsFeatureRemover:
         remover = RadiomicsFeatureRemover(configs="standard_fbn_8").fit(pictologics_table)
         out = remover.transform(pictologics_table.to_numpy())
         assert out.shape[1] == len(remover.kept_feature_names_)
+
+    def test_ndarray_fit_dataframe_transform_warns(self) -> None:
+        X = np.arange(12.0).reshape(4, 3)
+        remover = RadiomicsFeatureRemover().fit(X)
+        frame = pd.DataFrame(X, columns=["a", "b", "c"])
+        with pytest.warns(UserWarning, match="fitted without feature names"):
+            out = remover.transform(frame)
+        pd.testing.assert_frame_equal(out, frame)
+        with pytest.warns(UserWarning, match="fitted without feature names"):
+            remover.split(frame)
 
     def test_sparse_fit_raises(self) -> None:
         with pytest.raises(TypeError, match="Sparse matrices are not supported"):

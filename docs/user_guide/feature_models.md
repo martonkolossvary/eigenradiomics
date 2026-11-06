@@ -43,10 +43,14 @@ random-intercept **GLMM** or cluster-robust **GEE** (binary, via `mixed_method=`
 and **cluster-robust Cox** (survival).
 
 ```python
-result = compute_feature_associations(
+mixed_result = compute_feature_associations(
     X, outcome, groups="PatientID", covariate_data=clinical,
 )
 ```
+
+This call has no `model_tiers`, so it fits only the `"Univariable"` tier. The
+examples below use `result` from the first block, which also has the
+`"Adjusted"` tier.
 
 With a `RadiomicsDataset`, the outcome (`StudyDesign` time/event/target), `groups`
 (design group), and catalog are taken from the dataset automatically:
@@ -56,8 +60,10 @@ With a `RadiomicsDataset`, the outcome (`StudyDesign` time/event/target), `group
 
 `plot_volcano` draws one panel per model tier; the grid is chosen from the panel
 count (1→1×1, 2→1×2, 3→1×3, 4→2×2, 5–9→3×3) or set with `layout=(rows, cols)`.
-FDR-significant points are coloured (Okabe-Ito) by a catalog column; an
-outlier-aware x-axis keeps one extreme effect from flattening a panel.
+FDR-significant points are coloured by a catalog column. The colours come from
+the package's eight-colour `EIGEN_VIBRANT` palette (`tab20` for more than eight
+categories). An outlier-aware x-axis keeps one extreme effect from flattening a
+panel.
 
 ```python
 from eigenradiomics import plot_volcano
@@ -73,6 +79,9 @@ The per-feature statistics that drive the volcano also annotate the
 [cornerstone heatmap](clustered_heatmap.md) and export to Excel:
 
 ```python
+import numpy as np
+from eigenradiomics import plot_clustered_heatmap
+
 # a -log10(p) bottom track for the clustered heatmap
 bar = result.bar(tier="Adjusted", value="neg_log10_p", reference=-np.log10(0.05))
 plot_clustered_heatmap(artifacts, bottom=[bar])

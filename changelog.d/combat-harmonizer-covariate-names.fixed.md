@@ -1,0 +1,1 @@
+`ComBatHarmonizer` now passes plain internal names for the covariates to inmoose. NumPy covariates (columns 0 and 1) were dropped as intercept terms, and a name with a space or hyphen raised a patsy error. A batch with one sample now raises a clear ValueError.

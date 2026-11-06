@@ -1,0 +1,1 @@
+The cluster bootstrap of `compute_reproducibility` now resamples whole clusters. Each draw takes G clusters with replacement and keeps every row of each drawn cluster, so the row count can change. Draws are no longer padded or cut. A feature with fewer than 2 contributing clusters gets no interval (`ci_status="insufficient_clusters"`) instead of a zero-width interval.

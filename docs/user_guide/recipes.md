@@ -30,7 +30,7 @@ reducer.fit(X_pre)
 paired = reducer.transform_paired(
     X_pre=X_pre,
     X_post=X_post,
-    relative=True,           # Compute Δ / (|baseline| + ε)
+    relative=True,           # Compute Δ / |baseline| (NaN where |baseline| < ε)
     compute_distance=True,   # Compute ||Δ||_2 Euclidean trajectory length
     align_indices=True,      # Match patients present in both scans
 )
@@ -102,8 +102,10 @@ from eigenradiomics import FeatureCatalog, WGCNAReducer
 reducer = WGCNAReducer(soft_power=6, min_module_size=20)
 reducer.fit(X_df)
 
-# 2. Query enrichment across IBSI catalog categories
-catalog = FeatureCatalog.from_preset("ibsi")
+# 2. Load the feature catalog (the Pictologics describe_features() table)
+catalog = FeatureCatalog.from_csv("feature_catalog.csv")
+
+# 3. Query enrichment across the IBSI catalog categories
 enrichment = reducer.get_catalog_enrichment(
     catalog,
     columns=["family", "family_group"],
@@ -175,6 +177,7 @@ Y_train = pipe.fit_transform(X_train)
 Y_test = pipe.transform(X_test)
 
 reducer = pipe.named_steps["reduce"]
-importances = reducer.wgcna_get_feature_importances()
-print(importances["blue"].head())
+importances = reducer.wgcna_get_feature_importances()   # one table for each module
+first_module = reducer.module_names_[0]                 # PyWGCNA chooses the module names
+print(importances[first_module].head())
 ```

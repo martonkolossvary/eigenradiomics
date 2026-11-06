@@ -1,0 +1,1 @@
+`plot_volcano` and `plot_rwas_manhattan` keep rows with a p-value of 0 and plot them at `-log10` of the smallest positive float. The dotted volcano line has the label `(nominal)`, because it is at the nominal p = `fdr_alpha` and not at the FDR cut.

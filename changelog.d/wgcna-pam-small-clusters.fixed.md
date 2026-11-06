@@ -1,0 +1,1 @@
+`WGCNAReducer` now calls PyWGCNA `cutreeHybrid` with `respectSmallClusters=False`. In PyWGCNA 2.2.1 the small-cluster PAM step assigns features to the wrong module (an off-by-one label), for example features with r = -0.93 to a module.

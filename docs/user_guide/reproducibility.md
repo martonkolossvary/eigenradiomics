@@ -18,15 +18,17 @@ datasets: [Reader 1, Reader 2, ...]        (DataFrames or ndarrays; min 2)
         │  resolve feature columns  (all numeric by default, or a features= list /
         │                            Pictologics catalog selector)
         │  per feature → (N subjects × K observers) matrix,
-        │  drop rows with any NaN   (per-feature complete-case)
+        │  drop rows with any NaN or ±inf   (per-feature complete-case)
         ▼
 ┌───────────────────────────┐
 │  compute_reproducibility   │
 └───────────────────────────┘
         │
    dict { "Spearman", "Pearson", "ICC" }
-     ├─ ICC : icc_2_1, ci95_low/high, p_value, p_fdr, ms_*, primary_icc_pass
-     │        └ _icc_2_1_estimate (point) + _bootstrap_icc_ci → _icc_2_1_batch (CI)
+     ├─ ICC : icc_2_1, ci95_low/high, p_value, p_fdr, ms_*, n_valid, n_clusters,
+     │        status, ci_method, ci_status, n_boot_valid, precision_limited,
+     │        primary_icc_pass
+     │        └ _icc_2_1_weighted: one kernel for the point estimate and the bootstrap
      ├─ K=2 : estimate, ci95_low/high, p_value, p_fdr        (Spearman/Pearson, _fisher_ci)
      └─ K≥3 : mean, median, sd, q25, q75, min, max           (pairwise; mean pooled
               in Fisher z-space via _fisher_mean — no p-value: pairs aren't independent)
@@ -41,7 +43,15 @@ plot_reproducibility_histograms  plot_reproducibility_synteny   plot_reproducibi
 
 The cluster-robust ICC bootstrap (`groups=`) engages automatically on a
 MultiIndex (e.g. repeated measures such as Pictologics per-mask rows, clustered
-by patient) or with an explicit `groups=` column/level/array. The ICC `p_value`
+by patient) or with an explicit `groups=` column/level/Series/array. A Series
+aligns by row key; a column named in `groups=` is not analysed as a feature;
+missing labels raise. Each draw resamples whole clusters with replacement and
+keeps all rows of each drawn cluster. A feature with fewer than two contributing
+clusters gets no interval (`ci_status="insufficient_clusters"`), and few clusters
+give an approximate interval. The interval is conditional on the observed
+readers. In clustered mode the independent-row inference (ICC `p_value`/`p_fdr`
+and the two-reader Pearson/Spearman p-values and Fisher intervals) is NaN.
+Named reader tables must have unique row and feature keys. The ICC `p_value`
 tests whether subjects are distinguishable (an F-test) — **not** whether the ICC
 clears a threshold — so judge reliability from the ICC estimate and its CI versus
 `primary_threshold`. The ICC is the principled inferential statistic for K ≥ 3.
@@ -104,7 +114,7 @@ print(results["Spearman"].head())
 ## Multi-Observer Studies ($K > 2$)
 
 When comparing three or more observers/settings, reporting a single correlation between two readers is insufficient. For $K > 2$, the framework computes all $\binom{K}{2}$ pairwise combinations and compiles aggregate statistics for the Spearman and Pearson sheets:
-* **mean**: Arithmetic mean of pairwise correlations.
+* **mean**: Pooled mean of the pairwise correlations. The code changes each correlation to Fisher z (`arctanh`), takes the mean, and changes the result back (`tanh`). This removes the downward bias of a plain mean of correlations.
 * **median**: Median of pairwise correlations.
 * **sd**: Standard deviation of pairwise correlations (capturing observer consensus).
 * **q25, q75**: 25th and 75th percentiles.

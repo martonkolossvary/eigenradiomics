@@ -9,6 +9,7 @@ Provides transcriptomics-inspired metrics adapted for radiomics features:
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
 from typing import Any
 
@@ -51,6 +52,8 @@ def compute_module_membership(
     """
     if eigengenes is None and reducer is None:
         raise ValueError("Either 'eigengenes' or a fitted 'reducer' must be provided.")
+    if method not in {"spearman", "pearson", "kendall"}:
+        raise ValueError(f"method must be 'spearman', 'pearson', or 'kendall', got {method!r}.")
 
     feature_names: Sequence[str] | None = None
     if isinstance(X, pd.DataFrame):
@@ -69,21 +72,33 @@ def compute_module_membership(
             feature_names = reducer.feature_names_in_
 
         # Determine column names for components
-        if hasattr(reducer, "module_names_") and hasattr(reducer, "n_module_components"):
-            # WGCNAReducer column naming mapping
+        if hasattr(reducer, "module_names_") and hasattr(reducer, "module_loadings_"):
+            # WGCNAReducer: name each column by its module. A module can have
+            # fewer components than requested, so count the stored loadings.
             comp_names = []
             for mod in reducer.module_names_:
+                loadings = np.asarray(reducer.module_loadings_[mod])
+                n_comp = loadings.shape[1] if loadings.ndim == 2 else 1
                 if reducer.n_module_components == 1:
                     comp_names.append(mod)
                 else:
-                    for comp in range(reducer.n_module_components):
-                        comp_names.append(f"{mod}_{comp}")
+                    comp_names.extend(f"{mod}_{comp}" for comp in range(n_comp))
         else:
             comp_names = list(reducer.get_feature_names_out())
     else:
         Y = np.asarray(eigengenes)
         if isinstance(eigengenes, pd.DataFrame):
             comp_names = list(eigengenes.columns)
+            if isinstance(X, pd.DataFrame) and len(eigengenes) == len(X):
+                # Pair samples by index label, not by row position.
+                if not (eigengenes.index.is_unique and X.index.is_unique) or set(
+                    eigengenes.index
+                ) != set(X.index):
+                    raise ValueError(
+                        "X and eigengenes must have the same unique index labels; "
+                        "pass NumPy arrays for positional pairing."
+                    )
+                Y = eigengenes.loc[X.index].to_numpy()
         else:
             comp_names = [f"component_{i}" for i in range(Y.shape[1])]
 
@@ -133,6 +148,11 @@ def identify_hub_features(
     that have the highest absolute correlation (k_ME) with their assigned
     cluster's eigengene.
 
+    Each cluster label must name an eigengene column: the label itself, or
+    ``"<label>_0"`` (the first component of a multi-component WGCNA module).
+    A cluster without a matching column is skipped with a warning; the function
+    never maps a label to a column by position.
+
     Parameters
     ----------
     X : array-like of shape (n_samples, n_features)
@@ -175,24 +195,17 @@ def identify_hub_features(
 
     unique_clusters = sorted(labels_series.dropna().unique())
     hub_records = []
+    skipped: list[Any] = []
 
     for cluster in unique_clusters:
         cluster_mask = labels_series == cluster
         cluster_features = k_me.index[cluster_mask]
 
-        col_name = None
-        if str(cluster) in k_me.columns:
-            col_name = str(cluster)
-        else:
-            all_sorted_labels = sorted(labels_series.dropna().unique())
-            col_idx = all_sorted_labels.index(cluster)
-            if col_idx < len(k_me.columns):
-                col_name = k_me.columns[col_idx]
-
+        col_name = next(
+            (c for c in (cluster, str(cluster), f"{cluster}_0") if c in k_me.columns), None
+        )
         if col_name is None:
-            col_name = k_me.columns[0] if len(k_me.columns) > 0 else None
-
-        if col_name is None:
+            skipped.append(cluster)
             continue
 
         cluster_kme = k_me.loc[cluster_features, col_name]
@@ -210,7 +223,14 @@ def identify_hub_features(
                 }
             )
 
-    return pd.DataFrame(hub_records)
+    if skipped:
+        warnings.warn(
+            f"{len(skipped)} cluster label(s) have no matching eigengene column and were "
+            f"skipped: {', '.join(map(str, skipped[:5]))}.",
+            UserWarning,
+            stacklevel=2,
+        )
+    return pd.DataFrame(hub_records, columns=["cluster", "feature", "k_ME", "rank"])
 
 
 def _single_column_enrichment(
@@ -242,10 +262,13 @@ def _single_column_enrichment(
 
     c_sub = c_series.loc[common_idx]
     g_sub = g_series.loc[common_idx]
+    # A feature without a cluster or group label is not part of the universe.
+    labelled = c_sub.notna() & g_sub.notna()
+    c_sub, g_sub = c_sub[labelled], g_sub[labelled]
 
-    unique_clusters = sorted(c_sub.dropna().unique())
-    unique_groups = sorted(g_sub.dropna().unique())
-    total_n = len(common_idx)
+    unique_clusters = sorted(c_sub.unique())
+    unique_groups = sorted(g_sub.unique())
+    total_n = int(labelled.sum())
 
     records = []
 
@@ -273,7 +296,14 @@ def _single_column_enrichment(
                 )
                 try:
                     chi2_res = stats.chi2_contingency(table, correction=True)
-                    p_val = float(chi2_res.pvalue)
+                    if alternative == "two-sided":
+                        p_val = float(chi2_res.pvalue)
+                    else:
+                        # One-sided test: signed root of the 1-df statistic.
+                        z = np.sign(a - chi2_res.expected_freq[0, 0]) * np.sqrt(chi2_res.statistic)
+                        p_val = float(
+                            stats.norm.sf(z) if alternative == "greater" else stats.norm.cdf(z)
+                        )
                 except ValueError:
                     p_val = float(np.nan)
             elif method == "hypergeometric":
@@ -342,12 +372,14 @@ def compute_group_enrichment(
     method : {"fisher", "chi2", "hypergeometric"}, default="fisher"
         Statistical test to evaluate over-representation.
     alternative : {"greater", "less", "two-sided"}, default="greater"
-        Alternative hypothesis direction.
+        Alternative hypothesis direction. For ``"chi2"`` a one-sided p-value
+        comes from the signed square root of the Yates-corrected statistic.
 
     Returns
     -------
     enrichment : pandas.DataFrame
-        Detailed over-representation results table.
+        Detailed over-representation results table. Features without a cluster
+        or a group label are not part of the background (``total_features``).
         Columns: `cluster`, `group`, `n_overlap`, `cluster_size`, `group_size`,
                  `total_features`, `p_value`, `fdr_q_value`, `odds_ratio`
                  (and `catalog_column` when multi-column/catalog input is used).

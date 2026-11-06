@@ -130,9 +130,14 @@ def _load_catalog(catalog: CatalogInput) -> pd.DataFrame | None:
 def _normalize_catalog(catalog: pd.DataFrame) -> pd.DataFrame:
     if {"config", "feature_key"}.issubset(catalog.columns):
         normalized = catalog.copy()
-        normalized["config"] = normalized["config"].astype(str)
+        # Keep a missing config as missing, not as the text "nan". A row with
+        # no config applies to all configs, as in the legacy schema.
+        has_config = normalized["config"].notna()
+        config_text = normalized["config"].astype(str)
+        normalized["config"] = config_text.where(has_config, None)
         normalized["feature_key"] = normalized["feature_key"].astype(str)
-        normalized["_column_name"] = normalized["config"] + "__" + normalized["feature_key"]
+        full_name = config_text + "__" + normalized["feature_key"]
+        normalized["_column_name"] = full_name.where(has_config, normalized["feature_key"])
         return normalized
 
     if "feature" in catalog.columns:
@@ -394,6 +399,7 @@ def _validate_2d_table(X: TableLike, estimator: Any, *, reset: bool) -> tuple[ND
         )
         if reset:
             estimator.feature_names_in_ = np.asarray(names, dtype=str)
+            estimator._feature_names_generated = False
         return cast(NDArray, X_arr), names
 
     X_arr = validate_data(
@@ -408,6 +414,7 @@ def _validate_2d_table(X: TableLike, estimator: Any, *, reset: bool) -> tuple[ND
     names = [f"feature_{idx}" for idx in range(X_arr.shape[1])]
     if reset:
         estimator.feature_names_in_ = np.asarray(names, dtype=str)
+        estimator._feature_names_generated = True
     return cast(NDArray, X_arr), names
 
 
@@ -550,8 +557,9 @@ class RadiomicsFeatureRemover(TransformerMixin, BaseEstimator):
         names = _validate_transform_names(X, self)
         # Strict same-order check only when transforming a named DataFrame; a bare
         # array of the same width (positional selection) is supported and must not
-        # raise, matching scikit-learn's cross-type behaviour.
-        if isinstance(X, pd.DataFrame):
+        # raise, matching scikit-learn's cross-type behaviour. Names generated
+        # at a numpy fit are not real names, so they are not compared.
+        if isinstance(X, pd.DataFrame) and not getattr(self, "_feature_names_generated", False):
             _check_feature_names(
                 self.feature_names_in_,
                 np.asarray(names, dtype=str),
@@ -575,27 +583,20 @@ def _unique_indices(indices: tuple[int, ...]) -> tuple[int, ...]:
 
 def _validate_transform_names(X: TableLike, estimator: Any) -> list[str]:
     _assert_dense_matrix(X)
-    if isinstance(X, pd.DataFrame):
-        validate_data(
-            estimator,
-            X=X,
-            y="no_validation",
-            reset=False,
-            dtype=None,
-            ensure_2d=True,
-            ensure_all_finite="allow-nan",
-        )
-        return [str(column) for column in X.columns]
-
-    X_arr = np.asarray(X)
+    is_frame = isinstance(X, pd.DataFrame)
+    X_in = X if is_frame else np.asarray(X)
     had_feature_names = hasattr(estimator, "feature_names_in_")
     stored_feature_names = getattr(estimator, "feature_names_in_", None)
-    if had_feature_names:
+    # Hide the stored names for an array, or for names generated at a numpy
+    # fit. Then scikit-learn warns for a DataFrame after a numpy fit.
+    names_generated = getattr(estimator, "_feature_names_generated", False)
+    hide_names = had_feature_names and (not is_frame or names_generated)
+    if hide_names:
         delattr(estimator, "feature_names_in_")
     try:
         validate_data(
             estimator,
-            X=X_arr,
+            X=X_in,
             y="no_validation",
             reset=False,
             dtype=None,
@@ -603,9 +604,11 @@ def _validate_transform_names(X: TableLike, estimator: Any) -> list[str]:
             ensure_all_finite="allow-nan",
         )
     finally:
-        if had_feature_names:
+        if hide_names:
             estimator.feature_names_in_ = stored_feature_names
-    return [f"feature_{idx}" for idx in range(X_arr.shape[1])]
+    if isinstance(X, pd.DataFrame):
+        return [str(column) for column in X.columns]
+    return [f"feature_{idx}" for idx in range(X_in.shape[1])]
 
 
 def split_radiomics_table(

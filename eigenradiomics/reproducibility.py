@@ -18,52 +18,107 @@ from eigenradiomics._excel import write_styled_workbook
 from eigenradiomics._features import resolve_analysis_features
 from eigenradiomics._plotting import apply_science_style
 from eigenradiomics._stats import (
-    _bootstrap_icc_ci,
     _fdr_correct,
     _fisher_ci,
     _fisher_mean,
+    _get_deterministic_seed,
     _icc_2_1_estimate,
+    _icc_2_1_weighted,
+    _percentile_ci,
+    _row_bootstrap_weights,
 )
 from eigenradiomics._utils import _save_figure
 
 
-def _generate_cluster_bootstrap_indices(
+def _cluster_bootstrap_weights(
     groups: NDArray,
     iterations: int = 1000,
     seed: int = 42,
 ) -> NDArray:
-    """Generate a (iterations, n_samples) matrix of bootstrap indices clustered by groups."""
+    """Return a (iterations, n_rows) matrix of whole-cluster row multiplicities.
+
+    Each draw takes ``G`` clusters with replacement from the ``G`` clusters in
+    *groups*. Every row of a drawn cluster gets the number of times that its
+    cluster was drawn, so the number of rows in a draw can change from draw to
+    draw. The function never pads or cuts a draw.
+    """
+    codes, uniques = pd.factorize(np.asarray(groups, dtype=object))
+    n_groups = len(uniques)
     rng = np.random.default_rng(seed)
-    n_samples = len(groups)
-    unique_groups, group_inverse = np.unique(groups, return_inverse=True)
-    n_groups = len(unique_groups)
+    draws = rng.integers(0, n_groups, size=(iterations, n_groups))
+    counts = np.zeros((iterations, n_groups))
+    np.add.at(counts, (np.arange(iterations)[:, None], draws), 1.0)
+    weights: NDArray = counts[:, codes]
+    return weights
 
-    # Pre-group the row indices for each unique group
-    group_to_indices = [np.where(group_inverse == i)[0] for i in range(n_groups)]
 
-    bootstrap_indices = np.zeros((iterations, n_samples), dtype=int)
-    for i in range(iterations):
-        # Sample unique groups with replacement
-        sampled_group_indices = rng.choice(n_groups, size=n_groups, replace=True)
-        # Gather all row indices belonging to these groups (concatenating the
-        # pre-grouped arrays directly avoids per-row Python list growth).
-        sampled_indices = np.concatenate(
-            [group_to_indices[g_idx] for g_idx in sampled_group_indices]
-        )
-        L = len(sampled_indices)
-        if n_samples == L:
-            boot_idx = sampled_indices
-        elif n_samples > L:
-            # Pad by sampling with replacement from the gathered indices
-            padding = rng.choice(sampled_indices, size=n_samples - L, replace=True)
-            boot_idx = np.concatenate([sampled_indices, padding])
+def _has_missing_keys(index: pd.Index) -> bool:
+    """Return True when an index (or any MultiIndex level value) is missing."""
+    if isinstance(index, pd.MultiIndex):
+        return bool(index.to_frame(index=False).isna().any().any())
+    return bool(index.isna().any())
+
+
+def _check_keys(index: pd.Index, what: str, idx: int) -> None:
+    """Raise when *index* has missing or duplicate keys."""
+    if _has_missing_keys(index):
+        raise ValueError(f"Dataset {idx} has missing {what} keys.")
+    if not index.is_unique:
+        duplicated = index[index.duplicated()].unique()[:5].tolist()
+        raise ValueError(f"Dataset {idx} has duplicate {what} keys: {duplicated}.")
+
+
+def _resolve_groups(
+    groups: Any,
+    datasets: Sequence[pd.DataFrame | NDArray],
+    aligned_ref: pd.DataFrame,
+    is_named: bool,
+) -> tuple[NDArray | None, str | None, str | None]:
+    """Return the cluster labels in reference row order, the column to exclude, and the source.
+
+    A string names a column or an index level of the first dataset. A pandas
+    Series aligns by row key when the datasets are named. Other array-likes are
+    positional. When *groups* is None and the first dataset has a MultiIndex, the
+    first level is used.
+    """
+    n_rows = len(aligned_ref)
+    ref_df = datasets[0]
+    exclude: str | None = None
+    if groups is None:
+        if isinstance(ref_df, pd.DataFrame) and isinstance(ref_df.index, pd.MultiIndex):
+            labels = ref_df.index.get_level_values(0).to_numpy()
+            source = "MultiIndex level 0"
         else:
-            # Truncate: randomly select n_samples from the gathered indices (no replacement)
-            boot_idx = rng.choice(sampled_indices, size=n_samples, replace=False)
-
-        bootstrap_indices[i] = boot_idx
-
-    return bootstrap_indices
+            return None, None, None
+    elif isinstance(groups, str):
+        if not isinstance(ref_df, pd.DataFrame):
+            raise ValueError("groups as string only supported when datasets are DataFrames.")
+        if groups in ref_df.columns:
+            labels = ref_df[groups].to_numpy()
+            exclude = groups if is_named else f"feature_{list(ref_df.columns).index(groups)}"
+            source = f"column {groups!r}"
+        elif ref_df.index.names and groups in ref_df.index.names:
+            labels = ref_df.index.get_level_values(groups).to_numpy()
+            source = f"index level {groups!r}"
+        else:
+            raise ValueError(f"groups column/level {groups!r} not found in dataset.")
+    elif isinstance(groups, pd.Series) and is_named:
+        _check_keys(groups.index, "group", 0)
+        missing = aligned_ref.index.difference(groups.index)
+        if len(missing) > 0:
+            raise ValueError(
+                f"groups has no label for {len(missing)} row key(s), e.g. {list(missing[:3])}."
+            )
+        labels = groups.loc[aligned_ref.index].to_numpy()
+        source = "Series aligned by row key"
+    else:
+        labels = np.asarray(groups)
+        source = "positional array"
+    if labels.ndim != 1 or len(labels) != n_rows:
+        raise ValueError(f"groups has {len(labels)} labels but the datasets have {n_rows} rows.")
+    if pd.isna(labels).any():
+        raise ValueError(f"groups has {int(pd.isna(labels).sum())} missing label(s).")
+    return labels, exclude, source
 
 
 def compute_reproducibility(
@@ -78,6 +133,7 @@ def compute_reproducibility(
     bootstrap_iterations: int = 1000,
     primary_threshold: float = 0.80,
     groups: Any = None,
+    random_state: int = 42,
 ) -> dict[str, pd.DataFrame]:
     """Evaluate feature-by-feature reproducibility across multiple reader datasets.
 
@@ -85,8 +141,11 @@ def compute_reproducibility(
     ----------
     datasets : sequence of pd.DataFrame or ndarray
         Replicate datasets (e.g. Reader 1, Reader 2, ...). Minimum length is 2.
-        Plain DataFrames (any column names) and ndarrays both work; with no
-        selector every numeric column is analysed.
+        With no selector every numeric column is analysed. When all datasets
+        are DataFrames, rows and columns align by their labels (also default
+        integer labels): the labels must be unique and non-missing, and the
+        datasets are reordered to the first one only when all hold the same
+        labels. When any dataset is an ndarray, all datasets are positional.
     features : list of str, optional
         Explicit feature/column names to analyse. A list of names that are all
         present in the data is used directly, so generic (non-Pictologics)
@@ -95,25 +154,45 @@ def compute_reproducibility(
     configs, families, family_groups, catalog : selectors, optional
         Catalog-driven Pictologics selectors; these require Pictologics-style
         column names / a :class:`FeatureCatalog`.
-    groups : str or array-like, optional
-        Cluster labels for a cluster-robust ICC bootstrap (e.g. one label per
-        subject when rows are repeated measures). A string names a column or
-        index level; when omitted, the first level of a MultiIndex is used.
+    groups : str, pandas Series or array-like, optional
+        Cluster labels for a cluster bootstrap (e.g. one patient label per
+        plaque-visit row). A string names a column or index level; a column used
+        this way is not analysed as a feature. A Series aligns by row key for
+        named datasets; other array-likes are positional. When omitted, the first
+        level of a MultiIndex is used. Missing labels raise an error.
     min_valid_samples : int
         Minimum number of complete paired subject measurements required.
     bootstrap_iterations : int
         Number of bootstrap iterations for ICC 95% CI estimation.
     primary_threshold : float
         Threshold for the ``primary_icc_pass`` flag (ICC(2,1) >= threshold).
+    random_state : int, default=42
+        Seed for the bootstrap draws.
 
     Returns
     -------
     results : dict[str, pd.DataFrame]
         A dictionary containing three sheets: "Spearman", "Pearson",
-        and "ICC" with detailed statistics.
+        and "ICC" with detailed statistics. The ICC sheet also reports, per
+        feature, ``n_valid`` (complete finite targets), ``n_clusters``,
+        ``n_readers``, ``status``, ``ci_method``, ``ci_status``,
+        ``n_boot_valid`` and ``precision_limited``.
 
     Notes
     -----
+    The point estimate gives each complete target row the same weight, also in
+    clustered mode. Each feature uses only the rows where all readers have a
+    finite value. The cluster bootstrap resamples whole clusters: each draw
+    takes ``G`` clusters with replacement from the ``G`` contributing clusters
+    and keeps all rows of each drawn cluster. An interval needs at least two
+    clusters, and few clusters give an approximate interval. The interval is
+    conditional on the observed readers.
+
+    When cluster labels are in use, the independent-row inference is withheld:
+    the ICC F-test ``p_value`` / ``p_fdr`` and the two-reader Pearson/Spearman
+    p-values and Fisher intervals are NaN. ``precision_limited`` is True when the
+    feature spans fewer than about 1000 floating-point steps of its magnitude.
+
     The ICC ``p_value`` tests whether subjects are distinguishable (the F-test
     ``H0: MS_between_subjects = MS_error``); it is *not* a test that the ICC
     exceeds a clinically useful threshold, and is almost always significant for
@@ -124,31 +203,30 @@ def compute_reproducibility(
     """
     if len(datasets) < 2:
         raise ValueError("At least 2 datasets must be provided for reproducibility analysis.")
+    if not np.isfinite(primary_threshold):
+        raise ValueError(f"primary_threshold must be finite, got {primary_threshold!r}.")
+    if not isinstance(bootstrap_iterations, int) or bootstrap_iterations < 0:
+        raise ValueError(
+            f"bootstrap_iterations must be a non-negative integer, got {bootstrap_iterations!r}."
+        )
 
     # 1. Quality Control validation and alignment
-    is_named = True
-    for df in datasets:
-        if not isinstance(df, pd.DataFrame):
-            is_named = False
-            break
-        if isinstance(df.columns, pd.RangeIndex):
-            is_named = False
-            break
-        if not all(isinstance(c, str) for c in df.columns):
-            is_named = False
-            break
+    # All-DataFrame input aligns by labels. One non-text column label must not
+    # switch all readers to positional matching.
+    is_named = all(isinstance(df, pd.DataFrame) for df in datasets)
 
     aligned_datasets: list[pd.DataFrame] = []
 
     if is_named:
-        # Strict Name-Based Verification and Automatic Reordering
+        # Name-based verification. Reorder only after an exact key-set match.
         ref_df = cast(pd.DataFrame, datasets[0])
         ref_columns = ref_df.columns
         ref_index = ref_df.index
 
         for idx, df in enumerate(datasets):
             df = cast(pd.DataFrame, df)
-            # Verify feature column names
+            _check_keys(df.index, "row", idx)
+            _check_keys(df.columns, "feature", idx)
             if set(df.columns) != set(ref_columns):
                 missing = list(set(ref_columns) - set(df.columns))
                 unexpected = list(set(df.columns) - set(ref_columns))
@@ -156,7 +234,6 @@ def compute_reproducibility(
                     f"Dataset {idx} columns do not match Dataset 0. "
                     f"Missing features: {missing[:5]}. Unexpected features: {unexpected[:5]}."
                 )
-            # Verify row index (subjects)
             if set(df.index) != set(ref_index):
                 missing = list(set(ref_index) - set(df.index))
                 unexpected = list(set(df.index) - set(ref_index))
@@ -164,16 +241,15 @@ def compute_reproducibility(
                     f"Dataset {idx} row index does not match Dataset 0. "
                     f"Missing subjects: {missing[:5]}. Unexpected subjects: {unexpected[:5]}."
                 )
-            # Auto-align columns and index to reference
-            aligned_df = df.loc[ref_index, ref_columns]
-            aligned_datasets.append(aligned_df)
+            aligned_datasets.append(df.loc[ref_index, ref_columns])
     else:
         # Strict Positional Verification
-        ref_shape = datasets[0].shape
+        ref_shape = np.shape(datasets[0])
         for idx, ds in enumerate(datasets):
-            if ds.shape != ref_shape:
+            if np.ndim(ds) != 2 or np.shape(ds) != ref_shape:
                 raise ValueError(
-                    f"Dataset {idx} shape {ds.shape} does not match reference shape {ref_shape}."
+                    f"Dataset {idx} shape {np.shape(ds)} does not match reference shape "
+                    f"{ref_shape} (2-D arrays are required)."
                 )
 
         # Standardize unnamed/array datasets into labeled pandas DataFrames
@@ -182,13 +258,12 @@ def compute_reproducibility(
         ref_index = pd.Index([f"subject_{row_idx}" for row_idx in range(n_samples)])
 
         for ds in datasets:
-            if isinstance(ds, pd.DataFrame):
-                df = pd.DataFrame(ds.to_numpy(dtype=float), index=ref_index, columns=ref_columns)
-            else:
-                df = pd.DataFrame(
-                    np.asarray(ds, dtype=float), index=ref_index, columns=ref_columns
-                )
-            aligned_datasets.append(df)
+            values = ds.to_numpy() if isinstance(ds, pd.DataFrame) else np.asarray(ds)
+            aligned_datasets.append(pd.DataFrame(values, index=ref_index, columns=ref_columns))
+
+    groups_arr, group_column, group_source = _resolve_groups(
+        groups, datasets, aligned_datasets[0], is_named
+    )
 
     # 2. Resolve features to analyze (selectors, else every numeric column).
     features_to_analyze = resolve_analysis_features(
@@ -199,40 +274,18 @@ def compute_reproducibility(
         family_groups=family_groups,
         catalog=catalog,
     )
+    if group_column is not None:
+        features_to_analyze = features_to_analyze[features_to_analyze != group_column]
 
     if len(features_to_analyze) == 0:
         raise ValueError("No features selected for reproducibility analysis.")
 
-    # Resolve groups parameter for cluster-robust bootstrapping
-    groups_arr = None
-    if groups is not None:
-        if isinstance(groups, str):
-            ref_df = datasets[0]
-            if isinstance(ref_df, pd.DataFrame):
-                if groups in ref_df.columns:
-                    groups_arr = ref_df[groups].to_numpy()
-                elif ref_df.index.names and groups in ref_df.index.names:
-                    groups_arr = ref_df.index.get_level_values(groups).to_numpy()
-                else:
-                    raise ValueError(f"groups column/level {groups!r} not found in dataset.")
-            else:
-                raise ValueError("groups as string only supported when datasets are DataFrames.")
-        else:
-            groups_arr = np.asarray(groups)
-    else:
-        ref_df = datasets[0]
-        if isinstance(ref_df, pd.DataFrame) and isinstance(ref_df.index, pd.MultiIndex):
-            groups_arr = ref_df.index.get_level_values(0).to_numpy()
-
-    # Precompute global bootstrap indices if possible
-    global_bootstrap_indices = None
-    if groups_arr is not None:
-        global_bootstrap_indices = _generate_cluster_bootstrap_indices(
-            groups_arr, iterations=bootstrap_iterations, seed=42
-        )
+    clustered = groups_arr is not None
+    group_codes = pd.factorize(np.asarray(groups_arr, dtype=object))[0] if clustered else None
+    ci_method = f"cluster bootstrap ({group_source})" if clustered else "row bootstrap"
+    cluster_weight_cache: dict[bytes, NDArray] = {}
 
     # 3. Core Reproducibility Calculations
-    n_features = len(features_to_analyze)
     k_observers = len(aligned_datasets)
 
     # Setup empty result arrays/lists
@@ -242,27 +295,43 @@ def compute_reproducibility(
 
     for f_name in features_to_analyze:
         # Construct subject-by-observer matrix (N, K)
-        Y = np.column_stack([df[f_name].to_numpy() for df in aligned_datasets])
+        Y = np.column_stack(
+            [
+                pd.to_numeric(df[f_name], errors="coerce").to_numpy(dtype=float)
+                for df in aligned_datasets
+            ]
+        )
 
-        # Filter out NaN rows to get paired samples
-        valid_mask = ~np.isnan(Y).any(axis=1)
+        # Keep rows where every reader has a finite value (NaN and +/-inf drop).
+        valid_mask = np.isfinite(Y).all(axis=1)
         Y_clean = Y[valid_mask]
         n_valid = len(Y_clean)
+        n_clusters = (
+            int(len(np.unique(cast(NDArray, group_codes)[valid_mask]))) if clustered else n_valid
+        )
+        icc_row: dict[str, Any] = {
+            "feature": f_name,
+            "icc_2_1": np.nan,
+            "ci95_low": np.nan,
+            "ci95_high": np.nan,
+            "p_value": np.nan,
+            "ms_between_subjects": np.nan,
+            "ms_between_observers": np.nan,
+            "ms_error": np.nan,
+            "n_valid": n_valid,
+            "n_clusters": n_clusters,
+            "n_readers": k_observers,
+            "status": "ok",
+            "ci_method": ci_method,
+            "ci_status": "ok",
+            "n_boot_valid": 0,
+            "precision_limited": False,
+        }
 
         if n_valid < min_valid_samples:
             # Handle insufficient valid samples gracefully
-            icc_rows.append(
-                {
-                    "feature": f_name,
-                    "icc_2_1": np.nan,
-                    "ci95_low": np.nan,
-                    "ci95_high": np.nan,
-                    "p_value": np.nan,
-                    "ms_between_subjects": np.nan,
-                    "ms_between_observers": np.nan,
-                    "ms_error": np.nan,
-                }
-            )
+            icc_row.update(status="insufficient_targets", ci_status="insufficient_targets")
+            icc_rows.append(icc_row)
 
             if k_observers == 2:
                 for row_list in [spearman_rows, pearson_rows]:
@@ -293,38 +362,49 @@ def compute_reproducibility(
 
         # A. Calculate ICC(2,1)
         icc_est = _icc_2_1_estimate(Y_clean)
-        if groups_arr is not None:
-            if n_valid == len(groups_arr):
-                boot_indices = global_bootstrap_indices
-            else:
-                groups_clean = groups_arr[valid_mask]
-                boot_indices = _generate_cluster_bootstrap_indices(
-                    groups_clean, iterations=bootstrap_iterations, seed=42
-                )
-            ci_low, ci_high = _bootstrap_icc_ci(
-                Y_clean,
-                f_name,
-                iterations=bootstrap_iterations,
-                base_seed=42,
-                bootstrap_indices=boot_indices,
-            )
-        else:
-            ci_low, ci_high = _bootstrap_icc_ci(
-                Y_clean, f_name, iterations=bootstrap_iterations, base_seed=42
-            )
-
-        icc_rows.append(
-            {
-                "feature": f_name,
-                "icc_2_1": icc_est["icc"],
-                "ci95_low": ci_low,
-                "ci95_high": ci_high,
-                "p_value": icc_est["p_value"],
-                "ms_between_subjects": icc_est["ms_between_subjects"],
-                "ms_between_observers": icc_est["ms_between_observers"],
-                "ms_error": icc_est["ms_error"],
-            }
+        spread = float(np.ptp(Y_clean))
+        magnitude = float(np.abs(Y_clean).max())
+        icc_row.update(
+            icc_2_1=icc_est["icc"],
+            p_value=np.nan if clustered else icc_est["p_value"],
+            ms_between_subjects=icc_est["ms_between_subjects"],
+            ms_between_observers=icc_est["ms_between_observers"],
+            ms_error=icc_est["ms_error"],
+            precision_limited=bool(spread > 0 and spread < 1e3 * np.finfo(float).eps * magnitude),
         )
+        if spread == 0:
+            icc_row["status"] = "constant"
+        elif np.isnan(icc_est["icc"]):
+            icc_row["status"] = "undefined"
+
+        if bootstrap_iterations == 0:
+            icc_row["ci_status"] = "disabled"
+        elif clustered and n_clusters < 2:
+            icc_row["ci_status"] = "insufficient_clusters"
+        elif not clustered and n_valid < 3:
+            icc_row["ci_status"] = "insufficient_targets"
+        else:
+            if clustered:
+                key = valid_mask.tobytes()
+                if key not in cluster_weight_cache:
+                    cluster_weight_cache[key] = _cluster_bootstrap_weights(
+                        cast(NDArray, group_codes)[valid_mask],
+                        iterations=bootstrap_iterations,
+                        seed=random_state,
+                    )
+                weights = cluster_weight_cache[key]
+            else:
+                weights = _row_bootstrap_weights(
+                    n_valid,
+                    bootstrap_iterations,
+                    _get_deterministic_seed(str(f_name), base_seed=random_state),
+                )
+            estimates = _icc_2_1_weighted(Y_clean, weights)["icc"]
+            ci_low, ci_high, n_boot_valid = _percentile_ci(estimates, bootstrap_iterations)
+            icc_row.update(ci95_low=ci_low, ci95_high=ci_high, n_boot_valid=n_boot_valid)
+            if np.isnan(ci_low):
+                icc_row["ci_status"] = "too_few_valid_draws"
+        icc_rows.append(icc_row)
 
         # B. Calculate Spearman & Pearson
         if k_observers == 2:
@@ -336,8 +416,13 @@ def compute_reproducibility(
                 s_rho, s_p = stats.spearmanr(Y_clean[:, 0], Y_clean[:, 1])
                 p_r, p_p = stats.pearsonr(Y_clean[:, 0], Y_clean[:, 1])
 
-            s_low, s_high = _fisher_ci(s_rho, n_valid, is_spearman=True)
-            p_low, p_high = _fisher_ci(p_r, n_valid, is_spearman=False)
+            if clustered:
+                # Independent-row p-values and Fisher intervals are not valid
+                # for clustered rows, so they are withheld.
+                s_low = s_high = s_p = p_low = p_high = p_p = np.nan
+            else:
+                s_low, s_high = _fisher_ci(s_rho, n_valid, is_spearman=True)
+                p_low, p_high = _fisher_ci(p_r, n_valid, is_spearman=False)
 
             spearman_rows.append(
                 {

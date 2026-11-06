@@ -172,8 +172,10 @@ def test_covariates_roundtrip_with_fake(fake_inmoose):
     covar = pd.DataFrame({"a": np.arange(len(X), dtype=float), "b": 1.0}, index=X.index)
     h = ComBatHarmonizer().fit(X, batch=batch, covariates=covar)
     assert h.covariate_columns_ == ["a", "b"]
-    # a transform covariate frame missing a column is reindexed (fill 0), not an error
-    out = h.transform(X, batch=batch, covariates=covar[["a"]])
+    # a transform covariate frame without a fitted column is an error (no zero fill)
+    with pytest.raises(ValueError, match="lack fitted column"):
+        h.transform(X, batch=batch, covariates=covar[["a"]])
+    out = h.transform(X, batch=batch, covariates=covar[["b", "a"]])
     assert out.shape == X.shape
 
 
@@ -303,3 +305,67 @@ def test_constant_column_warning_with_fake(fake_inmoose):
         h.fit(X, batch=batch)
     assert h.constant_mask_[0]
     assert not h.constant_mask_[1]
+
+
+# ---- regression tests: keyed metadata and unstable inputs ----------------
+
+
+def test_keyed_batch_and_covariates_align_by_index_with_fake(fake_inmoose):
+    X, batch = _data()
+    covar = pd.DataFrame({"a": np.arange(len(X), dtype=float)}, index=X.index)
+    keyed = pd.Series(batch, index=X.index)
+    ref = ComBatHarmonizer().fit_transform(X, batch=keyed, covariates=covar)
+    perm = np.random.default_rng(0).permutation(len(X))
+    out = ComBatHarmonizer().fit_transform(X, batch=keyed.iloc[perm], covariates=covar.iloc[perm])
+    pd.testing.assert_frame_equal(ref, out)
+
+
+def test_batch_and_covariate_metadata_errors():
+    X, batch = _data()
+    with pytest.raises(ValueError, match="missing label"):
+        ComBatHarmonizer().fit(X, batch=np.where(batch == 0, None, "b"))
+    with pytest.raises(ValueError, match="no label for 1 sample"):
+        ComBatHarmonizer().fit(X, batch=pd.Series(batch, index=X.index).iloc[1:])
+    with pytest.raises(ValueError, match="same text form"):
+        ComBatHarmonizer().fit(X, batch=np.array([1, "1"] * (len(X) // 2), dtype=object))
+    with pytest.raises(ValueError, match="no covariate row"):
+        ComBatHarmonizer().fit(
+            X, batch=batch, covariates=pd.DataFrame({"a": np.arange(len(X), dtype=float)})
+        )
+
+
+def test_transform_covariates_with_nan_raise_with_fake(fake_inmoose):
+    X, batch = _data()
+    covar = pd.DataFrame({"a": np.arange(len(X), dtype=float)}, index=X.index)
+    h = ComBatHarmonizer().fit(X, batch=batch, covariates=covar)
+    with pytest.raises(ValueError, match="missing or non-finite"):
+        h.transform(X, batch=batch, covariates=covar.assign(a=np.nan))
+
+
+@pytest.mark.skipif(not HAS_INMOOSE, reason="inmoose not installed")
+def test_feature_without_within_batch_variance_raises():
+    X, batch = _data()
+    X = X.assign(step=np.where(batch == 0, 0.0, 1.0))
+    with pytest.raises(ValueError, match="zero pooled within-batch variance.*step"):
+        ComBatHarmonizer().fit(X, batch=batch)
+
+
+@pytest.mark.skipif(not HAS_INMOOSE, reason="inmoose not installed")
+def test_numpy_and_spaced_covariate_names_reach_the_design():
+    X, batch = _data()
+    rng = np.random.default_rng(3)
+    cov = np.column_stack([rng.normal(60, 9, len(X)), rng.integers(0, 2, len(X))])
+    h = ComBatHarmonizer().fit(X, batch=batch, covariates=cov)
+    assert h.b_covar_.shape == (2, X.shape[1])
+    assert np.isfinite(h.transform(X, batch=batch, covariates=cov).to_numpy()).all()
+    spaced = pd.DataFrame({"age at scan": cov[:, 0], "sex-code": cov[:, 1]}, index=X.index)
+    out = ComBatHarmonizer().fit_transform(X, batch=batch, covariates=spaced)
+    assert np.allclose(out, h.transform(X, batch=batch, covariates=cov))
+
+
+def test_single_sample_batch_raises():
+    X, batch = _data()
+    batch = batch.astype(object)
+    batch[0] = "solo"
+    with pytest.raises(ValueError, match="at least 2 samples in each batch.*solo"):
+        ComBatHarmonizer().fit(X, batch=batch)

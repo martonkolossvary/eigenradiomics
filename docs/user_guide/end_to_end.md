@@ -93,7 +93,8 @@ standard `fit_transform` so it drops into a `Pipeline` unchanged.
 ```python
 from eigenradiomics import RadiomicsPrepTransformer
 
-X = RadiomicsPrepTransformer().fit_transform(dataset.features)
+prep = RadiomicsPrepTransformer()
+X = prep.fit_transform(dataset.features)        # keep `prep` for the follow-up scans
 ```
 
 ## 5. Reduce with WGCNA
@@ -136,6 +137,7 @@ panel.
 ```python
 from eigenradiomics import Bar, plot_clustered_heatmap
 
+names = list(artifacts.feature_names)                  # features in the reducer's order
 families = catalog.frame.set_index("feature")["family_group"].reindex(names)
 families.name = "Family"
 
@@ -176,18 +178,25 @@ print(top_enrichment[["cluster", "catalog_column", "group", "n_overlap", "p_valu
 
 ### Longitudinal Paired Trajectory Tracking
 
-Track individual patient response between baseline and follow-up scans with sign-aligned module eigengenes, automated index alignment, and trajectory distance metrics:
+Track individual patient response between baseline and follow-up scans with sign-aligned module eigengenes, automated index alignment, and trajectory distance metrics.
+
+`align_indices=True` pairs the rows by their index label. Thus, the two tables
+must use the same label for the same patient. The method drops each row that
+has no partner and gives a warning. If the two tables have no common label,
+the call raises an error.
 
 ```python
-# Extract baseline and follow-up scans from the longitudinal dataset
-baseline_df = dataset.features.iloc[0::2]
-followup_df = dataset.features.iloc[1::2]
+# `followup_features` holds the follow-up scans of the same patients. It has the
+# same row index (one label per patient) and the same feature columns as
+# `dataset.features`. Apply the preprocessing that was fitted at baseline.
+baseline_df = X
+followup_df = prep.transform(followup_features[feature_cols])
 
 # Project through the fitted reducer with automated index alignment and trajectory computation
 paired = reducer.transform_paired(
     baseline_df,
     followup_df,
-    align_indices=True,
+    align_indices=True,      # pair the rows by index label
     relative=True,
     compute_distance=True,
 )

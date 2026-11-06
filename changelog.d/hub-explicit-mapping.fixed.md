@@ -1,0 +1,1 @@
+`identify_hub_features` no longer maps a cluster label to an eigengene column by position. A label must match a column name (or "<label>_0" for multi-component modules); other labels are skipped with a warning. `compute_module_membership` now names WGCNA columns from the stored loadings of each module.

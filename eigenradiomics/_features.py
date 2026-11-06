@@ -39,8 +39,9 @@ def resolve_analysis_features(
 
     Returns
     -------
-    ndarray of str
-        Feature-column names to analyze.
+    ndarray of object
+        Feature-column labels to analyze, as they occur in ``df.columns`` (so
+        integer and text labels both work).
     """
     catalog_selectors = any(
         selector is not None for selector in (configs, families, family_groups)
@@ -50,9 +51,9 @@ def resolve_analysis_features(
     # generic DataFrames work without the Pictologics-name-aware remover.
     if features is not None and not catalog_selectors:
         feat_list = [features] if isinstance(features, str) else list(features)
-        feat_list = [str(f) for f in feat_list]
-        if feat_list and all(f in df.columns for f in feat_list):
-            return np.asarray(feat_list)
+        by_text = {str(col): col for col in df.columns}
+        if feat_list and all(str(f) in by_text for f in feat_list):
+            return np.asarray([by_text[str(f)] for f in feat_list], dtype=object)
 
     has_selectors = features is not None or catalog_selectors
 
@@ -72,4 +73,4 @@ def resolve_analysis_features(
     # No selectors: analyse every numeric column directly. Selecting by dtype
     # (rather than by stringified catalog names) keeps int-labelled,
     # ndarray-derived columns working too.
-    return np.asarray(df.select_dtypes(include="number").columns.tolist())
+    return np.asarray(df.select_dtypes(include="number").columns.tolist(), dtype=object)

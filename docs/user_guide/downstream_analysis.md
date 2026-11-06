@@ -23,6 +23,8 @@ flowchart LR
 scikit-learn's pandas output:
 
 ```python
+from eigenradiomics import WGCNAReducer
+
 reducer = WGCNAReducer(soft_power="auto", min_module_size=20, store_tom=True)
 reducer.set_output(transform="pandas")          # eigengenes come back as a DataFrame
 eigengenes = reducer.fit_transform(X)            # index = samples, columns = wgcna_*
@@ -86,12 +88,16 @@ You can plot this relationship dynamically and accessibly (complying with OUP sc
 ```python
 from eigenradiomics.plotting import plot_hub_significance
 
+# clinical_assoc: a Series of feature name -> association with a trait (e.g. |r|)
+# PyWGCNA chooses the module names, so read them from the fitted reducer
+target = reducer.module_names_[0]
+
 # Plot k_ME vs. raw association strength
 fig = plot_hub_significance(
     k_me,
     feature_significance=clinical_assoc,
     cluster_labels=reducer.get_reduction_artifacts().cluster_labels,
-    target_cluster="blue",
+    target_cluster=target,
     path="accessible_hub_plot.png",
 )
 ```
@@ -112,7 +118,7 @@ from eigenradiomics import FeatureCatalog, WGCNAReducer
 reducer = WGCNAReducer(soft_power=6, min_module_size=20)
 reducer.fit(X_df)
 
-catalog = FeatureCatalog.from_preset("ibsi")
+catalog = FeatureCatalog.from_csv("feature_catalog.csv")   # Pictologics describe_features() table
 
 # Test enrichment across multiple catalog columns:
 enrichment_df = reducer.get_catalog_enrichment(
@@ -179,7 +185,7 @@ from eigenradiomics.plotting import Bar, CorrPanel, Strip
 
 # Prepare optional annotation tracks
 strip = Strip(catalog.frame.set_index("feature")["family_group"])
-bar = Bar(repro_results.set_index("feature")["icc"])
+bar = Bar(reproducibility_results["ICC"].set_index("feature")["icc_2_1"], title="ICC")
 corr_panel = CorrPanel(correlations_df)
 
 # Render Manhattan plot with bottom tracks
@@ -224,6 +230,7 @@ pipe = Pipeline([
 ```python
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GroupKFold, cross_val_score
+from sklearn.pipeline import Pipeline
 from eigenradiomics import WGCNAReducer
 
 X, y = dataset.to_pipeline_input()

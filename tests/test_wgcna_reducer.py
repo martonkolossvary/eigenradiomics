@@ -146,11 +146,19 @@ class TestWGCNAReducerMethods:
         assert total <= small_feature_matrix.shape[1]
 
     def test_soft_power_table_auto(self, small_feature_matrix):
+        # No power meets the criteria on this small matrix: "raise" raises, and
+        # the default fallback warns and records the failed criteria.
+        with pytest.raises(ValueError, match="soft-power selection failed"):
+            WGCNAReducer(soft_power="auto", min_module_size=20, soft_power_fallback="raise").fit(
+                small_feature_matrix
+            )
         r = WGCNAReducer(soft_power="auto", min_module_size=20, verbose=0)
-        r.fit(small_feature_matrix)
+        with pytest.warns(UserWarning, match="best-R"):
+            r.fit(small_feature_matrix)
         table = r.wgcna_get_soft_power_table()
         assert isinstance(table, pd.DataFrame)
         assert "Power" in table.columns
+        assert r.soft_power_criteria_met_ is False
 
     def test_soft_power_table_manual(self, wgcna_default, small_feature_matrix):
         wgcna_default.fit(small_feature_matrix)
@@ -486,7 +494,9 @@ class TestWGCNAReducerPlotMethods:
     def test_plot_soft_power_returns_figure(self, small_feature_matrix):
         import matplotlib.pyplot as plt
 
-        r = WGCNAReducer(soft_power="auto", min_module_size=20, verbose=0)
+        r = WGCNAReducer(
+            soft_power="auto", min_module_size=20, verbose=0, soft_power_fallback="best_r2"
+        )
         r.fit(small_feature_matrix)
         fig = r.wgcna_plot_soft_power()
         assert isinstance(fig, plt.Figure)
@@ -660,7 +670,14 @@ class TestWGCNAReducerCoverageGaps:
         class FakeWGCNA:
             @staticmethod
             def pickSoftThreshold(*args, **kwargs):
-                table = pd.DataFrame({"Power": [1, 2], "SFT.R.sq": [0.1, 0.2], "mean(k)": [10, 5]})
+                table = pd.DataFrame(
+                    {
+                        "Power": [1, 2],
+                        "SFT.R.sq": [0.1, 0.2],
+                        "slope": [-1, -1],
+                        "mean(k)": [10, 5],
+                    }
+                )
                 return None, table
 
             @staticmethod
@@ -671,7 +688,9 @@ class TestWGCNAReducerCoverageGaps:
             return FakeWGCNA
 
         monkeypatch.setattr(mod, "_import_pywgcna", _fake_import)
-        r = WGCNAReducer(soft_power="auto", min_module_size=5, verbose=0)
+        r = WGCNAReducer(
+            soft_power="auto", min_module_size=5, verbose=0, soft_power_fallback="raise"
+        )
         with pytest.raises(ValueError, match="Automatic soft-power selection failed"):
             r.fit(np.random.default_rng(0).standard_normal((20, 50)))
 
@@ -864,6 +883,7 @@ class TestWGCNAReducerPowerRange:
             r_squared_cut=0.8,
             min_module_size=20,
             verbose=0,
+            soft_power_fallback="best_r2",
         )
         r.fit(small_feature_matrix)
         table = r.wgcna_get_soft_power_table()
@@ -949,6 +969,7 @@ class TestWGCNAReducerMissingStrategy:
             r_squared_cut=0.7,
             min_module_size=20,
             verbose=0,
+            soft_power_fallback="best_r2",
         )
         r_auto.fit(X_nan)
         assert r_auto.soft_power_ is not None
@@ -1105,13 +1126,19 @@ class TestWGCNAUtilsAndReducerCoverageGaps:
         from PyWGCNA.wgcna import WGCNA
 
         monkeypatch.setattr(
-            WGCNA, "pickSoftThreshold", lambda *args, **kwargs: (None, pd.DataFrame())
+            WGCNA,
+            "pickSoftThreshold",
+            lambda *args, **kwargs: (
+                None,
+                pd.DataFrame(columns=["Power", "SFT.R.sq", "slope", "mean(k)"]),
+            ),
         )
         r = WGCNAReducer(
             missing_strategy="pairwise",
             soft_power="auto",
             min_module_size=5,
             verbose=0,
+            soft_power_fallback="raise",
         )
         with pytest.raises(ValueError, match="Automatic soft-power selection failed"):
             r.fit(small_feature_matrix)
@@ -1168,3 +1195,155 @@ class TestWGCNAUtilsAndReducerCoverageGaps:
                 X_s, n_components=1, orient_eigengenes="sum_loadings"
             )
             assert np.sum(loadings3) >= -1e-10
+
+
+# ----------------------------------------------------------------------
+# Regression tests: topology input, PAM stage, merge policy, imputation
+# ----------------------------------------------------------------------
+
+
+def _opposite_modules(n=80, size=25, seed=0, constant=False):
+    """Three modules: A, B = -A (opposite sign), and an independent C."""
+    rng = np.random.default_rng(seed)
+    f1, f2 = rng.normal(size=n), rng.normal(size=n)
+    blocks = [
+        f1[:, None] + 0.4 * rng.normal(size=(n, size)),
+        -f1[:, None] + 0.4 * rng.normal(size=(n, size)),
+        f2[:, None] + 0.4 * rng.normal(size=(n, size)),
+    ]
+    cols = [f"{g}{i}" for g in "ABC" for i in range(size)]
+    X = pd.DataFrame(np.hstack(blocks), columns=cols)
+    if constant:
+        X["const"] = 1.0
+    return X
+
+
+def _groups_by_module(reducer, X):
+    labels = pd.Series(reducer.module_colors_, index=X.columns)
+    return {m: set(labels.index[labels == m].str[0]) for m in reducer.module_names_}
+
+
+def test_constant_feature_is_unassigned_and_outside_topology():
+    X = _opposite_modules(constant=True)
+    with pytest.warns(UserWarning, match="zero variance"):
+        r = WGCNAReducer(
+            network_type="signed", soft_power=6, min_module_size=10, store_tom=True
+        ).fit(X)
+    assert r.module_colors_[-1] == "grey"
+    assert len(r.network_features_) == X.shape[1] - 1
+    art = r.get_reduction_artifacts()
+    assert sorted(art.feature_order) == sorted(X.columns.drop("const"))
+    assert art.cluster_labels["const"] == "grey"
+    import matplotlib.pyplot as plt
+
+    from eigenradiomics.plotting import plot_clustered_heatmap
+
+    fig = plot_clustered_heatmap(art)
+    plt.close(fig if isinstance(fig, plt.Figure) else fig[0])
+
+
+def test_pam_default_keeps_opposite_features_out_of_a_module():
+    X = _opposite_modules()
+    r = WGCNAReducer(network_type="signed", soft_power=6, min_module_size=10, me_diss_threshold=0)
+    r.fit(X)
+    for groups in _groups_by_module(r, X).values():
+        assert len(groups) == 1  # no module mixes A, B or C features
+
+
+def test_signed_merge_keeps_opposite_modules_apart():
+    X = _opposite_modules()
+    kw = dict(network_type="signed", soft_power=6, min_module_size=10, me_diss_threshold=0.25)
+    signed = _groups_by_module(WGCNAReducer(**kw).fit(X), X)
+    assert sorted(map(sorted, signed.values())) == [["A"], ["B"], ["C"]]
+    absolute = _groups_by_module(WGCNAReducer(merge_policy="absolute", **kw).fit(X), X)
+    assert {"A", "B"} in absolute.values()
+
+
+def test_unassigned_label_is_grey_and_enrichment_filters_it():
+    X = _noise_heavy_matrix()
+    r = WGCNAReducer(soft_power=6, min_module_size=20, include_grey=True, verbose=0).fit(X)
+    assert "black" not in r.module_colors_
+    assert "grey" in r.module_colors_
+
+
+def test_pairwise_undefined_pair_has_no_edge():
+    X = _opposite_modules(size=12)
+    X.iloc[:40, 0] = np.nan
+    X.iloc[40:, 1] = np.nan
+    r = WGCNAReducer(
+        network_type="signed",
+        soft_power=6,
+        min_module_size=5,
+        missing_strategy="pairwise",
+        store_tom=True,
+    )
+    with pytest.warns(UserWarning, match="1 feature pair"):
+        r.fit(X)
+    assert np.isfinite(r.tom_).all()
+
+
+@pytest.mark.parametrize("strategy", ["zero", "floor", "median", "mean"])
+def test_imputing_strategies_center_training_scores(strategy):
+    rng = np.random.default_rng(1)
+    X = pd.DataFrame(rng.normal(size=(80, 40)) + rng.normal(size=(80, 1)) + 5)
+    X.columns = [f"g{i}" for i in range(40)]
+    X = X.mask(rng.random(X.shape) < 0.2)
+    r = WGCNAReducer(soft_power=6, min_module_size=10, missing_strategy=strategy).fit(X)
+    scores = r.transform(X)
+    assert scores.shape[1] > 0
+    assert np.allclose(scores.mean(axis=0), 0.0, atol=1e-8)
+
+
+def test_new_parameters_are_validated():
+    X = _opposite_modules(size=5)
+    with pytest.raises(ValueError, match="soft_power_fallback"):
+        WGCNAReducer(soft_power_fallback="maybe").fit(X)
+    with pytest.raises(ValueError, match="merge_policy"):
+        WGCNAReducer(merge_policy="sideways").fit(X)
+    flat = pd.DataFrame(np.ones((10, 5)), columns=list("abcde")).assign(a=np.arange(10.0))
+    with pytest.raises(ValueError, match="at least 3 non-constant"):
+        WGCNAReducer(soft_power=6).fit(flat)
+
+
+def test_auto_power_default_warns_and_records_failed_criteria():
+    X = _opposite_modules(size=10)
+    r = WGCNAReducer(soft_power="auto", r_squared_cut=0.9999, mean_cut=0.001, min_module_size=5)
+    with pytest.warns(UserWarning, match="No soft power meets"):
+        r.fit(X)
+    assert r.soft_power_criteria_met_ is False
+
+
+def test_numpy_integer_parameters_and_grid_search():
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.pipeline import Pipeline
+
+    X = _opposite_modules(size=10)
+    r = WGCNAReducer(soft_power=np.int64(6), min_module_size=np.int64(5), power_max=np.int32(12))
+    r.fit(X)
+    assert r.soft_power_ == 6
+    pipe = Pipeline([("reduce", WGCNAReducer(min_module_size=5))])
+    grid = GridSearchCV(
+        pipe,
+        {"reduce__soft_power": np.arange(4, 9, 2)},
+        cv=2,
+        scoring=lambda est, X, y=None: float(est.transform(X).shape[1]),
+        error_score="raise",
+    )
+    grid.fit(X)
+    assert len(grid.cv_results_["mean_test_score"]) == 3
+
+
+@pytest.mark.parametrize("depth", [0, 1, 2, 3, 4])
+def test_every_deep_split_runs_with_r_defaults(depth, monkeypatch):
+    from PyWGCNA.wgcna import WGCNA
+
+    seen = {}
+    real = WGCNA.cutreeHybrid
+
+    def spy(*args, **kwargs):
+        seen.update(kwargs)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(WGCNA, "cutreeHybrid", spy)
+    WGCNAReducer(soft_power=6, min_module_size=5, deep_split=depth).fit(_opposite_modules(size=10))
+    assert seen["maxCoreScatter"] == (0.64, 0.73, 0.82, 0.91, 0.95)[depth]

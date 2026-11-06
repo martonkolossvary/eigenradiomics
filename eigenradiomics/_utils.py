@@ -17,6 +17,7 @@ from sklearn.utils.validation import check_is_fitted, validate_data  # noqa: F40
 
 class _SupportsFeatureNames(Protocol):
     feature_names_in_: NDArray
+    _feature_names_generated: bool
 
 
 def validate_feature_matrix(
@@ -109,15 +110,20 @@ def validate_estimator_input(
 
     This wraps scikit-learn's ``validate_data`` so estimators set
     ``n_features_in_`` correctly while still supporting generated feature names
-    for numpy inputs.
+    for numpy inputs. When the fit input was a numpy array, a DataFrame at
+    transform gives the scikit-learn warning, not an error.
     """
     _assert_dense_matrix(X)
     feature_name_estimator = cast(_SupportsFeatureNames, estimator)
     has_dataframe_names = isinstance(X, pd.DataFrame)
     had_feature_names = hasattr(estimator, "feature_names_in_")
     stored_feature_names = getattr(estimator, "feature_names_in_", None)
+    # Generated names are not real names. Hide them from scikit-learn, so it
+    # compares only real names.
+    names_generated = getattr(estimator, "_feature_names_generated", False)
+    hide_names = not reset and had_feature_names and (not has_dataframe_names or names_generated)
 
-    if not reset and had_feature_names and not has_dataframe_names:
+    if hide_names:
         delattr(estimator, "feature_names_in_")
 
     try:
@@ -133,13 +139,14 @@ def validate_estimator_input(
             ensure_min_features=min_features,
         )
     finally:
-        if not reset and had_feature_names and not has_dataframe_names:
+        if hide_names:
             feature_name_estimator.feature_names_in_ = cast(NDArray, stored_feature_names)
 
     names = extract_feature_names(X, n_features=X_arr.shape[1])
 
     if reset:
         feature_name_estimator.feature_names_in_ = names
+        feature_name_estimator._feature_names_generated = not has_dataframe_names
         return cast(NDArray, X_arr)
 
     check_is_fitted(estimator, "feature_names_in_")
@@ -147,7 +154,7 @@ def validate_estimator_input(
     # carries real feature names (a DataFrame). Transforming a bare array of the
     # same width after fitting on a DataFrame is a supported scikit-learn pattern
     # (e.g. inside a Pipeline) and must not raise.
-    if has_dataframe_names:
+    if has_dataframe_names and not names_generated:
         _check_feature_names(
             feature_name_estimator.feature_names_in_,
             names,

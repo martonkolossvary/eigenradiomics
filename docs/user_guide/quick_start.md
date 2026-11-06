@@ -42,9 +42,15 @@ The output `Y` is an \\(n \\times k\\) matrix with `k << m` and reducer-specific
 output names such as `wgcna_0`, `wgcna_1`, ... Upstream preprocessing stays in
 the same pipeline.
 
-!!! tip "Always scale before reducing"
-    WGCNA (like PCA) is sensitive to feature scale. Keep an imputer and a scaler
-    upstream of the reducer — `WGCNAReducer` does not standardize for you.
+!!! tip "Feature scale and WGCNA"
+    WGCNA builds its network from correlations. It also standardizes the features
+    of each module before it calculates the eigengene. Thus, a positive rescale
+    or shift of a feature (for example, a change of units) does not change the
+    WGCNA result. The `StandardScaler` step is not necessary for WGCNA, but PCA
+    and most other reducers need it. Steps that change the shape of a
+    distribution, such as winsorizing or Yeo-Johnson in
+    [`RadiomicsPrepTransformer`](radiomics_preprocessing.md), do change the
+    correlations.
 
 !!! warning "Missing values"
     PyWGCNA can hang on `NaN`/`Inf`. Impute (e.g. `SimpleImputer`) **before** the
@@ -77,7 +83,8 @@ the data to an ndarray, validation falls back to feature order. See
 ```python
 reducer = pipe.named_steps["reduce"]
 
-reducer.wgcna_get_module_sizes()        # {'turquoise': 38, 'blue': 35, ...}
+reducer.module_names_                   # module names, e.g. ['dimgrey', 'silver', ...]
+reducer.wgcna_get_module_sizes()        # {'dimgrey': 38, 'silver': 35, ...}
 reducer.wgcna_get_module_assignments()  # module -> list of feature names
 reducer.wgcna_get_soft_power_table()    # scale-free topology table (soft_power="auto")
 
@@ -88,6 +95,9 @@ fig.savefig("dendrogram.png", dpi=150)
 The dendrogram shows how features cluster into modules (the colour bar):
 
 ![WGCNA feature dendrogram with module colour bar](../assets/figures/wgcna_dendrogram.png)
+
+PyWGCNA chooses the module names. Thus, read them from `reducer.module_names_`.
+Do not type them in your code.
 
 These diagnostics make it easier to decide whether to keep the auto-selected
 soft power or refit with an explicit value. See the

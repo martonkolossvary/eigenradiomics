@@ -53,7 +53,9 @@ class Strip:
         Strip name shown at its left edge and as the legend title (defaults to
         the Series name).
     colors : mapping, optional
-        ``{category: colour}``; otherwise a colourblind-safe palette is assigned.
+        ``{category: colour}``; otherwise the EIGEN_VIBRANT palette is assigned
+        (``tab20`` for more than 8 categories). Neither palette is checked for
+        colour-vision deficiency, so pass ``colors`` when that matters.
     """
 
     data: pd.Series
@@ -136,6 +138,30 @@ def _assign_colors(
     return {category: palette[i] for i, category in enumerate(categories)}
 
 
+def _align_rows(obj: Any, index: pd.Index | None, what: str) -> Any:
+    """Put a pandas *obj* in the row order of *index*, by index label.
+
+    An array, or a call with no reference *index*, stays positional.
+    """
+    if index is None or not isinstance(obj, (pd.Series, pd.DataFrame)):
+        return obj
+    same_labels = len(obj.index) == len(index) and bool(obj.index.isin(index).all())
+    if not (obj.index.is_unique and index.is_unique and same_labels):
+        raise ValueError(
+            f"{what} must have the same unique index labels as the other pandas input; "
+            "pass arrays to pair the samples by position."
+        )
+    return obj.loc[index]
+
+
+def _check_lengths(**values: Any) -> None:
+    """Raise when the inputs do not have the same number of samples."""
+    lengths = {name: len(value) for name, value in values.items()}
+    if len(set(lengths.values())) > 1:
+        detail = ", ".join(f"{name}={length}" for name, length in lengths.items())
+        raise ValueError(f"Inputs must have the same number of samples, got {detail}.")
+
+
 def _as_strip(item: pd.Series | Strip) -> Strip:
     """Normalize a top-track input to a :class:`Strip`."""
     if isinstance(item, Strip):
@@ -208,7 +234,9 @@ def plot_clustered_heatmap(
     linkage : ndarray, optional
         SciPy linkage matrix; drives the left dendrogram and leaf ordering.
     order : sequence, optional
-        Explicit feature ordering (overrides the linkage leaves).
+        Explicit feature ordering (overrides the linkage leaves). A subset of
+        the features plots only that subset. When the dendrogram is drawn, the
+        order must be the linkage leaf order; else pass ``show_dendrogram=False``.
     cluster_colors : mapping, optional
         ``{label: colour}`` for the module strip/legend/bars; otherwise a palette.
     top : sequence of Series or Strip, optional
@@ -222,8 +250,10 @@ def plot_clustered_heatmap(
         Similarity colour scaling (``below_cutoff_color`` is ``set_under``).
     show_dendrogram, show_cluster_strip, show_legend : bool
         Toggle the left dendrogram, the left cluster strip, and the legend column.
-    labels : "auto", sequence, None, or False
-        Feature tick labels. ``"auto"`` shows names only for small matrices.
+    labels : "auto", sequence, Series, None, or False
+        Feature tick labels. ``"auto"`` shows names only for small matrices. A
+        sequence gives one label per feature in the similarity index order; a
+        Series aligns by feature name. The labels follow the display order.
     colorbar_label : str
         Label for the similarity colourbar.
     figsize : tuple, optional
@@ -265,7 +295,6 @@ def plot_clustered_heatmap(
         sim = _as_similarity_frame(similarity)
 
     feature_names = list(sim.index)
-    n = len(feature_names)
 
     labels_series: pd.Series | None = None
     if cluster_labels is not None:
@@ -287,6 +316,18 @@ def plot_clustered_heatmap(
                 f"`order` contains {len(unknown)} name(s) absent from the similarity "
                 f"index: {', '.join(map(str, unknown[:5]))}."
             )
+        if len(set(order_names)) != len(order_names):
+            raise ValueError("`order` contains duplicate names.")
+        # The dendrogram draws all features in leaf order. Another order, or a
+        # subset, puts the rows out of line with the tree.
+        if show_dendrogram and linkage is not None:
+            leaf_names = [feature_names[i] for i in leaves_list(np.asarray(linkage))]
+            if order_names != leaf_names:
+                raise ValueError(
+                    "`order` is not the linkage leaf order (or it is a subset of the "
+                    "features), so the dendrogram cannot align with the rows. Pass "
+                    "show_dendrogram=False to plot this order."
+                )
     elif linkage is not None:
         order_names = [feature_names[i] for i in leaves_list(np.asarray(linkage))]
     elif labels_series is not None:
@@ -294,6 +335,7 @@ def plot_clustered_heatmap(
     else:
         order_names = feature_names
 
+    n = len(order_names)
     ordered = sim.loc[order_names, order_names]
     ordered_values = ordered.to_numpy()
     if not np.isfinite(ordered_values).any():
@@ -308,7 +350,19 @@ def plot_clustered_heatmap(
     elif labels is None or labels is False:
         tick_labels = None
     else:
-        tick_labels = list(labels)
+        # A label sequence follows the similarity index; a Series aligns by
+        # feature name. Put the labels in the display order.
+        if isinstance(labels, pd.Series):
+            label_map = labels.reindex(feature_names)
+        else:
+            label_values = list(labels)
+            if len(label_values) != len(feature_names):
+                raise ValueError(
+                    f"`labels` has {len(label_values)} entries but the similarity matrix "
+                    f"has {len(feature_names)} features."
+                )
+            label_map = pd.Series(label_values, index=feature_names)
+        tick_labels = list(label_map.loc[order_names])
 
     # 3. Colours for categorical tracks + legend blocks.
     draw_dendro = show_dendrogram and linkage is not None
@@ -539,7 +593,8 @@ def plot_hub_significance(
     cluster_labels : pd.Series or dict
         Cluster assignment per feature.
     target_cluster : str or int
-        Target cluster/color.
+        Target cluster/color. It must name a column of ``k_me_df`` (or
+        ``f"{target_cluster}_0"`` for multi-component WGCNA output).
     top_n_labels : int, default=5
         Number of top hub features to label.
     title : str, optional
@@ -562,11 +617,16 @@ def plot_hub_significance(
 
     apply_science_style()
 
-    # Align inputs
-    if str(target_cluster) in k_me_df.columns:
-        k_me_series = k_me_df[str(target_cluster)]
-    else:
-        k_me_series = k_me_df.iloc[:, 0]
+    # Find the k_ME column of the target cluster. Multi-component WGCNA names
+    # the first component "<cluster>_0".
+    candidates = [target_cluster, str(target_cluster), f"{target_cluster}_0"]
+    column = next((name for name in candidates if name in k_me_df.columns), None)
+    if column is None:
+        raise ValueError(
+            f"target_cluster {target_cluster!r} is not a column of k_me_df. "
+            f"Available columns: {', '.join(map(str, list(k_me_df.columns)[:10]))}."
+        )
+    k_me_series = k_me_df[column]
 
     common_idx = k_me_series.index.intersection(feature_significance.index)
     k_me_series = k_me_series.loc[common_idx]
@@ -631,7 +691,7 @@ def plot_hub_significance(
         ax.text(
             0.05,
             0.95,
-            f"Module Hub-Significance:\np = {r:.2f} (p = {p:.1e})",
+            f"Module Hub-Significance:\nSpearman $\\rho$ = {r:.2f} (p = {p:.1e})",
             transform=ax.transAxes,
             fontsize=9,
             verticalalignment="top",
@@ -681,7 +741,8 @@ def plot_eigengene_profiles(
     eigengenes : array-like of shape (n_samples, n_components)
         Exposed module eigengenes or component scores.
     trait : array-like of shape (n_samples,)
-        Clinical trait/outcome to partition or regress across.
+        Clinical trait/outcome to partition or regress across. A Series pairs
+        with a DataFrame of eigengenes by index label; arrays pair by position.
     trait_name : str, default="Trait"
         Display label for the trait.
     component_idx : int, default=0
@@ -706,8 +767,9 @@ def plot_eigengene_profiles(
 
     apply_science_style()
 
-    # Align data
+    # Pair the samples by index label when both inputs are pandas objects.
     if isinstance(eigengenes, pd.DataFrame):
+        trait = _align_rows(trait, eigengenes.index, "trait")
         y_vals = eigengenes.iloc[:, component_idx].to_numpy()
         comp_name = eigengenes.columns[component_idx]
     else:
@@ -715,6 +777,7 @@ def plot_eigengene_profiles(
         comp_name = f"Component {component_idx}"
 
     x_vals = trait.to_numpy() if isinstance(trait, pd.Series) else np.asarray(trait)
+    _check_lengths(eigengenes=y_vals, trait=x_vals)
 
     # Detect if trait is discrete/categorical vs continuous
     unique_vals = np.unique(x_vals[~pd.isna(x_vals)])
@@ -832,7 +895,8 @@ def plot_batch_distributions(
     X_before, X_after : array-like
         Feature matrices before and after correction.
     batch : array-like
-        Batch/center identifier per sample.
+        Batch/center identifier per sample. Pandas inputs pair by index label
+        (they must have the same unique labels); arrays pair by position.
     feature_name : str or int
         Column name or index of the feature to plot.
     batch_name : str, default="Batch"
@@ -857,6 +921,17 @@ def plot_batch_distributions(
 
     apply_science_style()
 
+    # Pair the samples by index label when two or more inputs are pandas objects.
+    indexes = [
+        obj.index
+        for obj in (X_before, X_after, batch)
+        if isinstance(obj, (pd.Series, pd.DataFrame))
+    ]
+    ref_index = indexes[0] if len(indexes) > 1 else None
+    X_before = _align_rows(X_before, ref_index, "X_before")
+    X_after = _align_rows(X_after, ref_index, "X_after")
+    batch = _align_rows(batch, ref_index, "batch")
+
     if isinstance(X_before, pd.DataFrame):
         vals_before = X_before[feature_name].to_numpy()
         feat_label = str(feature_name)
@@ -870,6 +945,7 @@ def plot_batch_distributions(
         vals_after = np.asarray(X_after)[:, int(feature_name)]
 
     batches = batch.to_numpy() if isinstance(batch, pd.Series) else np.asarray(batch)
+    _check_lengths(X_before=vals_before, X_after=vals_after, batch=batches)
 
     unique_batches = np.unique(batches[~pd.isna(batches)])
 

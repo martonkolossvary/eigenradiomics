@@ -1,0 +1,1 @@
+`WGCNAReducer` adds `merge_policy` ("auto", "signed", "absolute"). The default "auto" merges signed and signed hybrid networks on 1 - r, as R WGCNA does, so modules with opposite eigengenes no longer merge. Unsigned networks keep 1 - |r|; "absolute" gives the legacy behaviour for all types.

@@ -1,0 +1,1 @@
+`plot_hub_significance` raises `ValueError` when `target_cluster` is not a column of `k_me_df`, and no longer uses the first column. It also accepts the multi-component name `"<cluster>_0"`, and the Spearman value now has the label rho, not p.

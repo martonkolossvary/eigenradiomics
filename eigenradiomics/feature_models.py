@@ -9,9 +9,9 @@ Every model wraps a respected statistics package. Continuous outcomes use
 statsmodels OLS with HC3 robust standard errors (MacKinnon & White, 1985);
 survival uses lifelines Cox proportional hazards; binary uses statsmodels logistic
 regression. When a cluster / repeated-measures identifier is given, each switches
-to a mixed/clustered variant: statsmodels MixedLM (continuous), a conditional GLMM
-(statsmodels ``BinomialBayesMixedGLM``) or a marginal GEE (binary), and lifelines
-cluster-robust Cox. :func:`plot_volcano` renders the results, and
+to a mixed/clustered variant: statsmodels MixedLM (continuous), a marginal GEE
+(default) or a conditional GLMM (statsmodels ``BinomialBayesMixedGLM``) (binary),
+and lifelines cluster-robust Cox. :func:`plot_volcano` renders the results, and
 :class:`FeatureAssociationResult` bridges to the clustered heatmap and to Excel.
 """
 
@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -38,6 +38,8 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
 
     from eigenradiomics.plotting import Bar, CorrPanel, Strip
+
+_Frame = TypeVar("_Frame", pd.Series, pd.DataFrame)
 
 #: Columns every fitted row carries (before FDR and catalog annotation).
 _RESULT_FIELDS = (
@@ -137,6 +139,9 @@ class FeatureAssociationResult:
         ``value`` is one of ``"neg_log10_p"``, ``"neg_log10_fdr"``, ``"log2_effect"``,
         ``"coef"``, ``"effect"``, ``"statistic"``. The bar (indexed by feature) drops
         straight into ``plot_clustered_heatmap(..., bottom=[bar])``.
+        ``"log2_effect"`` is log2 of the odds or hazard ratio; it is NaN for a
+        linear (continuous-outcome) beta. A p-value of 0 is clipped to the smallest
+        positive float before ``-log10``.
         """
         from eigenradiomics.plotting import Bar
 
@@ -239,12 +244,31 @@ def _clean_error(exc: Exception) -> str:
     return re.sub(r"\s+", " ", str(exc)).strip()[:300]
 
 
-def _design(subset: pd.DataFrame, feature: str, covariates: Sequence[str]) -> NDArray:
-    """[intercept, feature, *covariates] design matrix; the feature is column 1."""
-    return np.column_stack(
-        [np.ones(len(subset)), subset[feature].to_numpy(dtype=float)]
-        + [subset[col].to_numpy(dtype=float) for col in covariates]
-    )
+def _design(
+    subset: pd.DataFrame, feature: str, covariates: Sequence[str]
+) -> tuple[NDArray, float]:
+    """[intercept, feature, *covariates] design matrix; the feature is column 1.
+
+    Each column after the intercept is centred and divided by its SD. Without this,
+    a large gap in column units (e.g. 1e-12 vs 1e6) makes the statsmodels
+    pseudo-inverse drop small singular values and gives a wrong fit. The second
+    value is the feature SD: divide a feature coef, SE, or CI limit by it to get
+    raw units. The t/z statistic and the p-value do not change.
+    """
+    raw = subset[[feature, *covariates]].to_numpy(dtype=float)
+    with np.errstate(invalid="ignore"):  # an inf value gives NaN; the fit then fails
+        sd = raw.std(axis=0)
+        sd = np.where(sd > 0, sd, 1.0)
+        scaled = (raw - raw.mean(axis=0)) / sd
+    return np.column_stack([np.ones(len(subset)), scaled]), float(sd[0])
+
+
+def _to_raw_units(fit: dict, sd: float) -> dict:
+    """Divide the feature coef, effect, SE, and CI of a linear fit by the feature SD."""
+    for key in ("coef", "effect", "se", "ci_low", "ci_high"):
+        if key in fit:
+            fit[key] /= sd
+    return fit
 
 
 def _ratio_result(family: str, coef: float, se: float, p: float, lo: float, hi: float) -> dict:
@@ -308,14 +332,15 @@ def _fit_binary(
 
     With a cluster identifier, fits a marginal (population-averaged) GEE logit
     (statsmodels ``GEE`` with a Binomial family and exchangeable working
-    correlation; Liang & Zeger, 1986), or a conditional random-intercept GLMM when
-    ``mixed_method="glmm"``. Reports the odds ratio exp(coef).
+    correlation; Liang & Zeger, 1986; the default), or a conditional
+    random-intercept GLMM when ``mixed_method="glmm"``. Reports the odds ratio
+    exp(coef).
     """
     if spec.groups_col and spec.mixed_method == "glmm":
         return _fit_glmm(subset, feature, covariates, spec)
     sm = _import_statsmodels()
     y = subset[spec.outcome_cols[0]].to_numpy(dtype=float)
-    design = _design(subset, feature, covariates)
+    design, sd = _design(subset, feature, covariates)
     try:
         if spec.groups_col:
             model = sm.GEE(
@@ -336,11 +361,11 @@ def _fit_binary(
         return {"status": "fit_failed", "error": _clean_error(exc)}
     return _ratio_result(
         family,
-        float(params[1]),
-        float(bse[1]),
+        float(params[1]) / sd,
+        float(bse[1]) / sd,
         float(pvals[1]),
-        float(conf[1, 0]),
-        float(conf[1, 1]),
+        float(conf[1, 0]) / sd,
+        float(conf[1, 1]) / sd,
     )
 
 
@@ -351,15 +376,21 @@ def _fit_glmm(
     intercept via statsmodels ``BinomialBayesMixedGLM`` (``fit_vb`` variational
     Bayes posterior); the fixed-effect posterior mean/SD give a Wald z, p, and
     odds ratio.
+
+    The variational posterior SD is not a frequentist standard error. The p-value
+    is an approximate Bayesian value and it is anti-conservative (too small). The
+    fit uses the scaled design of :func:`_design`. In raw units, a feature with a
+    large SD makes ``fit_vb`` stall at OR 1 and p 1.
     """
     _import_statsmodels()
     from statsmodels.genmod.bayes_mixed_glm import BinomialBayesMixedGLM
 
-    renames = {spec.outcome_cols[0]: "y", feature: "x"}
-    renames.update({col: f"c{i}" for i, col in enumerate(covariates)})
-    safe = subset.rename(columns=renames).copy()
+    design, scale = _design(subset, feature, covariates)
+    names = ["x", *(f"c{i}" for i in range(len(covariates)))]
+    safe = pd.DataFrame(design[:, 1:], columns=names)
+    safe["y"] = subset[spec.outcome_cols[0]].to_numpy(dtype=float)
     safe["g"] = subset[spec.groups_col].to_numpy()
-    rhs = " + ".join(["x", *(f"c{i}" for i in range(len(covariates)))])
+    rhs = " + ".join(names)
     try:
         model = BinomialBayesMixedGLM.from_formula(f"y ~ {rhs}", {"g": "0 + C(g)"}, safe)
         res = model.fit_vb()
@@ -369,7 +400,8 @@ def _fit_glmm(
         return {"status": "fit_failed", "error": _clean_error(exc)}
     z = coef / sd if sd > 0 else np.nan
     p = float(2 * stats.norm.sf(abs(z))) if np.isfinite(z) else np.nan
-    return _ratio_result("glmm", coef, sd, p, coef - 1.96 * sd, coef + 1.96 * sd)
+    lo, hi = (coef - 1.96 * sd) / scale, (coef + 1.96 * sd) / scale
+    return _ratio_result("glmm", coef / scale, sd / scale, p, lo, hi)
 
 
 def _fit_continuous(
@@ -378,10 +410,10 @@ def _fit_continuous(
     """Linear association: statsmodels ``MixedLM`` (REML random-intercept) for
     clustered data, otherwise OLS with HC3 robust SE (see :func:`_fit_ols_hc3`).
     """
+    design, sd = _design(subset, feature, covariates)
+    y = subset[spec.outcome_cols[0]].to_numpy(dtype=float)
     if spec.groups_col:
         sm = _import_statsmodels()
-        design = _design(subset, feature, covariates)
-        y = subset[spec.outcome_cols[0]].to_numpy(dtype=float)
         try:
             res = sm.MixedLM(y, design, groups=subset[spec.groups_col].to_numpy()).fit(
                 method=["lbfgs"], reml=True
@@ -395,7 +427,7 @@ def _fit_continuous(
         except Exception as exc:
             return {"status": "fit_failed", "error": _clean_error(exc)}
         coef, se = float(params[1]), float(bse[1])
-        return {
+        fit = {
             "status": "ok",
             "model_family": "mixedlm",
             "coef": coef,
@@ -407,8 +439,9 @@ def _fit_continuous(
             "ci_low": float(conf[1, 0]),
             "ci_high": float(conf[1, 1]),
         }
-    y = subset[spec.outcome_cols[0]].to_numpy(dtype=float)
-    return _fit_ols_hc3(y, _design(subset, feature, covariates), feature_idx=1)
+    else:
+        fit = _fit_ols_hc3(y, design, feature_idx=1)
+    return _to_raw_units(fit, sd)
 
 
 def _fit_feature(
@@ -425,6 +458,17 @@ def _fit_feature(
         return {**base, "status": "no_complete_cases"}
     if subset[feature].nunique() < spec.min_unique:
         return {**base, "status": "constant_feature"}
+    # statsmodels uses a pseudo-inverse, so a rank-deficient design gives a wrong
+    # fit with no error. The scaled design makes the rank test free of units.
+    design, _ = _design(subset, feature, covariates)
+    # An inf value stops the SVD; the fitter then reports it as "fit_failed".
+    testable = len(design) >= design.shape[1] and np.isfinite(design).all()
+    if testable and np.linalg.matrix_rank(design) < design.shape[1]:
+        return {
+            **base,
+            "status": "collinear",
+            "error": "the feature and covariates are collinear (rank-deficient design).",
+        }
 
     if spec.outcome_type == "survival":
         base["n_events"] = int(subset[spec.outcome_cols[1]].sum())
@@ -434,7 +478,7 @@ def _fit_feature(
     elif spec.outcome_type == "binary":
         outcome_values = subset[spec.outcome_cols[0]]
         base["n_events"] = int(outcome_values.sum())
-        if outcome_values.nunique() < 2:
+        if outcome_values.nunique() < 2 or base["n_events"] < spec.min_events:
             return {**base, "status": "no_events"}
         fit = _fit_binary(subset, feature, covariates, spec)
     else:
@@ -488,7 +532,7 @@ def compute_feature_associations(
     adjust_for: Sequence[str] | None = None,
     covariate_data: pd.DataFrame | None = None,
     groups: Any = None,
-    mixed_method: str = "glmm",
+    mixed_method: str = "gee",
     penalizer: float = 0.0,
     min_events: int = 1,
     catalog: FeatureCatalog | pd.DataFrame | None = None,
@@ -502,9 +546,15 @@ def compute_feature_associations(
     X : DataFrame or RadiomicsDataset
         Feature matrix (samples x features). A :class:`RadiomicsDataset` also
         supplies the outcome (study-design roles), catalog, and covariate source.
+        The outcome, covariate, and group columns are never modelled as features.
     outcome : Series, DataFrame, column name, or None
         Continuous/binary outcome (Series or column), survival ``[time, event]``
         (2-column DataFrame), or ``None`` to take it from the dataset's design.
+        A binary outcome with two levels other than 0/1 (e.g. 1/2, or text such
+        as "no"/"yes") is mapped in sorted order: the lower level becomes 0 and the
+        higher level becomes 1 (the event), so the OR is for the higher level. Text
+        levels sort as strings. A Series or DataFrame outcome is aligned to *X* by
+        index; its index must be unique and cover every sample of *X*.
     outcome_type : {"auto", "continuous", "binary", "survival"}
         Outcome family; ``"auto"`` infers it (2 columns -> survival, <=2 unique
         values -> binary, else continuous).
@@ -512,21 +562,31 @@ def compute_feature_associations(
         ``{tier_name: [covariate columns]}`` fitted in parallel. Defaults to a
         ``"Univariable"`` tier plus an ``"Adjusted"`` tier when *adjust_for* is set.
     adjust_for : sequence of str, optional
-        Convenience covariate list for a single adjusted tier.
+        Convenience covariate list for a single adjusted tier. Covariates must be
+        numeric; a text column raises ``ValueError`` (encode it first, e.g. with
+        ``pandas.get_dummies(..., drop_first=True)``). A tier whose design is
+        rank-deficient (collinear covariates) gets the status ``"collinear"``.
     covariate_data : DataFrame, optional
         Where covariate columns live when *X* is a bare feature DataFrame
-        (defaults to the dataset metadata, or *X* itself).
-    groups : array-like or column name, optional
-        Cluster / repeated-measures identifier. When given, the engine switches to
-        a mixed/clustered variant: MixedLM (continuous), GLMM or GEE (binary), and
-        cluster-robust Cox (survival).
-    mixed_method : {"glmm", "gee"}
-        Mixed binary model when *groups* is given (random-intercept GLMM, default,
-        vs cluster-robust GEE).
+        (defaults to the dataset metadata, or *X* itself). It is aligned to *X* by
+        index; its index must be unique and cover every sample of *X*.
+    groups : Series, array-like, or column name, optional
+        Cluster / repeated-measures identifier (it must not also be a covariate).
+        When given, the engine switches to a mixed/clustered variant: MixedLM
+        (continuous), GEE or GLMM (binary), and cluster-robust Cox (survival). A
+        Series is aligned to *X* by index (the index must be unique and cover every
+        sample); an array or list is aligned by position and must have one value
+        per sample.
+    mixed_method : {"gee", "glmm"}
+        Mixed binary model when *groups* is given: ``"gee"`` (default) is a
+        cluster-robust marginal GEE logit. ``"glmm"`` is a random-intercept GLMM
+        fitted by variational Bayes; its p-values use the posterior SD as a Wald
+        SE, so they are approximate Bayesian values and anti-conservative.
     penalizer : float
         Optional Cox ridge penalizer for convergence support.
     min_events : int
         Minimum events required to fit a survival/binary model (else ``no_events``).
+        For a binary outcome, an event is an outcome of 1.
     catalog : FeatureCatalog or DataFrame, optional
         Adds ``family`` / ``family_group`` (and any other catalog columns).
     features : optional
@@ -551,22 +611,31 @@ def compute_feature_associations(
         raise ValueError(f"mixed_method must be 'glmm' or 'gee', got {mixed_method!r}.")
 
     outcome_frame, _ = _resolve_outcome(X, outcome, data)
-    outcome_frame = outcome_frame.reindex(feature_matrix.index)
+    outcome_frame = _align(outcome_frame, feature_matrix.index, "outcome")
     resolved_type = _infer_outcome_type(outcome_frame) if outcome_type == "auto" else outcome_type
     if resolved_type not in ("continuous", "binary", "survival"):
         raise ValueError(
             f"outcome_type must be continuous/binary/survival, got {resolved_type!r}."
         )
 
-    feature_names = list(resolve_analysis_features(feature_matrix, features=features))
-    if not feature_names:
-        raise ValueError("no feature columns to model.")
+    if resolved_type == "binary":
+        outcome_frame = _binary_to_01(outcome_frame)
 
     tiers = _build_tiers(model_tiers, adjust_for)
     covariate_cols = sorted({col for cols in tiers.values() for col in cols})
     missing = [col for col in covariate_cols if col not in data.columns]
     if missing:
         raise KeyError(f"covariate column(s) not found: {', '.join(missing[:5])}.")
+    text_cols = [
+        col
+        for col in covariate_cols
+        if (pd.to_numeric(data[col], errors="coerce").isna() & data[col].notna()).any()
+    ]
+    if text_cols:
+        raise ValueError(
+            f"covariate column(s) are not numeric: {', '.join(text_cols[:5])}. Encode them "
+            "as numbers first (e.g. with pandas.get_dummies(..., drop_first=True))."
+        )
 
     # Resolve the clustering/repeated-measures identifier (column name or array).
     groups_col: str | None = None
@@ -575,13 +644,41 @@ def compute_feature_associations(
         groups = X.design.group
     if groups is not None:
         if isinstance(groups, str):
-            groups_col, groups_series = groups, data[groups]
+            groups_col = groups
+            groups_series = _align(data[groups], feature_matrix.index, "groups column")
         else:
             groups_col = "__groups__"
-            groups_series = pd.Series(np.asarray(groups), index=feature_matrix.index)
+            groups_series = _align_groups(groups, feature_matrix.index)
+    if isinstance(groups, str) and groups in covariate_cols:
+        raise ValueError(
+            f"column {groups!r} is both the group and a covariate. Remove it from the "
+            "covariates; the group term already models the clustering."
+        )
+
+    # The outcome, covariate, and group columns are never features.
+    roles = set(covariate_cols)
+    if isinstance(groups, str):
+        roles.add(groups)
+    if isinstance(outcome, str):
+        roles.add(outcome)
+    elif isinstance(outcome, pd.Series):
+        roles.add(outcome.name)
+    elif isinstance(outcome, pd.DataFrame):
+        roles.update(outcome.columns)
+    feature_names = [
+        name
+        for name in resolve_analysis_features(feature_matrix, features=features)
+        if name not in roles
+    ]
+    if not feature_names:
+        raise ValueError("no feature columns to model.")
 
     outcome_cols = list(outcome_frame.columns)
-    frames = [feature_matrix[feature_names], outcome_frame, data[covariate_cols]]
+    # Every frame has the index of X, so the concat adds no rows and n_missing
+    # counts only the samples of X.
+    frames = [feature_matrix[feature_names], outcome_frame]
+    if covariate_cols:
+        frames.append(_align(data[covariate_cols], feature_matrix.index, "covariate data"))
     if groups_series is not None:
         frames.append(groups_series.rename(groups_col).to_frame())
     work = pd.concat(frames, axis=1)
@@ -617,6 +714,53 @@ def compute_feature_associations(
     return FeatureAssociationResult(table=table, outcome_type=resolved_type, tiers=list(tiers))
 
 
+def _binary_to_01(outcome_frame: pd.DataFrame) -> pd.DataFrame:
+    """Map two binary levels other than 0/1 to 0 (lower level) and 1 (higher level).
+
+    Text levels (e.g. "no"/"yes") sort as strings. A text outcome must have
+    exactly two levels.
+    """
+    raw = outcome_frame.iloc[:, 0]
+    numeric = pd.to_numeric(raw, errors="coerce")
+    if (numeric.isna() & raw.notna()).any():
+        values: pd.Series = raw.astype("string")
+        levels: list[Any] = sorted(values.dropna().unique())
+        if len(levels) != 2:
+            raise ValueError(
+                f"a text binary outcome must have exactly two levels; found {len(levels)}: "
+                f"{levels[:5]}."
+            )
+    else:
+        values, levels = numeric, sorted(numeric.dropna().unique())
+        if len(levels) != 2 or set(levels) <= {0, 1}:
+            return outcome_frame
+    mapped = values.map({levels[0]: 0.0, levels[1]: 1.0}).astype(float)
+    return mapped.to_frame(name=outcome_frame.columns[0])
+
+
+def _align(obj: _Frame, index: pd.Index, name: str) -> _Frame:
+    """Align *obj* to the samples of X by index label; it must cover every sample."""
+    if not obj.index.is_unique:
+        raise ValueError(f"the {name} must have a unique index.")
+    absent = index.difference(obj.index)
+    if len(absent):
+        raise ValueError(
+            f"the {name} index does not cover {len(absent)} sample(s) of X "
+            f"(e.g. {list(absent[:3])}); give it the same index labels as X."
+        )
+    return obj.reindex(index)
+
+
+def _align_groups(groups: Any, index: pd.Index) -> pd.Series:
+    """Align a groups Series to *index* by label; align an array or list by position."""
+    if isinstance(groups, pd.Series):
+        return _align(groups, index, "groups Series")
+    values = np.asarray(groups)
+    if len(values) != len(index):
+        raise ValueError(f"groups has {len(values)} values but X has {len(index)} samples.")
+    return pd.Series(values, index=index)
+
+
 def _build_tiers(
     model_tiers: Mapping[str, Sequence[str]] | None,
     adjust_for: Sequence[str] | None,
@@ -645,7 +789,9 @@ def _value_column(table: pd.DataFrame, value: str) -> pd.Series:
     if value == "neg_log10_fdr":
         return -np.log10(table["p_fdr"].clip(lower=tiny))
     if value == "log2_effect":
-        return np.log2(table["effect"].clip(lower=tiny))
+        # log2 is defined only for a ratio effect (OR/HR = exp(coef)). A linear
+        # beta has no log2 scale, so its rows are NaN.
+        return (table["coef"] / np.log(2)).where(table["effect_name"].isin(["OR", "HR"]))
     if value in ("coef", "effect", "statistic", "ci_low", "ci_high"):
         return table[value]
     raise ValueError(
@@ -668,6 +814,9 @@ def _annotate_catalog(
         return table
     frame = catalog.frame if isinstance(catalog, FeatureCatalog) else FeatureCatalog(catalog).frame
     keep = [c for c in ("feature", "family", "family_group", "config") if c in frame.columns]
+    # Drop the old catalog columns, so a second annotation replaces them and does
+    # not make "_x"/"_y" suffixes.
+    table = table.drop(columns=[c for c in keep if c != "feature" and c in table.columns])
     return table.merge(frame[keep], on="feature", how="left", validate="many_to_one")
 
 
@@ -730,7 +879,8 @@ def plot_volcano(
 
     The panel grid is chosen from the number of tiers shown: 1 -> 1x1, 2 -> 1x2,
     3 -> 1x3, 4 -> 2x2, and 5-9 -> 3x3 (unused cells hidden). Pass an explicit
-    ``layout=(rows, cols)`` to override.
+    ``layout=(rows, cols)`` to override. A p-value of 0 (underflow) is plotted at
+    ``-log10`` of the smallest positive float (about 323.3), so no fitted row is lost.
 
     Parameters
     ----------
@@ -744,7 +894,8 @@ def plot_volcano(
     marker_by : str, optional
         Catalog column whose categories set the point markers.
     fdr_alpha : float
-        FDR threshold for "significant" colouring and the horizontal reference.
+        FDR threshold for "significant" colouring. The dotted horizontal line is
+        at the nominal p = ``fdr_alpha``; it is not the FDR cut.
     layout : "auto" or (rows, cols)
         Panel grid.
     axis_mode : {"panel", "shared"}
@@ -797,7 +948,6 @@ def plot_volcano(
         result.table["model"].isin(panels)
         & result.table["status"].eq("ok")
         & result.table["p_value"].notna()
-        & result.table["p_value"].gt(0)
     ].copy()
     if is_ratio:
         shown["_x"] = np.log2(shown["effect"].clip(lower=np.finfo(float).tiny))
@@ -876,7 +1026,7 @@ def plot_volcano(
             )
         )
     handles.append(
-        Line2D([0], [0], color="black", linestyle=":", label=f"p = {fdr_alpha:g} (FDR)")
+        Line2D([0], [0], color="black", linestyle=":", label=f"p = {fdr_alpha:g} (nominal)")
     )
     fig.legend(handles=handles, loc="lower center", ncol=min(len(handles), 5), frameon=False)
     if title:
@@ -949,8 +1099,10 @@ def plot_rwas_manhattan(
 
     Features are plotted on the horizontal axis grouped by their catalog family
     or group, with alternating shading and labels. The vertical axis represents
-    the -log10 association p-value. Custom tracks (categorical strips, numeric
-    bars, and correlation panels) can be aligned horizontally under the plot.
+    the -log10 association p-value. A p-value of 0 (underflow) is plotted at
+    ``-log10`` of the smallest positive float (about 323.3). Custom tracks
+    (categorical strips, numeric bars, and correlation panels) can be aligned
+    horizontally under the plot.
 
     Parameters
     ----------
@@ -972,7 +1124,9 @@ def plot_rwas_manhattan(
     corr_panel : CorrPanel, optional
         A feature-by-variable correlation panel to draw transposed below the plot.
     fdr_alpha : float, default=0.05
-        FDR threshold for "significant" points and the reference line.
+        FDR threshold for "significant" points and the reference lines. The grey
+        dashed line is at the nominal p = ``fdr_alpha``. The black dotted line is at
+        the largest p-value with FDR < ``fdr_alpha`` (the FDR cut).
     figsize : tuple of float, optional
         Figure size.
     title : str, optional
@@ -1022,7 +1176,7 @@ def plot_rwas_manhattan(
         if tier is not None:
             df = df[df["model"] == tier]
 
-    df = df[df["status"].eq("ok") & df["p_value"].notna() & df["p_value"].gt(0)].copy()
+    df = df[df["status"].eq("ok") & df["p_value"].notna()].copy()
 
     if df.empty:
         raise ValueError("No fitted features available to plot.")
@@ -1175,11 +1329,11 @@ def plot_rwas_manhattan(
     )
 
     # Draw reference lines
-    ax_main.axhline(-np.log10(0.05), color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
+    ax_main.axhline(-np.log10(fdr_alpha), color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
 
     sig_df = df_ordered[df_ordered["_sig"]]
     if not sig_df.empty:
-        max_sig_p = sig_df["p_value"].max()
+        max_sig_p = max(sig_df["p_value"].max(), np.nextafter(0, 1))
         ax_main.axhline(
             -np.log10(max_sig_p), color="black", linestyle=":", linewidth=1.0, alpha=0.8
         )

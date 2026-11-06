@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Only run for non-prerelease releases
     if: ${{ !github.event.release.prerelease }}
     environment: pypi
@@ -16,17 +16,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
-          version: latest
+          version: 2.2.1
           virtualenvs-create: true
           virtualenvs-in-project: true
 

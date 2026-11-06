@@ -1,0 +1,10 @@
+# Open one monthly pull request that updates the GitHub Actions versions.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

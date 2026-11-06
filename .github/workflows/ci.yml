@@ -6,35 +6,38 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-24.04]
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        id: setup-python
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
-          version: latest
+          version: 2.2.1
           virtualenvs-create: true
           virtualenvs-in-project: true
 
       - name: Cache Poetry dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+          # The full Python version (for example 3.12.16) keeps a cached .venv from linking to an old Python.
+          key: venv-${{ matrix.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
           restore-keys: |
-            venv-${{ runner.os }}-${{ matrix.python-version }}-
+            venv-${{ matrix.os }}-${{ steps.setup-python.outputs.python-version }}-
 
       - name: Install dependencies
         run: |
@@ -54,7 +57,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: martonkolossvary/eigenradiomics
@@ -66,7 +69,7 @@ jobs:
           poetry run python dev/check_estimators.py
 
   docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: test
     if: github.ref == 'refs/heads/main'
     permissions:
@@ -74,17 +77,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
         with:
-          version: latest
+          version: 2.2.1
           virtualenvs-create: true
           virtualenvs-in-project: true
 
